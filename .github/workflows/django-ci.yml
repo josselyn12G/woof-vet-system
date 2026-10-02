@@ -1,0 +1,38 @@
+name: Django CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+concurrency:
+  group: django-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: |
+          pip install ruff
+          ruff check . --select E4,E7,E9,F --extend-exclude migrations
+
+      - name: Revisar que no falten migraciones
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Revisar configuración de Django
+        run: python manage.py check
+
+      - name: Tests (todas las apps)
+        run: python manage.py test -v 2
