@@ -47,3 +47,7 @@ Pruebas: `python manage.py test`
 ## Flujo de trabajo
 
 Ramas `main` (estable) y `develop` (integración). Cada tarea en su rama `feat/<issue>-<nombre>` creada desde `develop`, con Pull Request hacia `develop`. Commits con [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/).
+
+## Equipo
+Josselyn Guevara
+Adrian Freire
