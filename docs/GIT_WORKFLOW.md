@@ -139,7 +139,7 @@ git switch -c feat/15-mascotas
 # 3. Trabaja y commitea en pequeño
 python manage.py startapp mascotas        # ... programar ...
 git status                                # ver qué cambió
-git add mascotas templates woof
+git add mascotas templates config
 git commit -m "feat(mascotas): add pet model, views and templates"
 git add mascotas/tests.py
 git commit -m "test(mascotas): cover pet list and creation"

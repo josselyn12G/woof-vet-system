@@ -62,7 +62,7 @@ git push origin v1.0.0            # dispara release.yml
 
 ## 6. Desplegar (cuando lo necesiten)
 
-Aún no hay despliegue automático. Opción sencilla: **Render** o **Railway**. Conectas el repo, comando de inicio `gunicorn woof.wsgi` (agrega `gunicorn` a `requirements.txt`), y en producción configuras `DEBUG = False`, `ALLOWED_HOSTS` y un `SECRET_KEY` propio fuera del código.
+Aún no hay despliegue automático. Opción sencilla: **Render** o **Railway**. Conectas el repo, comando de inicio `gunicorn config.wsgi` (agrega `gunicorn` a `requirements.txt`), y en producción configuras `DEBUG = False`, `ALLOWED_HOSTS` y un `SECRET_KEY` propio fuera del código.
 
 ## 7. Errores frecuentes
 

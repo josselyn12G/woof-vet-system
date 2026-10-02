@@ -6,7 +6,7 @@ Proyecto web con **Django 5.2 LTS** usando el patrón MVC (Model–Template–Vi
 woof-vet-system/
 ├── manage.py            comandos de Django
 ├── requirements.txt     dependencias de Python
-├── woof/                configuración del proyecto (settings.py, urls.py…)
+├── config/              configuración del proyecto (settings.py, urls.py…)
 ├── docs/                guías del equipo (Word)
 └── .github/             CI/CD con GitHub Actions
 ```
