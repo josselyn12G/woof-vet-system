@@ -7,6 +7,7 @@ woof-vet-system/
 ├── manage.py            comandos de Django
 ├── requirements.txt     dependencias de Python
 ├── config/              configuración del proyecto (settings.py, urls.py…)
+├── templates/           plantillas comunes (base.html)
 ├── docs/                guías del equipo (Word)
 └── .github/             CI/CD con GitHub Actions
 ```
@@ -39,6 +40,7 @@ Pruebas: `python manage.py test`
 |---|---|
 | `Guia_Git_y_CI_CD.docx` · [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Ramas, commits y el trabajo diario paso a paso |
 | `Arquitectura_del_Proyecto.docx` | Qué es cada archivo y cómo crear un módulo nuevo con MVC y plantillas |
+| `Crear_un_Modulo_Mascotas.docx` | Tutorial paso a paso: módulo de mascotas completo (modelo, vistas, URLs, plantillas y pruebas) |
 | `Entorno_Virtual_Python.docx` | Qué es el `.venv`, para qué sirve y cómo usarlo |
 | `Pruebas_y_CI_CD.docx` · [CI_CD.md](docs/CI_CD.md) | Cómo escribir pruebas por módulo y cómo las valida GitHub Actions |
 
