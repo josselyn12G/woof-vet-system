@@ -1,4 +1,4 @@
-# Woof
+# Woof sistema veterinario
 
 Proyecto web con **Django 5.2 LTS** usando el patrón MVC (Model–Template–View), el ORM de Django y plantillas HTML.
 
