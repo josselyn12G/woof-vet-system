@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cuentas',
 ]
 
 MIDDLEWARE = [
@@ -134,3 +135,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Modelo de usuario propio (cuentas.Usuario). Debe definirse antes de la primera migración.
+AUTH_USER_MODEL = 'cuentas.Usuario'
