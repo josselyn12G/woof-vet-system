@@ -1,0 +1,1282 @@
+/* Estilos propios de Woof. Se cargan después de Bootstrap para poder ajustarlo.
+   Nombres de clases con BEM: bloque__elemento--modificador (por ejemplo, hero__titulo).
+   Criterios de diseño: guía de Apple (materiales translúcidos, tipografía por tamaño,
+   simplicidad, respuesta inmediata y movimiento suave con respeto por "reducir movimiento"). */
+
+/* =========================================================
+   1. Paleta y variables globales
+   ========================================================= */
+:root {
+  /* Colores de la marca (tomados del logo y la presentación) */
+  --woof-marca: #ee9a35;            /* naranja del logo: formas, fondos y la animación 3D */
+  --woof-marron: #573f33;           /* marrón del logo: títulos */
+  --woof-marron-oscuro: #3b2a22;    /* texto del cuerpo */
+  --woof-gris-calido: #85746b;      /* texto secundario (contraste 4.6:1 sobre blanco) */
+  --woof-noche: #1f1714;            /* fondo de la sección oscura */
+
+  /* Escala de naranjas a amarillos */
+  --woof-naranja-900: #7a3c0a;
+  --woof-naranja-700: #b45309;
+  --woof-naranja-600: #c46a0a;
+  --woof-naranja-500: #ee9a35;
+  --woof-naranja-300: #f7c27a;
+  --woof-naranja-100: #fdebd3;
+  --woof-ambar-400: #fbc164;
+  --woof-amarillo-400: #facc15;
+  --woof-amarillo-50: #fafaf9;
+
+  /* Colores con significado: el resto del CSS usa estos, no los de arriba */
+  --woof-primario: var(--woof-naranja-700);          /* botones (contraste 5:1 con texto blanco) */
+  --woof-primario-hover: var(--woof-naranja-900);
+  --woof-titulo-acento: var(--woof-naranja-600);     /* palabras resaltadas en títulos grandes */
+  --woof-fondo-suave: var(--woof-amarillo-50);
+
+  --woof-radio: 1.5rem;
+  --woof-sombra: 0 6px 20px rgba(87, 63, 51, 0.07);
+  --woof-sombra-grande: 0 30px 60px -20px rgba(59, 42, 34, 0.25);
+  --woof-curva: cubic-bezier(0.16, 1, 0.3, 1);       /* salida suave, sin rebote */
+
+  /* Títulos con la tipografía de la marca; el texto con la del sistema (como recomienda Apple) */
+  --woof-fuente-titulos: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --woof-fuente-texto: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Bootstrap usa estas variables para el texto, los enlaces y lo "primary" */
+  --bs-body-font-family: var(--woof-fuente-texto);
+  --bs-body-font-size: 1.0625rem;
+  --bs-body-line-height: 1.6;
+  --bs-body-color: var(--woof-marron-oscuro);
+  --bs-primary: var(--woof-naranja-700);
+  --bs-primary-rgb: 180, 83, 9;
+  --bs-link-color: var(--woof-naranja-700);
+  --bs-link-color-rgb: 180, 83, 9;
+  --bs-link-hover-color: var(--woof-naranja-900);
+  --bs-link-hover-color-rgb: 122, 60, 10;
+}
+
+h1, h2, h3 {
+  font-family: var(--woof-fuente-titulos);
+  color: var(--woof-marron);
+  font-weight: 800;
+}
+
+/* =========================================================
+   2. Botones: colores de Woof y respuesta inmediata al presionar
+   ========================================================= */
+.btn {
+  font-weight: 600;
+  transition: transform 100ms ease-out, background-color 150ms ease;
+}
+
+.btn:active {
+  transform: scale(0.97);                  /* se "hunde" en el momento del clic, no al soltar */
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--woof-primario);
+  --bs-btn-border-color: var(--woof-primario);
+  --bs-btn-hover-bg: var(--woof-primario-hover);
+  --bs-btn-hover-border-color: var(--woof-primario-hover);
+  --bs-btn-active-bg: var(--woof-primario-hover);
+  --bs-btn-active-border-color: var(--woof-primario-hover);
+  --bs-btn-disabled-bg: var(--woof-primario);
+  --bs-btn-disabled-border-color: var(--woof-primario);
+  --bs-btn-focus-shadow-rgb: 180, 83, 9;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--woof-primario);
+  --bs-btn-border-color: var(--woof-primario);
+  --bs-btn-hover-bg: var(--woof-primario);
+  --bs-btn-hover-border-color: var(--woof-primario);
+  --bs-btn-active-bg: var(--woof-primario-hover);
+  --bs-btn-active-border-color: var(--woof-primario-hover);
+  --bs-btn-focus-shadow-rgb: 180, 83, 9;
+}
+
+.enlace-flecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.enlace-flecha:hover .bi {
+  transform: translateX(3px);
+}
+
+.enlace-flecha .bi {
+  font-size: 0.9em;
+  transition: transform 150ms ease;
+}
+
+/* =========================================================
+   3. Menú: píldora de vidrio flotante, separada del borde superior
+   ========================================================= */
+.menu {
+  padding: 0.75rem 1rem 0;                 /* el espacio que la separa del borde de la ventana */
+  pointer-events: none;                    /* solo la píldora recibe clics, no el espacio alrededor */
+}
+
+.menu__barra {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0.35rem 0.5rem 0.35rem 1.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),          /* borde superior brillante: la luz sobre el vidrio */
+    0 8px 32px rgba(59, 42, 34, 0.08);
+  pointer-events: auto;
+  transition: background-color 250ms ease, box-shadow 250ms ease;
+}
+
+/* Al bajar: el vidrio se vuelve un poco más opaco y la sombra más marcada */
+.menu--scroll .menu__barra {
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 12px 40px rgba(59, 42, 34, 0.12);
+}
+
+.menu__contenedor {
+  min-height: 2.75rem;
+  padding: 0;
+}
+
+.menu__logo {
+  height: 28px;
+}
+
+.menu__enlaces {
+  gap: 0.25rem;
+}
+
+.menu__enlace {
+  padding: 0.5rem 0.75rem;
+  color: var(--woof-marron);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.menu__enlace:hover,
+.menu__enlace:focus-visible {
+  color: var(--woof-primario);
+}
+
+.menu__enlace--boton {
+  background: none;
+  border: 0;
+}
+
+.menu__acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.menu__cta {
+  padding: 0.35rem 1rem;
+  font-size: 0.875rem;
+}
+
+.menu__saludo {
+  color: var(--woof-gris-calido);
+  font-size: 0.9375rem;
+}
+
+.menu__boton-movil {
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  color: var(--woof-marron);
+  font-size: 1.6rem;
+}
+
+.menu__boton-movil:focus {
+  box-shadow: none;
+}
+
+/* =========================================================
+   4. Tipografía: el espaciado de letras cambia con el tamaño
+   ========================================================= */
+.titulo-display {
+  font-size: clamp(2.75rem, 7vw, 5.25rem);
+  line-height: 1.04;                       /* interlineado apretado en texto grande */
+  letter-spacing: -0.035em;                /* letras más juntas en texto grande */
+}
+
+.titulo-seccion {
+  max-width: 44rem;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.titulo-seccion--claro {
+  color: #fff;
+}
+
+.texto-marca {
+  color: var(--woof-titulo-acento);
+}
+
+.sobretitulo {
+  margin-bottom: 0.75rem;
+  color: var(--woof-naranja-700);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;                  /* texto chico: un poco más de aire */
+}
+
+.sobretitulo--claro {
+  color: var(--woof-marca);
+}
+
+.texto-intro {
+  max-width: 38rem;
+  margin-top: 1.25rem;
+  color: var(--woof-gris-calido);
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.texto-intro--claro {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Texto grande "de declaración": gris cálido con las ideas clave en oscuro */
+.declaracion {
+  margin: 0;
+  color: var(--woof-gris-calido);
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.declaracion__fuerte {
+  color: var(--woof-marron);
+}
+
+/* =========================================================
+   5. Secciones
+   ========================================================= */
+.seccion {
+  padding: 7rem 0;
+}
+
+.seccion--suave {
+  background: var(--woof-fondo-suave);
+}
+
+.seccion--oscura {
+  background: var(--woof-noche);
+}
+
+/* =========================================================
+   6. Portada (hero): texto a la izquierda, mascotas sin fondo sobre formas de color
+   ========================================================= */
+.hero {
+  padding: 4rem 0 3rem;
+  overflow: hidden;                        /* las formas y huellas no generan scroll horizontal */
+  background: linear-gradient(180deg, #fff 0%, var(--woof-fondo-suave) 100%);
+}
+
+.hero__sobretitulo {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero__titulo {
+  margin-bottom: 1.5rem;
+  font-size: clamp(2.4rem, 4vw, 3.6rem);
+}
+
+.hero__titulo .texto-marca {
+  display: block;
+}
+
+.hero__descripcion {
+  max-width: 30rem;
+  margin-bottom: 2rem;
+  color: var(--woof-gris-calido);
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+.hero__escena {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.12;
+}
+
+/* Círculo grande y suave que enmarca toda la composición */
+.hero__circulo {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 86%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff 0%, #f7f3ee 75%);
+}
+
+/* Formas orgánicas: bordes redondeados distintos en cada esquina */
+.hero__mancha {
+  position: absolute;
+  animation: hero-mancha 14s ease-in-out infinite alternate;
+}
+
+.hero__mancha--naranja {
+  left: 16%;
+  bottom: 8%;
+  width: 54%;
+  height: 56%;
+  border-radius: 58% 42% 46% 54% / 52% 44% 56% 48%;
+  background: linear-gradient(160deg, var(--woof-ambar-400) 0%, var(--woof-marca) 55%, var(--woof-naranja-600) 100%);
+}
+
+.hero__mancha--amarilla {
+  right: 6%;
+  bottom: 14%;
+  width: 36%;
+  height: 46%;
+  border-radius: 46% 54% 40% 60% / 56% 42% 58% 44%;
+  background: linear-gradient(200deg, #fde3a7 0%, var(--woof-ambar-400) 100%);
+  animation-delay: -6s;
+  opacity: 0.95;
+}
+
+@keyframes hero-mancha {
+  to {
+    border-radius: 44% 56% 58% 42% / 46% 58% 42% 54%;
+    transform: rotate(4deg) scale(1.03);
+  }
+}
+
+.hero__mascotas {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  width: 160%;
+  max-width: none;
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 24px 30px rgba(59, 42, 34, 0.22));
+}
+
+/* Dibujos a mano alzada (trazo, sin relleno) */
+.hero__dibujo {
+  position: absolute;
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero__dibujo--corazon {
+  left: 3%;
+  top: 42%;
+  width: 9%;
+  stroke: var(--woof-naranja-600);
+  transform: rotate(-14deg);
+}
+
+.hero__dibujo--huella {
+  right: 8%;
+  top: 6%;
+  width: 11%;
+  fill: var(--woof-ambar-400);
+  stroke: none;
+  transform: rotate(18deg);
+}
+
+/* Círculo con un mensaje, como un sello */
+.hero__insignia {
+  position: absolute;
+  right: -1%;
+  top: 26%;
+  display: grid;
+  place-content: center;
+  width: 27%;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--woof-sombra);
+  color: var(--woof-marron);
+  font-size: clamp(0.7rem, 1.1vw, 0.85rem);
+  line-height: 1.25;
+  text-align: center;
+}
+
+.hero__insignia strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--woof-naranja-700);
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.35em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.hero__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;                    /* el canvas no bloquea clics */
+}
+
+/* =========================================================
+   7. Imágenes y marcos
+   ========================================================= */
+.foto-redondeada {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 2rem;
+  box-shadow: var(--woof-sombra-grande);
+}
+
+/* Celulares con capturas reales de la app */
+.celulares {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(1rem, 4vw, 3rem);
+}
+
+.celular {
+  width: min(260px, 44vw);
+  padding: 8px;
+  border-radius: 40px;
+  background: var(--woof-marron);
+  box-shadow: var(--woof-sombra-grande);
+}
+
+.celular--desplazado {
+  margin-top: 4rem;
+}
+
+.celular__pantalla {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 32px;
+}
+
+/* Ventana de computadora estilo macOS con capturas del sistema web */
+.ventana {
+  max-width: 1000px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(59, 42, 34, 0.08);
+  box-shadow: var(--woof-sombra-grande);
+}
+
+.ventana img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ventana__barra {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #f4f1ee;
+  border-bottom: 1px solid rgba(59, 42, 34, 0.06);
+}
+
+.ventana__barra span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #e2dbd5;
+}
+
+.ventana__barra span:nth-child(1) { background: #f26b5b; }
+.ventana__barra span:nth-child(2) { background: #f6bd4f; }
+.ventana__barra span:nth-child(3) { background: #5fc35f; }
+
+/* =========================================================
+   7b. Funciones para veterinarios: lista que rota sola + imagen que cambia
+   ========================================================= */
+.funciones {
+  --duracion: 6s;                          /* tiempo que se muestra cada punto */
+}
+
+.funciones__lista {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  perspective: 900px;                      /* profundidad para que la tarjeta "salga" hacia quien mira */
+}
+
+.funciones__item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(59, 42, 34, 0.06);
+  transform: translateZ(-30px) scale(0.98);
+  opacity: 0.72;
+  transition:
+    transform 600ms var(--woof-curva),
+    opacity 400ms ease,
+    background-color 300ms ease,
+    box-shadow 600ms var(--woof-curva);
+}
+
+.funciones__item:hover {
+  opacity: 1;
+}
+
+/* La tarjeta activa se acerca (zoom hacia el frente) y se eleva con una sombra más profunda */
+.funciones__item.es-activa {
+  z-index: 1;
+  opacity: 1;
+  background: #fff;
+  transform: translateZ(0) scale(1.03);
+  box-shadow: 0 22px 44px -12px rgba(59, 42, 34, 0.28);
+}
+
+.funciones__boton {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 0;
+  background: none;
+  color: var(--woof-marron);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.funciones__boton:focus-visible {
+  outline: 2px solid var(--woof-primario);
+  outline-offset: -2px;
+  border-radius: 1.25rem;
+}
+
+.funciones__icono {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--woof-naranja-100);
+  color: var(--woof-naranja-700);
+  font-size: 1.25rem;
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+.funciones__item.es-activa .funciones__icono {
+  background: var(--woof-primario);
+  color: #fff;
+}
+
+.funciones__titulo {
+  flex: 1;
+}
+
+.funciones__flecha {
+  color: var(--woof-gris-calido);
+  transition: transform 400ms var(--woof-curva);
+}
+
+.funciones__item.es-activa .funciones__flecha {
+  transform: rotate(180deg);
+}
+
+/* Despliegue con transición de alto: la fila pasa de 0fr a 1fr */
+.funciones__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 500ms var(--woof-curva);
+}
+
+.funciones__item.es-activa .funciones__panel {
+  grid-template-rows: 1fr;
+}
+
+.funciones__panel-interior {
+  overflow: hidden;
+}
+
+.funciones__texto {
+  margin: 0;
+  padding: 0 1.25rem 1.25rem 5rem;         /* alineado con el título, después del ícono */
+  color: var(--woof-gris-calido);
+  opacity: 0;
+  transform: scale(0.92);                  /* la descripción se revela con un zoom desde atrás */
+  transform-origin: left top;
+  transition: opacity 450ms ease 150ms, transform 600ms var(--woof-curva) 150ms;
+}
+
+.funciones__item.es-activa .funciones__texto {
+  opacity: 1;
+  transform: none;
+}
+
+/* Barra de progreso del punto activo: cuando se llena, se pasa al siguiente */
+.funciones__progreso {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--woof-marca);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.funciones__item.es-activa .funciones__progreso {
+  animation: funciones-progreso var(--duracion) linear forwards;
+}
+
+/* Se pausa al pasar el mouse, al navegar con teclado dentro, o fuera de pantalla */
+.funciones:hover .funciones__progreso,
+.funciones:focus-within .funciones__progreso,
+.funciones--pausada .funciones__progreso {
+  animation-play-state: paused !important;
+}
+
+@keyframes funciones-progreso {
+  to { transform: scaleX(1); }
+}
+
+/* Escenario: ventana estilo Mac (usa .ventana) con las imágenes apiladas que cambian con zoom */
+.funciones__escenario {
+  max-width: none;
+}
+
+.funciones__area {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #f5f5f4;
+}
+
+/* ".funciones__area" delante sube la especificidad: si no, ".ventana img { height: auto }" gana
+   y la imagen no ocupa todo el alto del marco (se ve una franja gris abajo) */
+.funciones__area .funciones__imagen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(0.9);                   /* la imagen nueva entra acercándose (zoom hacia el frente) */
+  transition: opacity 600ms ease, transform 900ms var(--woof-curva);
+}
+
+/* Las capturas de pantalla se muestran completas dentro del marco, sin recortarlas */
+.funciones__area .funciones__imagen--captura {
+  object-fit: contain;
+  object-position: center top;             /* pegada arriba; el espacio que sobra queda abajo */
+  background: #fff;                        /* el borde inferior de las capturas es blanco: la unión no se nota */
+}
+
+.funciones__area .funciones__imagen.es-activa {
+  opacity: 1;
+  transform: none;
+}
+
+/* =========================================================
+   8. Funciones, listas y tarjetas
+   ========================================================= */
+.funcion__icono {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--woof-naranja-700);
+  font-size: 1.75rem;
+}
+
+.funcion__titulo {
+  margin-bottom: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.funcion__texto {
+  margin: 0;
+  color: var(--woof-gris-calido);
+  font-size: 0.975rem;
+}
+
+.lista-check {
+  display: grid;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--woof-marron);
+}
+
+.lista-check li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.lista-check .bi {
+  margin-top: 0.15rem;
+  color: var(--woof-marca);
+}
+
+/* =========================================================
+   9. Cómo se construye (sección oscura)
+   ========================================================= */
+.flujo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flujo__paso {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  min-width: 7.5rem;
+  padding: 1.25rem 1rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #fff;
+  font-weight: 600;
+}
+
+.flujo__paso .bi {
+  color: var(--woof-marca);
+  font-size: 1.6rem;
+}
+
+.flujo__paso small {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+}
+
+/* Flecha entre pasos */
+.flujo__paso:not(:last-child)::after {
+  content: '\203A';
+  position: absolute;
+  right: -1.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 1.75rem;
+}
+
+.tecnologia {
+  height: 100%;
+  padding: 1.75rem;
+  border-radius: var(--woof-radio);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tecnologia__icono {
+  display: block;
+  margin-bottom: 1rem;
+  color: var(--woof-marca);
+  font-size: 1.75rem;
+}
+
+.tecnologia__titulo {
+  color: #fff;
+  font-size: 1.15rem;
+}
+
+.tecnologia__texto {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+/* =========================================================
+   10. Hoja de ruta y equipo
+   ========================================================= */
+.etapa {
+  position: relative;
+  height: 100%;
+  padding: 1.75rem;
+  border-radius: var(--woof-radio);
+  border: 1px solid rgba(59, 42, 34, 0.1);
+  background: #fff;
+}
+
+.etapa--actual {
+  border-color: var(--woof-marca);
+  box-shadow: 0 0 0 1px var(--woof-marca);
+}
+
+.etapa__estado {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: var(--woof-naranja-700);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.etapa--actual .etapa__estado {
+  padding: 0.15rem 0.7rem;
+  border-radius: 999px;
+  background: var(--woof-primario);
+  color: #fff;
+}
+
+.etapa__titulo {
+  font-size: 1.3rem;
+  letter-spacing: -0.015em;
+}
+
+.etapa__texto {
+  margin: 0;
+  color: var(--woof-gris-calido);
+}
+
+.etapa__imagen {
+  position: absolute;
+  top: -1.25rem;
+  right: 1.25rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: var(--woof-sombra);
+}
+
+.persona {
+  height: 100%;
+  padding: 2.25rem 1.5rem;
+  border-radius: var(--woof-radio);
+  background: #fff;
+  text-align: center;
+  box-shadow: var(--woof-sombra);
+}
+
+.persona__avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--woof-naranja-600), var(--woof-ambar-400));
+  color: #fff;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.persona__nombre {
+  margin-bottom: 0.25rem;
+  font-size: 1.2rem;
+}
+
+.persona__rol {
+  margin: 0;
+  color: var(--woof-gris-calido);
+}
+
+/* =========================================================
+   10b. Los mejores servicios (estilo minimalista con el corgi sin fondo)
+   ========================================================= */
+.destacado {
+  padding: 6rem 0 0;
+  background: #f5f5f4;                     /* gris muy claro, como un estudio de fotografía */
+  overflow: hidden;
+}
+
+.destacado__texto {
+  padding-bottom: 6rem;
+}
+
+.destacado__titulo {
+  margin-bottom: 0.5rem;
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.destacado__subtitulo {
+  margin-bottom: 1.75rem;
+  color: var(--woof-marron);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.35em;                  /* subtítulo espaciado, como en la referencia */
+  text-transform: uppercase;
+}
+
+.destacado__descripcion {
+  max-width: 26rem;
+  margin-bottom: 2.25rem;
+  color: var(--woof-marron-oscuro);
+  font-size: 1.05rem;
+}
+
+.destacado__boton {
+  display: inline-block;
+  padding: 0.95rem 2.75rem;
+  background: var(--woof-marron);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 150ms ease, transform 100ms ease-out;
+}
+
+.destacado__boton:hover {
+  background: var(--woof-marron-oscuro);
+  color: #fff;
+}
+
+.destacado__boton:active {
+  transform: scale(0.97);
+}
+
+.destacado__imagen {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 34rem;                       /* foto vertical: se limita el alto, no el ancho */
+  margin: 0 3rem 0 auto;
+  filter: drop-shadow(0 30px 40px rgba(59, 42, 34, 0.18));   /* sombra que sigue la silueta del perro */
+}
+
+/* =========================================================
+   10c. Servicios y veterinarios (tarjetas con foto)
+   ========================================================= */
+.encabezado-fila {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.encabezado-fila .titulo-seccion {
+  margin: 0;
+}
+
+.servicio,
+.veterinario {
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--woof-radio);
+  background: #fff;
+  box-shadow: var(--woof-sombra);
+  transition: transform 250ms var(--woof-curva), box-shadow 250ms ease;
+}
+
+.servicio:hover,
+.veterinario:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(87, 63, 51, 0.12);
+}
+
+.servicio__imagen {
+  display: block;
+  width: 100%;
+  height: auto;                            /* sin esto, el atributo height del HTML anula el aspect-ratio */
+  aspect-ratio: 10 / 7;
+  object-fit: cover;
+}
+
+.servicio__cuerpo,
+.veterinario__cuerpo {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.servicio__titulo,
+.veterinario__nombre {
+  margin-bottom: 0.35rem;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+
+.servicio__texto {
+  margin: 0;
+  color: var(--woof-gris-calido);
+  font-size: 0.975rem;
+}
+
+.veterinario__foto {
+  display: block;
+  width: 100%;
+  height: auto;                            /* sin esto, el atributo height del HTML anula el aspect-ratio */
+  aspect-ratio: 15 / 13;
+  object-fit: cover;
+  object-position: center 20%;
+  background: #eeeae6;
+}
+
+.veterinario__especialidad {
+  margin-bottom: 0.6rem;
+  color: var(--woof-naranja-700);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.veterinario__datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--woof-gris-calido);
+  font-size: 0.9rem;
+}
+
+.veterinario__estrellas {
+  color: #f2b01e;
+  letter-spacing: 0.05em;
+}
+
+.veterinario__separador {
+  opacity: 0.5;
+}
+
+@media (max-width: 991.98px) {
+  .destacado {
+    padding-top: 4.5rem;
+  }
+
+  .destacado__texto {
+    padding-bottom: 2rem;
+  }
+
+  .destacado__imagen {
+    margin: 0 auto;
+  }
+}
+
+/* =========================================================
+   12. Pie de página
+   ========================================================= */
+.pie {
+  padding: 2rem 0;
+  background: var(--woof-noche);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pie__logo {
+  height: 26px;
+}
+
+.pie__texto {
+  font-size: 0.875rem;
+}
+
+/* =========================================================
+   12b. Transiciones suaves entre secciones de distinto color
+   Cada sección recibe en el HTML tres colores: --arriba (el de la sección anterior),
+   --color (el suyo) y --abajo (el de la siguiente). El fondo se funde en los bordes,
+   así el cambio de color no se ve como un corte.
+   ========================================================= */
+.transicion {
+  --largo: 140px;                          /* alto de la zona de fundido */
+  /* Varios puntos intermedios (curva suave) mezclados en OKLab, que evita los tonos grises turbios */
+  background: linear-gradient(
+    to bottom,
+    var(--arriba) 0,
+    color-mix(in oklab, var(--arriba) 65%, var(--color)) calc(var(--largo) * 0.3),
+    color-mix(in oklab, var(--arriba) 25%, var(--color)) calc(var(--largo) * 0.65),
+    var(--color) var(--largo),
+    var(--color) calc(100% - var(--largo)),
+    color-mix(in oklab, var(--abajo) 25%, var(--color)) calc(100% - var(--largo) * 0.65),
+    color-mix(in oklab, var(--abajo) 65%, var(--color)) calc(100% - var(--largo) * 0.3),
+    var(--abajo) 100%
+  );
+}
+
+/* Entre claro y oscuro el fundido ocurre solo en el relleno vacío de la sección, nunca detrás del contenido */
+.transicion[style*="#1f1714"] {
+  --largo: 6.5rem;
+}
+
+/* =========================================================
+   13. Aparición al hacer scroll (solo transform y opacity, que no traban la página)
+   ========================================================= */
+.con-js [data-revelar] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s var(--woof-curva), transform 0.9s var(--woof-curva);
+  transition-delay: calc(var(--retraso, 0) * 90ms);
+}
+
+.con-js [data-revelar="escala"] {
+  transform: translateY(28px) scale(0.96);
+}
+
+.con-js [data-revelar].es-visible {
+  opacity: 1;
+  transform: none;
+}
+
+[data-revelar-retraso="1"] { --retraso: 1; }
+[data-revelar-retraso="2"] { --retraso: 2; }
+[data-revelar-retraso="3"] { --retraso: 3; }
+[data-revelar-retraso="4"] { --retraso: 4; }
+
+/* =========================================================
+   14. Celular y tablet
+   ========================================================= */
+@media (max-width: 991.98px) {
+  /* Abierto en el celular, la píldora pasa a ser una tarjeta redondeada */
+  .menu__barra {
+    border-radius: 1.5rem;
+    padding-right: 0.75rem;
+  }
+
+  .menu__enlaces {
+    padding-top: 0.5rem;
+  }
+
+  .menu__acciones {
+    padding: 0.75rem 0 1rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .seccion {
+    padding: 4.5rem 0;
+  }
+
+  .transicion {
+    --largo: 90px;
+  }
+
+  .transicion[style*="#1f1714"] {
+    --largo: 4rem;                         /* el relleno en celular es de 4.5rem */
+  }
+
+  .hero {
+    padding-top: 3.5rem;
+  }
+
+  .celular--desplazado {
+    margin-top: 2.5rem;
+  }
+
+  .flujo {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.75rem;
+  }
+
+  .flujo__paso {
+    width: min(100%, 16rem);
+  }
+
+  /* En columna, la flecha apunta hacia abajo */
+  .flujo__paso:not(:last-child)::after {
+    content: '\2304';
+    right: 50%;
+    top: auto;
+    bottom: -1.65rem;
+    transform: translateX(50%);
+    font-size: 1.25rem;
+  }
+}
+
+/* =========================================================
+   15. Accesibilidad: preferencias del sistema de cada persona
+   ========================================================= */
+/* Reducir movimiento: solo un fundido corto, sin desplazamientos */
+@media (prefers-reduced-motion: reduce) {
+  .funciones__item.es-activa .funciones__progreso {
+    animation: none;                       /* sin avance automático */
+  }
+
+  .funciones__item,
+  .funciones__item.es-activa,
+  .funciones__panel,
+  .funciones__texto,
+  .funciones__imagen,
+  .funciones__flecha {
+    transition: opacity 0.2s ease;
+    transform: none;
+  }
+
+  .hero__mancha {
+    animation: none;
+  }
+
+  .servicio,
+  .veterinario {
+    transition: none;
+  }
+
+  .con-js [data-revelar],
+  .con-js [data-revelar="escala"] {
+    transform: none;
+    transition: opacity 0.3s ease;
+    transition-delay: 0s;
+  }
+
+  .btn,
+  .enlace-flecha .bi {
+    transition: none;
+  }
+}
+
+/* Reducir transparencia: el menú se vuelve sólido */
+@media (prefers-reduced-transparency: reduce) {
+  .menu__barra,
+  .menu--scroll .menu__barra {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Más contraste: bordes definidos */
+@media (prefers-contrast: more) {
+  .menu__barra {
+    background: #fff;
+    border: 1px solid var(--woof-marron);
+  }
+
+  .texto-intro,
+  .hero__descripcion,
+  .funcion__texto,
+  .etapa__texto,
+  .persona__rol {
+    color: var(--woof-marron-oscuro);
+  }
+}
