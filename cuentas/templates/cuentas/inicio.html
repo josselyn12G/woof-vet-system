@@ -10,48 +10,50 @@
 {% endblock %}
 
 {% block contenido %}
-  {# ================= Portada ================= #}
-  <section class="hero">
-    <div class="container">
-      <div class="row align-items-center g-5">
-        <div class="col-lg-6 text-center text-lg-start">
-          <p class="sobretitulo hero__sobretitulo" data-revelar>Mascotas sanas, hogares felices</p>
-          <h1 class="titulo-display hero__titulo" data-revelar data-revelar-retraso="1">
-            Cuidar a tu mascota.
-            <span class="texto-marca">Ahora, sin papeleo.</span>
-          </h1>
-          <p class="hero__descripcion mx-auto mx-lg-0" data-revelar data-revelar-retraso="2">
-            Citas, recetas, tratamientos y el carnet de vacunas de tu mascota, en un solo lugar.
-          </p>
-          <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3" data-revelar data-revelar-retraso="3">
-            {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
-            <a href="#" class="btn btn-primary btn-lg rounded-pill px-4">Crear mi cuenta <i class="bi bi-arrow-right ms-1"></i></a>
-            <a href="#servicios" class="btn btn-outline-primary btn-lg rounded-pill px-4">Ver servicios</a>
-          </div>
-        </div>
+  {# ================= Portada: corredor 3D de fotos ================= #}
+  <section class="corredor corredor--portada" id="corredor" aria-labelledby="corredor-titulo">
+    {# Capa decorativa: 9 fotos por lado, todas distintas, que avanzan desde el punto de fuga #}
+    <div class="corredor__escena" aria-hidden="true">
+      <div class="corredor__riel corredor__riel--izquierdo">
+          <figure class="corredor__tarjeta" style="--i: 0"><img src="{% static 'img/corredor/izq-1.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 1"><img src="{% static 'img/corredor/izq-2.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 2"><img src="{% static 'img/corredor/izq-3.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 3"><img src="{% static 'img/corredor/izq-4.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 4"><img src="{% static 'img/corredor/izq-5.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 5"><img src="{% static 'img/corredor/izq-6.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 6"><img src="{% static 'img/corredor/izq-7.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 7"><img src="{% static 'img/corredor/izq-8.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 8"><img src="{% static 'img/corredor/izq-9.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+      </div>
+      <div class="corredor__riel corredor__riel--derecho">
+          <figure class="corredor__tarjeta" style="--i: 0"><img src="{% static 'img/corredor/der-1.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 1"><img src="{% static 'img/corredor/der-2.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 2"><img src="{% static 'img/corredor/der-3.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 3"><img src="{% static 'img/corredor/der-4.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 4"><img src="{% static 'img/corredor/der-5.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 5"><img src="{% static 'img/corredor/der-6.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 6"><img src="{% static 'img/corredor/der-7.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 7"><img src="{% static 'img/corredor/der-8.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 8"><img src="{% static 'img/corredor/der-9.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+      </div>
+    </div>
 
-        <div class="col-lg-6">
-          {# Composición: formas de color detrás, las mascotas sin fondo delante y huellas 3D flotando (Three.js) #}
-          <div class="hero__escena" id="escena-3d" data-revelar="escala" data-revelar-retraso="1">
-            <div class="hero__circulo" aria-hidden="true"></div>
-            <div class="hero__mancha hero__mancha--naranja" aria-hidden="true"></div>
-            <div class="hero__mancha hero__mancha--amarilla" aria-hidden="true"></div>
+    <div class="corredor__barra">
+      <span></span>
+      <button type="button" class="corredor__control" id="corredor-control" aria-pressed="false" aria-controls="corredor">
+        <i class="bi bi-pause-fill" aria-hidden="true"></i>
+        <span class="corredor__control-texto">Pausar</span>
+      </button>
+    </div>
 
-            <svg class="hero__dibujo hero__dibujo--corazon" viewBox="0 0 48 44" aria-hidden="true">
-              <path d="M24 40C10 30 4 22 4 14a10 10 0 0 1 20-3 10 10 0 0 1 20 3c0 8-6 16-20 26Z" />
-            </svg>
-            <svg class="hero__dibujo hero__dibujo--huella" viewBox="0 0 64 60" aria-hidden="true">
-              <ellipse cx="32" cy="40" rx="15" ry="12" /><ellipse cx="13" cy="24" rx="6" ry="8" />
-              <ellipse cx="24" cy="12" rx="6" ry="8" /><ellipse cx="40" cy="12" rx="6" ry="8" /><ellipse cx="51" cy="24" rx="6" ry="8" />
-            </svg>
-
-            <img class="hero__mascotas" src="{% static 'img/portada-web.png' %}" width="793" height="315"
-                 alt="Un perro shih tzu y un gato atigrado, sentados juntos">
-
-            <p class="hero__insignia">Citas, recetas y carnet <strong>en un solo lugar</strong></p>
-            <canvas class="hero__canvas" aria-hidden="true"></canvas>
-          </div>
-        </div>
+    <div class="corredor__contenido">
+      <p class="corredor__sobretitulo">Mascotas sanas, hogares felices</p>
+      <h1 class="corredor__titulo" id="corredor-titulo">Cuidar a tu mascota.<br><span class="texto-marca">Ahora, sin papeleo.</span></h1>
+      <p class="corredor__texto">Citas, recetas, tratamientos y el carnet de vacunas de tu mascota, en un solo lugar.</p>
+      <div class="d-flex flex-wrap justify-content-center gap-3">
+        {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
+        <a href="#" class="corredor__boton">Crear mi cuenta <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        <a href="#servicios" class="corredor__boton corredor__boton--secundario">Ver servicios</a>
       </div>
     </div>
   </section>
@@ -69,8 +71,8 @@
           </p>
         </div>
         <div class="col-lg-5">
-          <img class="foto-redondeada" src="{% static 'img/problema-veterinaria.webp' %}" width="470" height="470" loading="lazy"
-               alt="Veterinaria sonriendo con un cachorro cocker spaniel y un gatito en brazos" data-revelar="escala">
+          <img class="foto-redondeada" src="{% static 'img/problema-mascotas.webp' %}" width="1000" height="1000" loading="lazy"
+               alt="Un perro y un gato acurrucados juntos sobre el pasto" data-revelar="escala">
         </div>
       </div>
     </div>
@@ -205,7 +207,7 @@
             <img class="funciones__imagen funciones__imagen--captura es-activa" src="{% static 'img/web-mascotas.webp' %}" width="1152" height="547" alt="Sistema web de Woof: listado de mascotas con su especie, raza, dueño y peso" loading="lazy" data-funcion="0">
             <img class="funciones__imagen funciones__imagen--captura" src="{% static 'img/web-agenda.webp' %}" width="1140" height="547" alt="Agenda médica de Woof: citas del día con total, pendientes y recaudación" loading="lazy" data-funcion="1">
             <img class="funciones__imagen funciones__imagen--captura" src="{% static 'img/web-veterinarios.webp' %}" width="1576" height="998" alt="Pantalla de veterinarios de Woof: perfiles y horarios disponibles por día" loading="lazy" data-funcion="2">
-            <img class="funciones__imagen funciones__imagen--foto" src="{% static 'img/servicios/vacunacion.webp' %}" width="800" height="560" alt="Cachorro recibiendo su medicamento" loading="lazy" data-funcion="3">
+            <img class="funciones__imagen funciones__imagen--captura" src="{% static 'img/web-recetas.webp' %}" width="1586" height="992" alt="Pantalla de recetas y tratamientos de Woof: plan de tratamiento con dosis, horarios y vacunas" loading="lazy" data-funcion="3">
             </div>
           </div>
         </div>
@@ -479,7 +481,7 @@
   </section>
 
   {# ================= Equipo ================= #}
-  <section class="transicion seccion seccion--suave" style="--arriba: #fafaf9; --color: #fafaf9; --abajo: #fafaf9;">
+  <section class="transicion seccion seccion--suave" style="--arriba: #fafaf9; --color: #fafaf9; --abajo: #fff;">
     <div class="container">
       <div class="text-center mb-5">
         <p class="sobretitulo" data-revelar>El equipo</p>
@@ -504,48 +506,47 @@
     </div>
   </section>
 
-  {# ================= Llamado final: corredor 3D de fotos ================= #}
-  <section class="corredor" id="corredor" aria-labelledby="corredor-titulo">
-    {# Capa decorativa: 9 fotos por lado, todas distintas, que avanzan desde el punto de fuga #}
-    <div class="corredor__escena" aria-hidden="true">
-      <div class="corredor__riel corredor__riel--izquierdo">
-          <figure class="corredor__tarjeta" style="--i: 0"><img src="{% static 'img/corredor/izq-1.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 1"><img src="{% static 'img/corredor/izq-2.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 2"><img src="{% static 'img/corredor/izq-3.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 3"><img src="{% static 'img/corredor/izq-4.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 4"><img src="{% static 'img/corredor/izq-5.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 5"><img src="{% static 'img/corredor/izq-6.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 6"><img src="{% static 'img/corredor/izq-7.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 7"><img src="{% static 'img/corredor/izq-8.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 8"><img src="{% static 'img/corredor/izq-9.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-      </div>
-      <div class="corredor__riel corredor__riel--derecho">
-          <figure class="corredor__tarjeta" style="--i: 0"><img src="{% static 'img/corredor/der-1.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 1"><img src="{% static 'img/corredor/der-2.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 2"><img src="{% static 'img/corredor/der-3.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 3"><img src="{% static 'img/corredor/der-4.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 4"><img src="{% static 'img/corredor/der-5.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 5"><img src="{% static 'img/corredor/der-6.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 6"><img src="{% static 'img/corredor/der-7.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 7"><img src="{% static 'img/corredor/der-8.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-          <figure class="corredor__tarjeta" style="--i: 8"><img src="{% static 'img/corredor/der-9.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
-      </div>
-    </div>
+  {# ================= Llamado final: perro y gato sin fondo ================= #}
+  <section class="hero hero--final">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6 text-center text-lg-start">
+          <p class="sobretitulo hero__sobretitulo" data-revelar>Nuestros mejores amigos</p>
+          <h2 class="titulo-display hero__titulo" data-revelar data-revelar-retraso="1">
+            ¿Listo para cuidar a tu mascota <span class="texto-marca">sin papeleo?</span>
+          </h2>
+          <p class="hero__descripcion mx-auto mx-lg-0" data-revelar data-revelar-retraso="2">
+            Crea tu cuenta y registra a tu primera mascota en minutos.
+          </p>
+          <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3" data-revelar data-revelar-retraso="3">
+            {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
+            <a href="#" class="btn btn-primary btn-lg rounded-pill px-4">Crear mi cuenta <i class="bi bi-arrow-right ms-1"></i></a>
+          </div>
+        </div>
 
-    <div class="corredor__barra">
-      <img class="corredor__marca" src="{% static 'img/logo.png' %}" alt="Woof">
-      <button type="button" class="corredor__control" id="corredor-control" aria-pressed="false" aria-controls="corredor">
-        <i class="bi bi-pause-fill" aria-hidden="true"></i>
-        <span class="corredor__control-texto">Pausar</span>
-      </button>
-    </div>
+        <div class="col-lg-6">
+          {# Composición: formas de color detrás, las mascotas sin fondo delante y huellas 3D flotando (Three.js) #}
+          <div class="hero__escena" id="escena-3d" data-revelar="escala" data-revelar-retraso="1">
+            <div class="hero__circulo" aria-hidden="true"></div>
+            <div class="hero__mancha hero__mancha--naranja" aria-hidden="true"></div>
+            <div class="hero__mancha hero__mancha--amarilla" aria-hidden="true"></div>
 
-    <div class="corredor__contenido">
-      <p class="corredor__sobretitulo">Nuestros mejores amigos</p>
-      <h2 class="corredor__titulo corredor__titulo--llamado" id="corredor-titulo">¿Listo para cuidar a tu mascota sin papeleo?</h2>
-      <p class="corredor__texto">Crea tu cuenta y registra a tu primera mascota en minutos.</p>
-      {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
-      <a href="#" class="corredor__boton">Crear mi cuenta <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            <svg class="hero__dibujo hero__dibujo--corazon" viewBox="0 0 48 44" aria-hidden="true">
+              <path d="M24 40C10 30 4 22 4 14a10 10 0 0 1 20-3 10 10 0 0 1 20 3c0 8-6 16-20 26Z" />
+            </svg>
+            <svg class="hero__dibujo hero__dibujo--huella" viewBox="0 0 64 60" aria-hidden="true">
+              <ellipse cx="32" cy="40" rx="15" ry="12" /><ellipse cx="13" cy="24" rx="6" ry="8" />
+              <ellipse cx="24" cy="12" rx="6" ry="8" /><ellipse cx="40" cy="12" rx="6" ry="8" /><ellipse cx="51" cy="24" rx="6" ry="8" />
+            </svg>
+
+            <img class="hero__mascotas" src="{% static 'img/portada-web.png' %}" width="793" height="315"
+                 alt="Un perro shih tzu y un gato atigrado, sentados juntos">
+
+            <p class="hero__insignia">Citas, recetas y carnet <strong>en un solo lugar</strong></p>
+            <canvas class="hero__canvas" aria-hidden="true"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
