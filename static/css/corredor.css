@@ -1,0 +1,324 @@
+/* Corredor 3D de fotos de mascotas ("Nuestros mejores amigos").
+   Los keyframes se calcularon con estas fórmulas (u = avance de 0 a 1):
+     escala   = (2.6 / 25) * (46 / 2.6)^u      (tamaño aparente)
+     z        = 30 * (1 - 1 / escala)                      (profundidad que produce esa escala)
+     riel     = 44 - (44 - (-11)) * (1 - u)^3.3    (se abre hacia el costado)
+     giro     = 6° → 28°                                   (gira hacia adentro)
+   El riel empieza en negativo: las tarjetas nacen cruzando el centro, así no queda un hueco en el punto de fuga. */
+
+.corredor {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  /* Casi blanco: limpio al centro y un gris muy suave en los bordes */
+  background: radial-gradient(ellipse 80% 75% at 50% 52%, #ffffff 0%, #fafaf9 55%, #efedea 100%);
+  container-type: inline-size;              /* habilita las unidades cqw (ancho de la sección) */
+  isolation: isolate;
+}
+
+/* Capa de tarjetas: decorativa, detrás del texto y sin recibir clics */
+.corredor__escena {
+  position: absolute;
+  inset: 0;
+  perspective: 30cqw;
+  perspective-origin: 50% 55%;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Cada riel debe conservar el 3D: si no, "aplana" a sus tarjetas y se pierde la perspectiva */
+.corredor__riel {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.corredor__tarjeta {
+  position: absolute;
+  left: calc(50% - 9.0cqw);
+  top: calc(55% - 12.5cqw);
+  width: 18cqw;
+  height: 25cqw;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 0.8cqw;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2cqw 4cqw rgba(87, 63, 51, 0.28);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+  animation: 18s linear infinite;
+  animation-delay: calc(var(--i) * -2s);    /* 18 s / 9 tarjetas: el corredor ya está lleno desde el primer cuadro */
+}
+
+.corredor__tarjeta img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.corredor__riel--derecho .corredor__tarjeta { animation-name: corredor-derecho; }
+.corredor__riel--izquierdo .corredor__tarjeta { animation-name: corredor-izquierdo; }
+
+/* Pausa (botón) y ahorro de batería (fuera de pantalla): se detienen sin volver al inicio */
+.corredor--pausado .corredor__tarjeta,
+.corredor--fuera .corredor__tarjeta {
+  animation-play-state: paused;
+}
+
+/* Brillo suave detrás del texto y sombra negra en los bordes */
+.corredor::before,
+.corredor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.corredor::before {
+  background: radial-gradient(ellipse 34% 30% at 50% 52%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.55) 55%, transparent 75%);
+}
+
+.corredor::after {
+  background:
+    radial-gradient(ellipse 80% 75% at 50% 52%, transparent 60%, rgba(239, 237, 234, 0.75) 100%),
+    linear-gradient(to bottom, #fafaf9 0%, transparent 12%, transparent 88%, #fafaf9 100%);
+}
+
+/* Barra superior: marca a la izquierda, Pausa/Reproducir a la derecha */
+.corredor__barra {
+  position: absolute;
+  top: 5.5rem;                              /* debajo del menú de vidrio */
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2.5rem;
+}
+
+.corredor__marca {
+  height: 22px;
+}
+
+.corredor__control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  color: var(--woof-marron);
+  box-shadow: 0 6px 20px rgba(87, 63, 51, 0.1);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background-color 150ms ease, transform 100ms ease-out;
+}
+
+.corredor__control:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.corredor__control:active {
+  transform: scale(0.96);
+}
+
+.corredor__control:focus-visible,
+.corredor__boton:focus-visible {
+  outline: 2px solid var(--woof-marca);
+  outline-offset: 3px;
+}
+
+/* Contenido central */
+.corredor__contenido {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.corredor__sobretitulo {
+  margin-bottom: 1.25rem;
+  color: var(--woof-naranja-700);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.corredor__titulo {
+  margin: 0 0 2.25rem;
+  color: var(--woof-marron);
+  font-size: clamp(52px, 7.4vw, 112px);
+  font-weight: 800;
+  line-height: 0.88;
+  letter-spacing: -0.075em;
+  text-shadow: 0 2px 30px rgba(255, 255, 255, 0.9);
+}
+
+/* Con una pregunta larga, el título se achica un poco para quedar en dos o tres líneas */
+.corredor__titulo--llamado {
+  max-width: 14ch;
+  text-wrap: balance;
+  margin-bottom: 1.25rem;
+  font-size: clamp(44px, 5.6vw, 88px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.corredor__texto {
+  max-width: 34rem;
+  text-wrap: balance;                      /* reparte las palabras parejo entre líneas */
+  margin: 0 0 2rem;
+  color: var(--woof-marron-oscuro);
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  /* Cápsula de vidrio: el texto se lee aunque pasen fotos por detrás */
+  padding: 0.45rem 1.1rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+}
+
+.corredor__boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.95rem 1.75rem;
+  border-radius: 999px;
+  background: var(--woof-marron);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 0 0 6px rgba(87, 63, 51, 0.12), 0 18px 40px rgba(87, 63, 51, 0.3);
+  transition: transform 200ms var(--woof-curva), box-shadow 200ms ease;
+}
+
+.corredor__boton:hover {
+  color: #fff;
+  transform: translateY(-3px);
+  box-shadow: 0 0 0 8px rgba(87, 63, 51, 0.14), 0 24px 48px rgba(87, 63, 51, 0.35);
+}
+
+.corredor__boton:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.corredor__boton .bi {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 767.98px) {
+  .corredor__barra {
+    top: 4.75rem;
+    padding: 0 1rem;
+  }
+
+  .corredor__control-texto {
+    display: none;                          /* en celular queda solo el ícono */
+  }
+
+  .corredor__titulo {
+    font-size: clamp(48px, 15vw, 72px);
+  }
+
+  .corredor__titulo--llamado {
+    font-size: clamp(36px, 11vw, 56px);
+  }
+
+  /* En pantallas angostas el corredor se agranda para que las fotos no queden diminutas */
+  .corredor__escena {
+    transform: scale(1.7);
+    transform-origin: 50% 55%;
+  }
+}
+
+/* Reducir movimiento: las tarjetas quedan quietas en sus posiciones repartidas (no vuelven al centro) */
+@media (prefers-reduced-transparency: reduce) {
+  .corredor__texto,
+  .corredor__control {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corredor__tarjeta {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes corredor-derecho {
+  0.00% { transform: translate3d(-11.000cqw, 0, -258.462cqw) rotateY(-6.00deg); opacity: 0.00; }
+  3.70% { transform: translate3d(-4.560cqw, 0, -229.342cqw) rotateY(-6.81deg); opacity: 0.93; }
+  7.41% { transform: translate3d(1.336cqw, 0, -203.163cqw) rotateY(-7.63deg); }
+  11.11% { transform: translate3d(6.713cqw, 0, -179.626cqw) rotateY(-8.44deg); }
+  14.81% { transform: translate3d(11.599cqw, 0, -158.465cqw) rotateY(-9.26deg); }
+  18.52% { transform: translate3d(16.019cqw, 0, -139.440cqw) rotateY(-10.07deg); }
+  22.22% { transform: translate3d(20.001cqw, 0, -122.336cqw) rotateY(-10.89deg); }
+  25.93% { transform: translate3d(23.570cqw, 0, -106.958cqw) rotateY(-11.70deg); }
+  29.63% { transform: translate3d(26.752cqw, 0, -93.133cqw) rotateY(-12.52deg); }
+  33.33% { transform: translate3d(29.570cqw, 0, -80.703cqw) rotateY(-13.33deg); }
+  37.04% { transform: translate3d(32.051cqw, 0, -69.528cqw) rotateY(-14.15deg); }
+  40.74% { transform: translate3d(34.217cqw, 0, -59.481cqw) rotateY(-14.96deg); }
+  44.44% { transform: translate3d(36.094cqw, 0, -50.448cqw) rotateY(-15.78deg); }
+  48.15% { transform: translate3d(37.704cqw, 0, -42.327cqw) rotateY(-16.59deg); }
+  51.85% { transform: translate3d(39.070cqw, 0, -35.026cqw) rotateY(-17.41deg); }
+  55.56% { transform: translate3d(40.214cqw, 0, -28.462cqw) rotateY(-18.22deg); }
+  59.26% { transform: translate3d(41.159cqw, 0, -22.561cqw) rotateY(-19.04deg); }
+  62.96% { transform: translate3d(41.926cqw, 0, -17.255cqw) rotateY(-19.85deg); }
+  66.67% { transform: translate3d(42.535cqw, 0, -12.485cqw) rotateY(-20.67deg); }
+  70.37% { transform: translate3d(43.007cqw, 0, -8.196cqw) rotateY(-21.48deg); }
+  74.07% { transform: translate3d(43.361cqw, 0, -4.340cqw) rotateY(-22.30deg); }
+  77.78% { transform: translate3d(43.616cqw, 0, -0.874cqw) rotateY(-23.11deg); }
+  81.48% { transform: translate3d(43.789cqw, 0, 2.243cqw) rotateY(-23.93deg); }
+  85.19% { transform: translate3d(43.899cqw, 0, 5.045cqw) rotateY(-24.74deg); }
+  88.89% { transform: translate3d(43.961cqw, 0, 7.564cqw) rotateY(-25.56deg); }
+  92.59% { transform: translate3d(43.990cqw, 0, 9.829cqw) rotateY(-26.37deg); }
+  96.30% { transform: translate3d(43.999cqw, 0, 11.865cqw) rotateY(-27.19deg); }
+  100.00% { transform: translate3d(44.000cqw, 0, 13.696cqw) rotateY(-28.00deg); }
+}
+
+@keyframes corredor-izquierdo {
+  0.00% { transform: translate3d(11.000cqw, 0, -258.462cqw) rotateY(6.00deg); opacity: 0.00; }
+  3.70% { transform: translate3d(4.560cqw, 0, -229.342cqw) rotateY(6.81deg); opacity: 0.93; }
+  7.41% { transform: translate3d(-1.336cqw, 0, -203.163cqw) rotateY(7.63deg); }
+  11.11% { transform: translate3d(-6.713cqw, 0, -179.626cqw) rotateY(8.44deg); }
+  14.81% { transform: translate3d(-11.599cqw, 0, -158.465cqw) rotateY(9.26deg); }
+  18.52% { transform: translate3d(-16.019cqw, 0, -139.440cqw) rotateY(10.07deg); }
+  22.22% { transform: translate3d(-20.001cqw, 0, -122.336cqw) rotateY(10.89deg); }
+  25.93% { transform: translate3d(-23.570cqw, 0, -106.958cqw) rotateY(11.70deg); }
+  29.63% { transform: translate3d(-26.752cqw, 0, -93.133cqw) rotateY(12.52deg); }
+  33.33% { transform: translate3d(-29.570cqw, 0, -80.703cqw) rotateY(13.33deg); }
+  37.04% { transform: translate3d(-32.051cqw, 0, -69.528cqw) rotateY(14.15deg); }
+  40.74% { transform: translate3d(-34.217cqw, 0, -59.481cqw) rotateY(14.96deg); }
+  44.44% { transform: translate3d(-36.094cqw, 0, -50.448cqw) rotateY(15.78deg); }
+  48.15% { transform: translate3d(-37.704cqw, 0, -42.327cqw) rotateY(16.59deg); }
+  51.85% { transform: translate3d(-39.070cqw, 0, -35.026cqw) rotateY(17.41deg); }
+  55.56% { transform: translate3d(-40.214cqw, 0, -28.462cqw) rotateY(18.22deg); }
+  59.26% { transform: translate3d(-41.159cqw, 0, -22.561cqw) rotateY(19.04deg); }
+  62.96% { transform: translate3d(-41.926cqw, 0, -17.255cqw) rotateY(19.85deg); }
+  66.67% { transform: translate3d(-42.535cqw, 0, -12.485cqw) rotateY(20.67deg); }
+  70.37% { transform: translate3d(-43.007cqw, 0, -8.196cqw) rotateY(21.48deg); }
+  74.07% { transform: translate3d(-43.361cqw, 0, -4.340cqw) rotateY(22.30deg); }
+  77.78% { transform: translate3d(-43.616cqw, 0, -0.874cqw) rotateY(23.11deg); }
+  81.48% { transform: translate3d(-43.789cqw, 0, 2.243cqw) rotateY(23.93deg); }
+  85.19% { transform: translate3d(-43.899cqw, 0, 5.045cqw) rotateY(24.74deg); }
+  88.89% { transform: translate3d(-43.961cqw, 0, 7.564cqw) rotateY(25.56deg); }
+  92.59% { transform: translate3d(-43.990cqw, 0, 9.829cqw) rotateY(26.37deg); }
+  96.30% { transform: translate3d(-43.999cqw, 0, 11.865cqw) rotateY(27.19deg); }
+  100.00% { transform: translate3d(-44.000cqw, 0, 13.696cqw) rotateY(28.00deg); }
+}

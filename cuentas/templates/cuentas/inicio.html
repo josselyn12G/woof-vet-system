@@ -1,1 +1,562 @@
-<h1>Bienvenidos a Woof</h1>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Woof · Sistema Veterinario{% endblock %}
+
+{% block main_clase %}{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'css/corredor.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  {# ================= Portada ================= #}
+  <section class="hero">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6 text-center text-lg-start">
+          <p class="sobretitulo hero__sobretitulo" data-revelar>Mascotas sanas, hogares felices</p>
+          <h1 class="titulo-display hero__titulo" data-revelar data-revelar-retraso="1">
+            Cuidar a tu mascota.
+            <span class="texto-marca">Ahora, sin papeleo.</span>
+          </h1>
+          <p class="hero__descripcion mx-auto mx-lg-0" data-revelar data-revelar-retraso="2">
+            Citas, recetas, tratamientos y el carnet de vacunas de tu mascota, en un solo lugar.
+          </p>
+          <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3" data-revelar data-revelar-retraso="3">
+            {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
+            <a href="#" class="btn btn-primary btn-lg rounded-pill px-4">Crear mi cuenta <i class="bi bi-arrow-right ms-1"></i></a>
+            <a href="#servicios" class="btn btn-outline-primary btn-lg rounded-pill px-4">Ver servicios</a>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          {# Composición: formas de color detrás, las mascotas sin fondo delante y huellas 3D flotando (Three.js) #}
+          <div class="hero__escena" id="escena-3d" data-revelar="escala" data-revelar-retraso="1">
+            <div class="hero__circulo" aria-hidden="true"></div>
+            <div class="hero__mancha hero__mancha--naranja" aria-hidden="true"></div>
+            <div class="hero__mancha hero__mancha--amarilla" aria-hidden="true"></div>
+
+            <svg class="hero__dibujo hero__dibujo--corazon" viewBox="0 0 48 44" aria-hidden="true">
+              <path d="M24 40C10 30 4 22 4 14a10 10 0 0 1 20-3 10 10 0 0 1 20 3c0 8-6 16-20 26Z" />
+            </svg>
+            <svg class="hero__dibujo hero__dibujo--huella" viewBox="0 0 64 60" aria-hidden="true">
+              <ellipse cx="32" cy="40" rx="15" ry="12" /><ellipse cx="13" cy="24" rx="6" ry="8" />
+              <ellipse cx="24" cy="12" rx="6" ry="8" /><ellipse cx="40" cy="12" rx="6" ry="8" /><ellipse cx="51" cy="24" rx="6" ry="8" />
+            </svg>
+
+            <img class="hero__mascotas" src="{% static 'img/portada-web.png' %}" width="793" height="315"
+                 alt="Un perro shih tzu y un gato atigrado, sentados juntos">
+
+            <p class="hero__insignia">Citas, recetas y carnet <strong>en un solo lugar</strong></p>
+            <canvas class="hero__canvas" aria-hidden="true"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= El problema ================= #}
+  <section class="transicion seccion" style="--arriba: #fafaf9; --color: #fff; --abajo: #fafaf9;">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-7">
+          <p class="sobretitulo" data-revelar>El problema</p>
+          <p class="declaracion" data-revelar data-revelar-retraso="1">
+            Muchas clínicas veterinarias todavía trabajan con <span class="declaracion__fuerte">papel, llamadas y hojas sueltas</span>.
+            Eso significa desorden, tiempo perdido y tutores que no saben qué le toca a su mascota.
+            <span class="declaracion__fuerte texto-marca">Woof lo reúne todo en un solo lugar.</span>
+          </p>
+        </div>
+        <div class="col-lg-5">
+          <img class="foto-redondeada" src="{% static 'img/problema-veterinaria.webp' %}" width="470" height="470" loading="lazy"
+               alt="Veterinaria sonriendo con un cachorro cocker spaniel y un gatito en brazos" data-revelar="escala">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Para tutores ================= #}
+  <section class="transicion seccion seccion--suave" id="tutores" style="--arriba: #fafaf9; --color: #fafaf9; --abajo: #fff;">
+    <div class="container">
+      <div class="text-center mb-5">
+        <p class="sobretitulo" data-revelar>Para tutores</p>
+        <h2 class="titulo-seccion mx-auto" data-revelar data-revelar-retraso="1">Todo sobre tu mascota, en tu bolsillo.</h2>
+      </div>
+
+      <div class="celulares">
+        <div class="celular" data-revelar data-revelar-retraso="1">
+          <img class="celular__pantalla" src="{% static 'img/app-inicio.webp' %}" width="520" height="1162" loading="lazy"
+               alt="Pantalla de inicio de la app Woof: saludo, próxima cita, servicios rápidos y mascotas">
+        </div>
+        <div class="celular celular--desplazado" data-revelar data-revelar-retraso="2">
+          <img class="celular__pantalla" src="{% static 'img/app-citas.webp' %}" width="520" height="1162" loading="lazy"
+               alt="Pantalla de citas de la app Woof: servicios y mis citas">
+        </div>
+      </div>
+
+      <div class="row g-4 mt-4">
+        <div class="col-6 col-lg-3" data-revelar data-revelar-retraso="1">
+          <div class="funcion">
+            <i class="bi bi-calendar-check funcion__icono"></i>
+            <h3 class="funcion__titulo">Citas en línea</h3>
+            <p class="funcion__texto">Elige el servicio, el veterinario y la hora.</p>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3" data-revelar data-revelar-retraso="2">
+          <div class="funcion">
+            <i class="bi bi-capsule funcion__icono"></i>
+            <h3 class="funcion__titulo">Tratamientos</h3>
+            <p class="funcion__texto">Cada dosis con su hora y un checklist para no olvidar.</p>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3" data-revelar data-revelar-retraso="3">
+          <div class="funcion">
+            <i class="bi bi-postcard-heart funcion__icono"></i>
+            <h3 class="funcion__titulo">Carnet digital</h3>
+            <p class="funcion__texto">Las vacunas y la próxima dosis, siempre a mano.</p>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3" data-revelar data-revelar-retraso="4">
+          <div class="funcion">
+            <i class="bi bi-chat-heart funcion__icono"></i>
+            <h3 class="funcion__titulo">Asistente con IA</h3>
+            <p class="funcion__texto">Una orientación inicial, conociendo a tu mascota.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Para veterinarios ================= #}
+  <section class="transicion seccion" id="veterinarios" style="--arriba: #fff; --color: #fff; --abajo: #f5f5f4;">
+    <div class="container">
+      <div class="text-center mb-5">
+        <p class="sobretitulo" data-revelar>Para veterinarios</p>
+        <h2 class="titulo-seccion mx-auto" data-revelar data-revelar-retraso="1">Tu clínica entera, en una sola pantalla.</h2>
+        <p class="texto-intro mx-auto" data-revelar data-revelar-retraso="2">
+          Pacientes, propietarios, agenda y recaudación del día, sin cambiar de programa.
+        </p>
+      </div>
+
+      {# Funciones que rotan solas; al hacer clic se despliega la descripción y cambia la imagen #}
+      <div class="funciones row align-items-center g-5" id="funciones" data-revelar>
+        <div class="col-lg-5">
+          <ul class="funciones__lista">
+          <li class="funciones__item es-activa">
+            <button type="button" class="funciones__boton" id="funcion-historial" aria-expanded="true" aria-controls="funcion-historial-panel" data-funcion="0">
+              <span class="funciones__icono"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i></span>
+              <span class="funciones__titulo">Historial clínico centralizado</span>
+              <i class="bi bi-chevron-down funciones__flecha" aria-hidden="true"></i>
+            </button>
+            <div class="funciones__panel" id="funcion-historial-panel" role="region" aria-labelledby="funcion-historial">
+              <div class="funciones__panel-interior">
+                <p class="funciones__texto">Consultas, diagnósticos, peso y vacunas de cada mascota en una sola ficha, lista para cada visita.</p>
+              </div>
+            </div>
+            <span class="funciones__progreso" aria-hidden="true"></span>
+          </li>
+          <li class="funciones__item">
+            <button type="button" class="funciones__boton" id="funcion-agenda" aria-expanded="false" aria-controls="funcion-agenda-panel" data-funcion="1">
+              <span class="funciones__icono"><i class="bi bi-calendar-week" aria-hidden="true"></i></span>
+              <span class="funciones__titulo">Agenda médica con seguimiento de cada cita</span>
+              <i class="bi bi-chevron-down funciones__flecha" aria-hidden="true"></i>
+            </button>
+            <div class="funciones__panel" id="funcion-agenda-panel" role="region" aria-labelledby="funcion-agenda">
+              <div class="funciones__panel-interior">
+                <p class="funciones__texto">Las citas del día con su estado, el veterinario asignado y la recaudación, para no perder ningún turno.</p>
+              </div>
+            </div>
+            <span class="funciones__progreso" aria-hidden="true"></span>
+          </li>
+          <li class="funciones__item">
+            <button type="button" class="funciones__boton" id="funcion-disponibilidad" aria-expanded="false" aria-controls="funcion-disponibilidad-panel" data-funcion="2">
+              <span class="funciones__icono"><i class="bi bi-person-badge" aria-hidden="true"></i></span>
+              <span class="funciones__titulo">Disponibilidad del personal veterinario</span>
+              <i class="bi bi-chevron-down funciones__flecha" aria-hidden="true"></i>
+            </button>
+            <div class="funciones__panel" id="funcion-disponibilidad-panel" role="region" aria-labelledby="funcion-disponibilidad">
+              <div class="funciones__panel-interior">
+                <p class="funciones__texto">Cada veterinario carga sus horarios y el sistema solo ofrece a los clientes los espacios libres.</p>
+              </div>
+            </div>
+            <span class="funciones__progreso" aria-hidden="true"></span>
+          </li>
+          <li class="funciones__item">
+            <button type="button" class="funciones__boton" id="funcion-recetas" aria-expanded="false" aria-controls="funcion-recetas-panel" data-funcion="3">
+              <span class="funciones__icono"><i class="bi bi-capsule" aria-hidden="true"></i></span>
+              <span class="funciones__titulo">Recetas, tratamientos y vacunas digitales</span>
+              <i class="bi bi-chevron-down funciones__flecha" aria-hidden="true"></i>
+            </button>
+            <div class="funciones__panel" id="funcion-recetas-panel" role="region" aria-labelledby="funcion-recetas">
+              <div class="funciones__panel-interior">
+                <p class="funciones__texto">El veterinario receta y el tutor recibe el plan con horarios, dosis y recordatorios en su celular.</p>
+              </div>
+            </div>
+            <span class="funciones__progreso" aria-hidden="true"></span>
+          </li>
+          </ul>
+        </div>
+        <div class="col-lg-7">
+          {# Ventana estilo Mac: la barra queda fija y las imágenes cambian dentro #}
+          <div class="ventana funciones__escenario">
+            <div class="ventana__barra" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="funciones__area">
+            <img class="funciones__imagen funciones__imagen--captura es-activa" src="{% static 'img/web-mascotas.webp' %}" width="1152" height="547" alt="Sistema web de Woof: listado de mascotas con su especie, raza, dueño y peso" loading="lazy" data-funcion="0">
+            <img class="funciones__imagen funciones__imagen--captura" src="{% static 'img/web-agenda.webp' %}" width="1140" height="547" alt="Agenda médica de Woof: citas del día con total, pendientes y recaudación" loading="lazy" data-funcion="1">
+            <img class="funciones__imagen funciones__imagen--captura" src="{% static 'img/web-veterinarios.webp' %}" width="1576" height="998" alt="Pantalla de veterinarios de Woof: perfiles y horarios disponibles por día" loading="lazy" data-funcion="2">
+            <img class="funciones__imagen funciones__imagen--foto" src="{% static 'img/servicios/vacunacion.webp' %}" width="800" height="560" alt="Cachorro recibiendo su medicamento" loading="lazy" data-funcion="3">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Los mejores servicios (cachorro sin fondo, estilo minimalista) ================= #}
+  <section class="transicion destacado" style="--arriba: #f5f5f4; --color: #f5f5f4; --abajo: #fafaf9;">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-5 destacado__texto">
+          <h2 class="destacado__titulo" data-revelar>Los mejores servicios</h2>
+          <p class="destacado__subtitulo" data-revelar data-revelar-retraso="1">Para tu mejor amigo</p>
+          <p class="destacado__descripcion" data-revelar data-revelar-retraso="2">
+            Desde la primera vacuna hasta cada control, en Woof encuentras veterinarios de confianza,
+            agenda en línea y el historial de tu mascota siempre contigo.
+          </p>
+          <a href="#servicios" class="destacado__boton" data-revelar data-revelar-retraso="3">Ver servicios</a>
+        </div>
+        <div class="col-lg-7">
+          <img class="destacado__imagen" src="{% static 'img/perro-doctor.png' %}" width="600" height="600" loading="lazy"
+               alt="Cachorro border collie con un estetoscopio al cuello" data-revelar="escala">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Servicios ================= #}
+  <section class="transicion seccion seccion--suave" id="servicios" style="--arriba: #fafaf9; --color: #fafaf9; --abajo: #fff;">
+    <div class="container">
+      <div class="encabezado-fila">
+        <div>
+          <p class="sobretitulo" data-revelar>Servicios</p>
+          <h2 class="titulo-seccion" data-revelar data-revelar-retraso="1">Todo lo que tu mascota necesita.</h2>
+        </div>
+        {# TODO(backend): cuando exista la agenda (Fase 3), enlazar a la página para agendar #}
+        <a href="#" class="btn btn-outline-primary rounded-pill px-4" data-revelar>Agendar una cita</a>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="0">
+          <article class="servicio">
+            <img class="servicio__imagen" src="{% static 'img/servicios/consulta.webp' %}" width="800" height="560" alt="" loading="lazy">
+            <div class="servicio__cuerpo">
+              <h3 class="servicio__titulo">Consulta general</h3>
+              <p class="servicio__texto">Revisión completa, diagnóstico y seguimiento de la salud de tu mascota.</p>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="1">
+          <article class="servicio">
+            <img class="servicio__imagen" src="{% static 'img/servicios/vacunacion.webp' %}" width="800" height="560" alt="" loading="lazy">
+            <div class="servicio__cuerpo">
+              <h3 class="servicio__titulo">Vacunación y desparasitación</h3>
+              <p class="servicio__texto">Vacunas al día y desparasitación, con recordatorios de cada dosis.</p>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="2">
+          <article class="servicio">
+            <img class="servicio__imagen" src="{% static 'img/servicios/peluqueria.webp' %}" width="800" height="560" alt="" loading="lazy">
+            <div class="servicio__cuerpo">
+              <h3 class="servicio__titulo">Peluquería y baño</h3>
+              <p class="servicio__texto">Baño, corte y cepillado con productos suaves para su piel.</p>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="0">
+          <article class="servicio">
+            <img class="servicio__imagen" src="{% static 'img/servicios/cirugia.webp' %}" width="800" height="560" alt="" loading="lazy">
+            <div class="servicio__cuerpo">
+              <h3 class="servicio__titulo">Cirugía y recuperación</h3>
+              <p class="servicio__texto">Procedimientos seguros y acompañamiento en el posoperatorio.</p>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="1">
+          <article class="servicio">
+            <img class="servicio__imagen" src="{% static 'img/servicios/nutricion.webp' %}" width="800" height="560" alt="" loading="lazy">
+            <div class="servicio__cuerpo">
+              <h3 class="servicio__titulo">Nutrición</h3>
+              <p class="servicio__texto">Planes de alimentación según su especie, edad y peso.</p>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="2">
+          <article class="servicio">
+            <img class="servicio__imagen" src="{% static 'img/servicios/bienestar.webp' %}" width="800" height="560" alt="" loading="lazy">
+            <div class="servicio__cuerpo">
+              <h3 class="servicio__titulo">Control de bienestar</h3>
+              <p class="servicio__texto">Chequeos periódicos para prevenir enfermedades a tiempo.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Nuestros veterinarios ================= #}
+  {# Datos de ejemplo: en la Fase 3 vendrán de la tabla PerfilVeterinario (nombre, especialidad, experiencia) #}
+  <section class="transicion seccion" style="--arriba: #fff; --color: #fff; --abajo: #fff;">
+    <div class="container">
+      <div class="encabezado-fila">
+        <div>
+          <p class="sobretitulo" data-revelar>Nuestro equipo médico</p>
+          <h2 class="titulo-seccion" data-revelar data-revelar-retraso="1">Conoce a nuestros veterinarios.</h2>
+        </div>
+        <a href="#" class="btn btn-outline-primary rounded-pill px-4" data-revelar>Ver todos</a>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="0">
+          <article class="veterinario">
+            <img class="veterinario__foto" src="{% static 'img/veterinarios/veterinario-1.webp' %}" width="600" height="640" alt="Retrato de Dra. Ana Pérez" loading="lazy">
+            <div class="veterinario__cuerpo">
+              <h3 class="veterinario__nombre">Dra. Ana Pérez</h3>
+              <p class="veterinario__especialidad">Dermatología veterinaria</p>
+              <p class="veterinario__datos">
+                <span class="veterinario__estrellas" aria-label="Calificación 4.9 de 5"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></span>
+                <span>4.9</span>
+                <span class="veterinario__separador">·</span>
+                <span><i class="bi bi-award"></i> 8 años de experiencia</span>
+              </p>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="1">
+          <article class="veterinario">
+            <img class="veterinario__foto" src="{% static 'img/veterinarios/veterinario-2.webp' %}" width="600" height="640" alt="Retrato de Dr. Andrés Salazar" loading="lazy">
+            <div class="veterinario__cuerpo">
+              <h3 class="veterinario__nombre">Dr. Andrés Salazar</h3>
+              <p class="veterinario__especialidad">Cirugía veterinaria</p>
+              <p class="veterinario__datos">
+                <span class="veterinario__estrellas" aria-label="Calificación 5.0 de 5"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></span>
+                <span>5.0</span>
+                <span class="veterinario__separador">·</span>
+                <span><i class="bi bi-award"></i> 12 años de experiencia</span>
+              </p>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="2">
+          <article class="veterinario">
+            <img class="veterinario__foto" src="{% static 'img/veterinarios/veterinario-3.webp' %}" width="600" height="640" alt="Retrato de Dra. Elena Ríos" loading="lazy">
+            <div class="veterinario__cuerpo">
+              <h3 class="veterinario__nombre">Dra. Elena Ríos</h3>
+              <p class="veterinario__especialidad">Medicina general</p>
+              <p class="veterinario__datos">
+                <span class="veterinario__estrellas" aria-label="Calificación 4.8 de 5"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></span>
+                <span>4.8</span>
+                <span class="veterinario__separador">·</span>
+                <span><i class="bi bi-award"></i> 6 años de experiencia</span>
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Cómo se construye ================= #}
+  <section class="seccion seccion--oscura" id="como-se-construye">
+    <div class="container">
+      <div class="text-center mb-5">
+        <p class="sobretitulo sobretitulo--claro" data-revelar>Cómo se construye</p>
+        <h2 class="titulo-seccion titulo-seccion--claro mx-auto" data-revelar data-revelar-retraso="1">
+          Hecho como un proyecto profesional.
+        </h2>
+        <p class="texto-intro texto-intro--claro mx-auto" data-revelar data-revelar-retraso="2">
+          Woof sigue la arquitectura MVC de Django: cada petición recorre el mismo camino, de la URL a la base de datos y de vuelta a tu pantalla.
+        </p>
+      </div>
+
+      {# Recorrido de una petición en Django (MTV) #}
+      <ol class="flujo" aria-label="Recorrido de una petición en Woof">
+        <li class="flujo__paso" data-revelar><i class="bi bi-display"></i><span>Navegador</span></li>
+        <li class="flujo__paso" data-revelar data-revelar-retraso="1"><i class="bi bi-signpost-split"></i><span>URLs</span></li>
+        <li class="flujo__paso" data-revelar data-revelar-retraso="2"><i class="bi bi-gear"></i><span>Vista</span><small>Controlador</small></li>
+        <li class="flujo__paso" data-revelar data-revelar-retraso="3"><i class="bi bi-database"></i><span>Modelo</span><small>ORM → Neon</small></li>
+        <li class="flujo__paso" data-revelar data-revelar-retraso="4"><i class="bi bi-file-earmark-code"></i><span>Plantilla</span><small>HTML</small></li>
+      </ol>
+
+      <div class="row g-4 mt-4">
+        <div class="col-md-6 col-lg-4" data-revelar>
+          <div class="tecnologia">
+            <i class="bi bi-filetype-py tecnologia__icono"></i>
+            <h3 class="tecnologia__titulo">Django 5.2</h3>
+            <p class="tecnologia__texto">Framework de Python con el patrón MVC (MTV), su ORM y plantillas HTML.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="1">
+          <div class="tecnologia">
+            <i class="bi bi-database-check tecnologia__icono"></i>
+            <h3 class="tecnologia__titulo">PostgreSQL en Neon</h3>
+            <p class="tecnologia__texto">Base de datos en la nube, con reglas de integridad también en SQL.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="2">
+          <div class="tecnologia">
+            <i class="bi bi-shield-lock tecnologia__icono"></i>
+            <h3 class="tecnologia__titulo">Doble factor</h3>
+            <p class="tecnologia__texto">Inicio de sesión con contraseña y un código de verificación con Twilio.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar>
+          <div class="tecnologia">
+            <i class="bi bi-git tecnologia__icono"></i>
+            <h3 class="tecnologia__titulo">Git y Pull Requests</h3>
+            <p class="tecnologia__texto">Cada tarea en su rama, revisión del compañero y Conventional Commits.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="1">
+          <div class="tecnologia">
+            <i class="bi bi-check2-all tecnologia__icono"></i>
+            <h3 class="tecnologia__titulo">Integración continua</h3>
+            <p class="tecnologia__texto">GitHub Actions corre las pruebas automáticas en cada Pull Request.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="2">
+          <div class="tecnologia">
+            <i class="bi bi-badge-3d tecnologia__icono"></i>
+            <h3 class="tecnologia__titulo">Bootstrap y Three.js</h3>
+            <p class="tecnologia__texto">Interfaz adaptable a celular y animación 3D liviana en la portada.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Hoja de ruta ================= #}
+  <section class="transicion seccion" style="--arriba: #fff; --color: #fff; --abajo: #fafaf9;">
+    <div class="container">
+      <div class="text-center mb-5">
+        <p class="sobretitulo" data-revelar>Hoja de ruta</p>
+        <h2 class="titulo-seccion mx-auto" data-revelar data-revelar-retraso="1">Woof crece por etapas.</h2>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-3" data-revelar>
+          <div class="etapa etapa--actual">
+            <img class="etapa__imagen" src="{% static 'img/etapas/entrega-1.webp' %}" width="128" height="128" alt="" loading="lazy">
+            <span class="etapa__estado">En curso</span>
+            <h3 class="etapa__titulo">Entrega 1</h3>
+            <p class="etapa__texto">Registro, inicio de sesión con doble factor y el registro de mascotas.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3" data-revelar data-revelar-retraso="1">
+          <div class="etapa">
+            <img class="etapa__imagen" src="{% static 'img/etapas/fase-2.webp' %}" width="128" height="128" alt="" loading="lazy">
+            <span class="etapa__estado">Fase 2</span>
+            <h3 class="etapa__titulo">Cuenta</h3>
+            <p class="etapa__texto">Inicio de sesión con Google, verificación de correo y recuperar contraseña.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3" data-revelar data-revelar-retraso="2">
+          <div class="etapa">
+            <img class="etapa__imagen" src="{% static 'img/etapas/fase-3.webp' %}" width="128" height="128" alt="" loading="lazy">
+            <span class="etapa__estado">Fase 3</span>
+            <h3 class="etapa__titulo">Clínica</h3>
+            <p class="etapa__texto">Citas, historial clínico, carnet de vacunas y seguimiento de tratamientos.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3" data-revelar data-revelar-retraso="3">
+          <div class="etapa">
+            <img class="etapa__imagen" src="{% static 'img/etapas/fase-4.webp' %}" width="128" height="128" alt="" loading="lazy">
+            <span class="etapa__estado">Fase 4</span>
+            <h3 class="etapa__titulo">Extensiones</h3>
+            <p class="etapa__texto">Tienda de productos, traslado de mascotas y asistente con IA.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Equipo ================= #}
+  <section class="transicion seccion seccion--suave" style="--arriba: #fafaf9; --color: #fafaf9; --abajo: #fafaf9;">
+    <div class="container">
+      <div class="text-center mb-5">
+        <p class="sobretitulo" data-revelar>El equipo</p>
+        <h2 class="titulo-seccion mx-auto" data-revelar data-revelar-retraso="1">Dos personas, un mismo sistema.</h2>
+      </div>
+      <div class="row g-4 justify-content-center">
+        <div class="col-sm-6 col-lg-4" data-revelar>
+          <div class="persona">
+            <span class="persona__avatar">JG</span>
+            <h3 class="persona__nombre">Josselyn Guevara</h3>
+            <p class="persona__rol">Cuentas, inicio de sesión y doble factor</p>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-4" data-revelar data-revelar-retraso="1">
+          <div class="persona">
+            <span class="persona__avatar">AF</span>
+            <h3 class="persona__nombre">Adrián Freire</h3>
+            <p class="persona__rol">Gestión de mascotas y acceso protegido</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ================= Llamado final: corredor 3D de fotos ================= #}
+  <section class="corredor" id="corredor" aria-labelledby="corredor-titulo">
+    {# Capa decorativa: 9 fotos por lado, todas distintas, que avanzan desde el punto de fuga #}
+    <div class="corredor__escena" aria-hidden="true">
+      <div class="corredor__riel corredor__riel--izquierdo">
+          <figure class="corredor__tarjeta" style="--i: 0"><img src="{% static 'img/corredor/izq-1.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 1"><img src="{% static 'img/corredor/izq-2.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 2"><img src="{% static 'img/corredor/izq-3.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 3"><img src="{% static 'img/corredor/izq-4.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 4"><img src="{% static 'img/corredor/izq-5.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 5"><img src="{% static 'img/corredor/izq-6.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 6"><img src="{% static 'img/corredor/izq-7.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 7"><img src="{% static 'img/corredor/izq-8.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 8"><img src="{% static 'img/corredor/izq-9.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+      </div>
+      <div class="corredor__riel corredor__riel--derecho">
+          <figure class="corredor__tarjeta" style="--i: 0"><img src="{% static 'img/corredor/der-1.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 1"><img src="{% static 'img/corredor/der-2.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 2"><img src="{% static 'img/corredor/der-3.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 3"><img src="{% static 'img/corredor/der-4.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 4"><img src="{% static 'img/corredor/der-5.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 5"><img src="{% static 'img/corredor/der-6.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 6"><img src="{% static 'img/corredor/der-7.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 7"><img src="{% static 'img/corredor/der-8.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+          <figure class="corredor__tarjeta" style="--i: 8"><img src="{% static 'img/corredor/der-9.webp' %}" alt="" width="560" height="780" loading="eager" decoding="async"></figure>
+      </div>
+    </div>
+
+    <div class="corredor__barra">
+      <img class="corredor__marca" src="{% static 'img/logo.png' %}" alt="Woof">
+      <button type="button" class="corredor__control" id="corredor-control" aria-pressed="false" aria-controls="corredor">
+        <i class="bi bi-pause-fill" aria-hidden="true"></i>
+        <span class="corredor__control-texto">Pausar</span>
+      </button>
+    </div>
+
+    <div class="corredor__contenido">
+      <p class="corredor__sobretitulo">Nuestros mejores amigos</p>
+      <h2 class="corredor__titulo corredor__titulo--llamado" id="corredor-titulo">¿Listo para cuidar a tu mascota sin papeleo?</h2>
+      <p class="corredor__texto">Crea tu cuenta y registra a tu primera mascota en minutos.</p>
+      {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
+      <a href="#" class="corredor__boton">Crear mi cuenta <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block scripts %}
+  {# "importmap" le dice al navegador de dónde descargar la librería cuando el código pida "three" #}
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js" } }
+  </script>
+  <script type="module" src="{% static 'js/hero-3d.js' %}"></script>
+  <script src="{% static 'js/corredor.js' %}" defer></script>
+  <script src="{% static 'js/funciones.js' %}" defer></script>
+{% endblock %}
