@@ -1,0 +1,172 @@
+/* Botones de todo el sitio: efecto vidrio y animación al pasar el mouse.
+   Se carga al final (después de woof.css y del CSS de cada página) para que estas reglas
+   se apliquen igual en la landing, el login y las páginas que vengan.
+
+   Botones incluidos:
+   - Llenos (naranja / marrón): .btn-primary, .corredor__boton, .destacado__boton, .acceso__boton
+   - De vidrio (claros):        .btn-outline-primary, .btn-light, .corredor__boton--secundario */
+
+/* ---------- Base común: brillo de vidrio, elevación y destello ---------- */
+.btn,
+.corredor__boton,
+.destacado__boton,
+.acceso__boton {
+  position: relative;
+  overflow: hidden;                          /* recorta el destello que cruza el botón */
+  isolation: isolate;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),   /* borde superior brillante: la luz sobre el vidrio */
+    0 6px 16px -6px rgba(59, 42, 34, 0.35);
+  transition:
+    transform 300ms var(--woof-curva),
+    box-shadow 300ms ease,
+    background-color 250ms ease,
+    color 250ms ease,
+    border-color 250ms ease;
+}
+
+/* Destello: una franja de luz que cruza el botón al pasar el mouse */
+.btn::after,
+.corredor__boton::after,
+.destacado__boton::after,
+.acceso__boton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 700ms var(--woof-curva);
+  pointer-events: none;
+}
+
+.btn:hover,
+.btn:focus-visible,
+.corredor__boton:hover,
+.corredor__boton:focus-visible,
+.destacado__boton:hover,
+.destacado__boton:focus-visible,
+.acceso__boton:hover,
+.acceso__boton:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 14px 28px -10px rgba(59, 42, 34, 0.45);
+}
+
+.btn:hover::after,
+.corredor__boton:hover::after,
+.destacado__boton:hover::after,
+.acceso__boton:hover::after {
+  transform: translateX(120%);
+}
+
+/* Al presionar: se "hunde" en el momento del clic */
+.btn:active,
+.corredor__boton:active,
+.destacado__boton:active,
+.acceso__boton:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 100ms;
+}
+
+/* La flecha avanza un poco al pasar el mouse */
+.btn .bi-arrow-right,
+.corredor__boton .bi-arrow-right {
+  display: inline-block;
+  transition: transform 300ms var(--woof-curva);
+}
+
+.btn:hover .bi-arrow-right,
+.corredor__boton:hover .bi-arrow-right {
+  transform: translateX(4px);
+}
+
+/* ---------- Botones de vidrio (claros, translúcidos) ---------- */
+.btn-outline-primary,
+.btn-light,
+.corredor__boton--secundario {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  color: var(--woof-marron);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(87, 63, 51, 0.1),
+    0 6px 16px -8px rgba(59, 42, 34, 0.25);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus-visible,
+.btn-light:hover,
+.btn-light:focus-visible,
+.corredor__boton--secundario:hover,
+.corredor__boton--secundario:focus-visible {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.9);
+  color: var(--woof-primario);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 0 0 1px rgba(238, 154, 53, 0.35),
+    0 14px 28px -10px rgba(59, 42, 34, 0.3);
+}
+
+/* En los botones claros el destello es naranja suave, para que se vea */
+.btn-outline-primary::after,
+.btn-light::after,
+.corredor__boton--secundario::after {
+  background: linear-gradient(110deg, transparent 30%, rgba(238, 154, 53, 0.18) 50%, transparent 70%);
+}
+
+/* ---------- Accesibilidad ---------- */
+.btn:focus-visible,
+.corredor__boton:focus-visible,
+.destacado__boton:focus-visible,
+.acceso__boton:focus-visible {
+  outline: 2px solid var(--woof-marca);
+  outline-offset: 3px;
+}
+
+/* Reducir movimiento: sin elevación ni destello; solo cambia el color */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .corredor__boton,
+  .destacado__boton,
+  .acceso__boton,
+  .btn::after,
+  .corredor__boton::after,
+  .destacado__boton::after,
+  .acceso__boton::after {
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  .btn:hover,
+  .corredor__boton:hover,
+  .destacado__boton:hover,
+  .acceso__boton:hover,
+  .btn:active,
+  .corredor__boton:active,
+  .destacado__boton:active,
+  .acceso__boton:active {
+    transform: none;
+  }
+
+  .btn::after,
+  .corredor__boton::after,
+  .destacado__boton::after,
+  .acceso__boton::after {
+    display: none;
+  }
+}
+
+/* Reducir transparencia: los botones de vidrio pasan a blanco sólido */
+@media (prefers-reduced-transparency: reduce) {
+  .btn-outline-primary,
+  .btn-light,
+  .corredor__boton--secundario {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
