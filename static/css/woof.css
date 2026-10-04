@@ -290,6 +290,11 @@ h1, h2, h3 {
   background: linear-gradient(180deg, #fff 0%, var(--woof-fondo-suave) 100%);
 }
 
+/* Al final de la página: mismo diseño, separado del pie */
+.hero--final {
+  padding: 6rem 0 5rem;
+}
+
 .hero__sobretitulo {
   font-size: 0.85rem;
   font-weight: 700;

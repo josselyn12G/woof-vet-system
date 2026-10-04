@@ -192,6 +192,25 @@
   -webkit-backdrop-filter: blur(10px) saturate(160%);
 }
 
+/* Como portada: ocupa la pantalla menos el menú, y la barra queda justo debajo de él */
+/* Como portada: el menú flota encima (position: fixed) y el carrusel empieza en el borde superior
+   de la ventana, así no queda una franja blanca detrás del menú. Solo en la página que tiene esta portada. */
+body:has(.corredor--portada) .menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.corredor--portada {
+  --alto-menu: 4.5rem;                     /* espacio que ocupa el menú flotante */
+  height: 100svh;
+}
+
+.corredor--portada .corredor__barra {
+  top: calc(var(--alto-menu) + 1rem);
+}
+
 .corredor__boton {
   display: inline-flex;
   align-items: center;
@@ -216,6 +235,21 @@
   transform: translateY(0) scale(0.97);
 }
 
+/* Va después de .corredor__boton para poder sobrescribir sus colores */
+.corredor__boton--secundario {
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--woof-marron);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px rgba(87, 63, 51, 0.15), 0 12px 30px rgba(87, 63, 51, 0.12);
+}
+
+.corredor__boton--secundario:hover {
+  color: var(--woof-marron);
+  background: #fff;
+}
+
+
 .corredor__boton .bi {
   font-size: 1.1rem;
 }
@@ -232,6 +266,10 @@
 
   .corredor__titulo {
     font-size: clamp(48px, 15vw, 72px);
+  }
+
+  .corredor--portada {
+    --alto-menu: 4.6rem;                   /* en celular el botón del menú es un poco más alto */
   }
 
   .corredor__titulo--llamado {
