@@ -17,8 +17,12 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link href="{% static 'css/woof.css' %}" rel="stylesheet">
   {% block estilos %}{% endblock %}
+  {# Va al final para que el estilo de los botones sea el mismo en todas las páginas #}
+  <link href="{% static 'css/botones.css' %}" rel="stylesheet">
 </head>
 <body class="d-flex flex-column min-vh-100">
+  {# Bloque "menu": una página puede vaciarlo (por ejemplo, el login) para no mostrar la barra #}
+  {% block menu %}
   {# Menú de vidrio flotante: una "píldora" translúcida separada del borde; el contenido pasa por detrás #}
   <header class="menu sticky-top" id="menu">
     <nav class="navbar navbar-expand-lg menu__barra" aria-label="Navegación principal">
@@ -43,14 +47,12 @@
           <div class="menu__acciones">
             {% if user.is_authenticated %}
               <span class="menu__saludo">Hola, {{ user.first_name|default:user.username }}</span>
-              {# TODO(backend): cambiar action="#" por {% url 'cuentas:logout' %} cuando exista la ruta #}
-              <form method="post" action="#" class="d-inline">
+              <form method="post" action="{% url 'cuentas:logout' %}" class="d-inline">
                 {% csrf_token %}
                 <button type="submit" class="menu__enlace menu__enlace--boton">Cerrar sesión</button>
               </form>
             {% else %}
-              {# TODO(backend): cambiar href="#" por {% url 'cuentas:login' %} y {% url 'cuentas:registro' %} #}
-              <a class="menu__enlace" href="#">Iniciar sesión</a>
+              <a class="menu__enlace" href="{% url 'cuentas:login' %}">Iniciar sesión</a>
               <a class="btn btn-primary btn-sm rounded-pill menu__cta" href="#">Crear cuenta</a>
             {% endif %}
           </div>
@@ -58,17 +60,20 @@
       </div>
     </nav>
   </header>
+  {% endblock %}
 
   <main class="flex-grow-1 {% block main_clase %}container py-4{% endblock %}">
     {% block contenido %}{% endblock %}
   </main>
 
+{% block pie %}
   <footer class="pie">
     <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
       <img src="{% static 'img/logo-blanco.png' %}" alt="Woof" class="pie__logo">
       <p class="pie__texto mb-0">Sistema Veterinario Woof · Proyecto de Ingeniería Web · Adrián Freire y Josselyn Guevara</p>
     </div>
   </footer>
+  {% endblock %}
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{% static 'js/woof.js' %}" defer></script>

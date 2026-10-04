@@ -1,0 +1,363 @@
+/* Estilos de la app "cuentas": inicio de sesión, registro y perfil.
+   Se cargan solo en las páginas de cuentas (bloque "estilos" de cada plantilla),
+   después de woof.css, así que pueden usar sus variables (--woof-marca, --woof-sombra...). */
+
+/* =========================================================
+   1. Acceso (login y registro): página sin menú, tarjeta blanca centrada
+   ========================================================= */
+/* Ocupa exactamente el alto de la ventana (dvh = alto real, también en celular con la barra del navegador) */
+.acceso {
+  height: 100vh;
+  height: 100dvh;
+  background: #fff;
+}
+
+/* Botón de inicio: píldora de vidrio arriba a la derecha.
+   Al pasar el mouse se eleva, la casita "salta" y aparece la palabra "Inicio". */
+.acceso__inicio {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  height: 3rem;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),          /* brillo del borde superior del vidrio */
+    0 8px 24px rgba(59, 42, 34, 0.12);
+  color: var(--woof-marron);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    transform 300ms var(--woof-curva),
+    box-shadow 300ms ease,
+    background-color 300ms ease,
+    gap 300ms var(--woof-curva);
+}
+
+.acceso__inicio .bi {
+  font-size: 1.2rem;
+  transition: transform 400ms var(--woof-curva);
+}
+
+/* El texto está oculto (ancho 0) y se despliega al pasar el mouse */
+.acceso__inicio-texto {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 350ms var(--woof-curva), opacity 250ms ease;
+}
+
+.acceso__inicio:hover,
+.acceso__inicio:focus-visible {
+  gap: 0.5rem;
+  color: var(--woof-marron);
+  background: rgba(255, 255, 255, 0.85);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 32px rgba(59, 42, 34, 0.18);
+}
+
+.acceso__inicio:hover .bi,
+.acceso__inicio:focus-visible .bi {
+  transform: translateY(-2px) rotate(-8deg) scale(1.1);
+}
+
+.acceso__inicio:hover .acceso__inicio-texto,
+.acceso__inicio:focus-visible .acceso__inicio-texto {
+  max-width: 5rem;
+  opacity: 1;
+}
+
+.acceso__inicio:active {
+  transform: scale(0.96);
+}
+
+.acceso__inicio:focus-visible {
+  outline: 2px solid var(--woof-marca);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acceso__inicio,
+  .acceso__inicio .bi,
+  .acceso__inicio-texto {
+    transition: none;
+  }
+
+  .acceso__inicio:hover,
+  .acceso__inicio:hover .bi {
+    transform: none;
+  }
+}
+
+/* La tarjeta ocupa toda la pantalla: imagen a la izquierda, formulario a la derecha */
+.acceso__tarjeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  height: 100%;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem);
+  background: #fff;
+}
+
+/* La imagen se ajusta al alto disponible: va posicionada, así su tamaño original no estira la página */
+.acceso__visual {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  background: var(--woof-marca);
+}
+
+.acceso__foto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;             /* prioriza la cara del perro al recortar */
+}
+
+.acceso__formulario {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 1rem;
+  overflow-y: auto;                        /* solo en pantallas muy bajitas: el scroll queda dentro del formulario */
+  text-align: center;
+}
+
+.acceso__marca {
+  align-self: center;
+  margin-bottom: 2.5rem;
+}
+
+.acceso__marca img {
+  height: 80px;
+}
+
+.acceso__titulo {
+  margin-bottom: 0.4rem;
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.acceso__subtitulo {
+  margin-bottom: 2.5rem;
+  color: var(--woof-gris-calido);
+  font-size: 0.95rem;
+}
+
+.acceso__form {
+  text-align: left;
+}
+
+.acceso__error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.9rem;
+  background: #fdecea;
+  color: #9b2c1f;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+/* Botón principal: píldora oscura (marrón de la marca) */
+.acceso__boton {
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 0.95rem 1rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: var(--woof-naranja-500);
+  color: #fff;
+  font-weight: 600;
+  transition: background-color 150ms ease, transform 100ms ease-out;
+}
+
+.acceso__boton:hover {
+  background: var(--woof-primario-hover);
+}
+
+.acceso__boton:active {
+  transform: scale(0.98);
+}
+
+.acceso__boton:focus-visible {
+  outline: 2px solid var(--woof-marca);
+  outline-offset: 3px;
+}
+
+.acceso__pie {
+  margin: 2.5rem 0 0;
+  color: var(--woof-gris-calido);
+  font-size: 0.9rem;
+}
+
+.acceso__pie a {
+  color: var(--woof-marron);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.acceso__pie a:hover {
+  color: var(--woof-primario);
+}
+
+/* =========================================================
+   2. Campos de formulario: caja redondeada con fondo suave
+   (reutilizables en registro y otros formularios de cuentas)
+   ========================================================= */
+.campo {
+  margin-bottom: 1.1rem;
+}
+
+.campo__etiqueta {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--woof-marron);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.campo__grupo {
+  position: relative;
+}
+
+.campo__entrada {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #e4dfda;
+  border-radius: 0.9rem;
+  background: #fafaf9;
+  color: var(--woof-marron-oscuro);
+  font-size: 1rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.campo__grupo .campo__entrada {
+  padding-right: 3rem;                       /* espacio para el botón del ojo */
+}
+
+/* Ícono a la izquierda dentro del campo (usuario, contraseña...) */
+.campo__icono {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #b3a69e;
+  font-size: 1.1rem;
+  pointer-events: none;                      /* el clic pasa al input */
+  transition: color 150ms ease;
+}
+
+.campo__grupo--icono .campo__entrada {
+  padding-left: 2.75rem;                     /* espacio para el ícono */
+}
+
+/* Al escribir en el campo, el ícono se pinta del naranja de la marca */
+.campo__grupo--icono:focus-within .campo__icono {
+  color: var(--woof-marca);
+}
+
+.campo__entrada::placeholder {
+  color: #b3a69e;
+}
+
+.campo__entrada:hover {
+  border-color: #d3cbc4;
+}
+
+/* Al escribir: anillo naranja suave, en lugar del contorno azul del navegador */
+.campo__entrada:focus {
+  outline: none;
+  border-color: var(--woof-marca);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(238, 154, 53, 0.18);
+}
+
+.campo__ver {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: none;
+  color: var(--woof-gris-calido);
+  font-size: 1.1rem;
+}
+
+.campo__ver:hover {
+  color: var(--woof-marron);
+  background: #f2efeb;
+}
+
+.campo__ver:focus-visible {
+  outline: 2px solid var(--woof-marca);
+}
+
+/* =========================================================
+   3. Celular: solo el formulario
+   ========================================================= */
+/* Tablet: la imagen se angosta para dar más espacio al formulario */
+@media (max-width: 991.98px) {
+  .acceso__tarjeta {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  }
+}
+
+/* Celular: solo el formulario, centrado */
+@media (max-width: 767.98px) {
+  .acceso__tarjeta {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .acceso__visual {
+    display: none;
+  }
+
+  .acceso__inicio {
+    top: 1rem;
+    right: 1rem;
+  }
+}
+
+/* Pantallas bajitas (laptop pequeña): menos espacio vertical entre elementos */
+@media (max-height: 720px) {
+  .acceso__marca {
+    margin-bottom: 1.25rem;
+  }
+
+  .acceso__subtitulo {
+    margin-bottom: 1.5rem;
+  }
+
+  .acceso__pie {
+    margin-top: 1.25rem;
+  }
+
+  .campo {
+    margin-bottom: 0.85rem;
+  }
+}
