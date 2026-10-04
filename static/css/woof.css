@@ -406,7 +406,7 @@ h1, h2, h3 {
 .hero__insignia {
   position: absolute;
   right: -1%;
-  top: 26%;
+  top: 15%;
   display: grid;
   place-content: center;
   width: 27%;
