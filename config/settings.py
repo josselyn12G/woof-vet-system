@@ -146,3 +146,12 @@ AUTH_USER_MODEL = 'cuentas.Usuario'
 LOGIN_URL = 'cuentas:login'
 LOGIN_REDIRECT_URL = 'cuentas:inicio'
 LOGOUT_REDIRECT_URL = 'cuentas:inicio'
+
+# Correo: Gmail por SMTP (credenciales en el .env)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = f'Woof <{EMAIL_HOST_USER}>'
