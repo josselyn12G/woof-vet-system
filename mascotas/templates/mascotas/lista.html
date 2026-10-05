@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Mis mascotas · Woof{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  {% include 'mascotas/_mensajes.html' %}
+
+  {# Portada de la sección: saludo, cuántas mascotas hay y botón para registrar #}
+  <section class="portada-mascotas">
+    <div class="portada-mascotas__texto">
+      <p class="sobretitulo mb-2">Hola, {{ user.first_name|default:user.username }} 👋</p>
+      <h1 class="portada-mascotas__titulo">Mis mascotas</h1>
+      <p class="portada-mascotas__resumen">
+        {% if mascotas %}
+          Tienes <strong>{{ mascotas|length }} mascota{{ mascotas|length|pluralize }}</strong> registrada{{ mascotas|length|pluralize }}. Toca una para ver sus datos.
+        {% else %}
+          Aquí vas a tener los datos de tu familia peluda siempre a mano.
+        {% endif %}
+      </p>
+      {% if mascotas %}
+        <a class="btn btn-primary rounded-pill px-4" href="{% url 'mascotas:crear' %}">
+          <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Registrar mascota
+        </a>
+      {% endif %}
+    </div>
+    <img class="portada-mascotas__imagen" src="{% static 'img/perro-doctor.png' %}" alt="" width="612" height="612">
+  </section>
+
+  {% if mascotas %}
+    <div class="galeria-mascotas">
+      {% for mascota in mascotas %}
+        <a class="tarjeta-mascota" href="{% url 'mascotas:detalle' mascota.pk %}">
+          <span class="tarjeta-mascota__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+            {% include 'mascotas/_avatar.html' %}
+            <span class="tarjeta-mascota__especie">{{ mascota.get_especie_display }}</span>
+          </span>
+
+          <span class="tarjeta-mascota__cuerpo">
+            <span class="tarjeta-mascota__nombre">
+              {{ mascota.nombre }}
+              {% if mascota.sexo == 'M' %}
+                <i class="bi bi-gender-male tarjeta-mascota__sexo tarjeta-mascota__sexo--macho" title="Macho" aria-label="Macho"></i>
+              {% elif mascota.sexo == 'H' %}
+                <i class="bi bi-gender-female tarjeta-mascota__sexo tarjeta-mascota__sexo--hembra" title="Hembra" aria-label="Hembra"></i>
+              {% endif %}
+            </span>
+            <span class="tarjeta-mascota__raza">{{ mascota.raza|default:'Raza sin registrar' }}</span>
+
+            <span class="tarjeta-mascota__etiquetas">
+              {% if mascota.edad %}<span class="etiqueta"><i class="bi bi-cake2" aria-hidden="true"></i>{{ mascota.edad }}</span>{% endif %}
+              {% if mascota.peso_kg %}<span class="etiqueta"><i class="bi bi-speedometer2" aria-hidden="true"></i>{{ mascota.peso_kg }} kg</span>{% endif %}
+            </span>
+          </span>
+
+          <span class="tarjeta-mascota__ver">Ver ficha <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+        </a>
+      {% endfor %}
+
+      {# Última tarjeta: atajo para registrar otra mascota #}
+      <a class="tarjeta-nueva" href="{% url 'mascotas:crear' %}">
+        <span class="tarjeta-nueva__icono"><i class="bi bi-plus-lg" aria-hidden="true"></i></span>
+        <span class="tarjeta-nueva__texto">Registrar otra mascota</span>
+      </a>
+    </div>
+  {% else %}
+    {# Sin mascotas: mensaje y botón para registrar la primera (HU-07) #}
+    <div class="mascotas-vacio">
+      <span class="mascotas-vacio__icono" aria-hidden="true">🐾</span>
+      <h2 class="mascotas-vacio__titulo">Aún no tienes mascotas registradas</h2>
+      <p class="mascotas-vacio__texto">Registra a tu primera mascota para tener su ficha, su edad y su peso siempre a mano.</p>
+      <a class="btn btn-primary btn-lg rounded-pill px-4" href="{% url 'mascotas:crear' %}">
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Registrar mi primera mascota
+      </a>
+    </div>
+  {% endif %}
+{% endblock %}

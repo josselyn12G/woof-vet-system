@@ -1,0 +1,2 @@
+{# Foto de la mascota o, si no tiene, un ícono según la especie. Usa la variable "mascota" de la plantilla que lo incluye #}
+{% if mascota.tiene_foto %}<img src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="">{% elif mascota.especie == 'perro' %}🐶{% elif mascota.especie == 'gato' %}🐱{% else %}🐾{% endif %}
