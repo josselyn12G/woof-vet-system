@@ -53,7 +53,7 @@
               </form>
             {% else %}
               <a class="menu__enlace" href="{% url 'cuentas:login' %}">Iniciar sesión</a>
-              <a class="btn btn-primary btn-sm rounded-pill menu__cta" href="#">Crear cuenta</a>
+              <a class="btn btn-primary btn-sm rounded-pill menu__cta" href="{% url 'cuentas:registro' %}">Crear cuenta</a>
             {% endif %}
           </div>
         </div>
