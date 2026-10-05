@@ -22,7 +22,6 @@ def enviar_codigo(request, usuario):
     request.session['codigo_2fa'] = codigo
     request.session['codigo_2fa_vence'] = vence
 
-    # Los datos que usan las dos plantillas del correo
     contexto = {
         'nombre': usuario.first_name or usuario.username,
         'codigo': codigo,
@@ -31,12 +30,10 @@ def enviar_codigo(request, usuario):
     texto = render_to_string('cuentas/correos/codigo.txt', contexto)
     html = render_to_string('cuentas/correos/codigo.html', contexto)
 
-    # Un correo con dos versiones: texto plano (por si el programa no muestra HTML) y HTML
     correo = EmailMultiAlternatives('Tu código de acceso a Woof', texto, None, [usuario.email])
     correo.attach_alternative(html, 'text/html')
     correo.mixed_subtype = 'related'           # el logo viaja dentro del correo, no como adjunto aparte
 
-    # El logo va incrustado: el HTML lo muestra con src="cid:logo-woof"
     ruta_logo = finders.find('cuentas/img/logo-correo.png')
     if ruta_logo:
         with open(ruta_logo, 'rb') as archivo:
@@ -46,3 +43,19 @@ def enviar_codigo(request, usuario):
         correo.attach(logo)
 
     correo.send()
+
+
+def verificar_codigo(request, codigo_escrito):
+    """Devuelve True si el código es correcto y no venció. Si es correcto, lo borra de la sesión."""
+    codigo_guardado = request.session.get('codigo_2fa')
+    vence = request.session.get('codigo_2fa_vence', 0)
+    if not codigo_guardado or time.time() > vence:
+        return False
+
+    if not secrets.compare_digest(codigo_escrito.strip(), codigo_guardado):
+        return False
+
+    # El código coincide: se borra para que no se pueda usar dos veces
+    del request.session['codigo_2fa']
+    del request.session['codigo_2fa_vence']
+    return True
