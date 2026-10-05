@@ -1,0 +1,12 @@
+Hola, {{ nombre }}
+
+Usa este código para terminar de iniciar sesión en Woof:
+
+    {{ codigo }}
+
+El código vence en {{ minutos }} minutos.
+
+Si no intentaste iniciar sesión, ignora este correo y no compartas el código con nadie:
+nuestro equipo nunca te lo va a pedir.
+
+Sistema Veterinario Woof
