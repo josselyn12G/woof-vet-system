@@ -846,3 +846,218 @@
     margin-bottom: 0.85rem;
   }
 }
+
+/* =========================================================
+   4. Verificar: ventana emergente (pop-up) con el código en 6 cuadros
+   ========================================================= */
+/* Capa que cubre toda la pantalla, encima del login: lo oscurece y lo desenfoca un poco.
+   La ventana queda centrada; si no cabe (celular acostado), se hace scroll dentro de la capa. */
+.verificar {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);   /* la columna puede encogerse: si no, el ancho natural de los inputs la estira */
+  place-items: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(31, 23, 20, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: verificar-oscurecer 300ms ease both;
+}
+
+@keyframes verificar-oscurecer {
+  from {
+    opacity: 0;
+  }
+}
+
+.verificar__ventana {
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  border-radius: 1.5rem;
+  background: #fff;
+  box-shadow: 0 30px 80px -20px rgba(31, 23, 20, 0.55);
+  animation: verificar-entrar 450ms var(--woof-curva) 100ms both;   /* aparece justo después de oscurecerse el fondo */
+}
+
+@keyframes verificar-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+.verificar__logo {
+  display: block;
+  width: auto;
+  height: 2.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.verificar__titulo {
+  margin: 0 0 0.4rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.verificar__texto {
+  margin: 0 0 1.5rem;
+  color: var(--woof-gris-calido);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+/* Campo normal (se ve solo si no hay JavaScript) */
+.otp__real {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e7e0db;
+  border-radius: 0.9rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+/* Los 6 cuadros: se reparten el ancho, así caben también en un celular angosto */
+.otp__cajas {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.otp__caja {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 5 / 6;
+  border: 1px solid #e7e0db;
+  border-radius: 0.85rem;
+  background: #fff;
+  color: var(--woof-marron);
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.4rem, 6vw, 2rem);
+  font-weight: 600;
+  text-align: center;
+  caret-color: var(--woof-marca);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.otp__caja--llena {
+  background: var(--woof-fondo-suave);
+}
+
+.otp__caja:focus {
+  outline: none;
+  border-color: var(--woof-marca);
+  box-shadow: 0 0 0 4px rgba(238, 154, 53, 0.2);
+}
+
+/* Código incorrecto o incompleto: bordes rojos y una sacudida corta */
+.otp--error .otp__caja,
+.otp--error .otp__real {
+  border-color: #e0846f;
+}
+
+.otp--error .otp__cajas {
+  animation: verificar-sacudir 350ms ease;
+}
+
+@keyframes verificar-sacudir {
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.verificar__error {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  color: #9b2c1f;
+  font-size: 0.88rem;
+}
+
+.verificar__reenviar {
+  margin: 1rem 0 0;
+  color: var(--woof-gris-calido);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.verificar__reenviar a {
+  color: var(--woof-marron);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+.verificar__reenviar a:hover {
+  color: var(--woof-primario);
+}
+
+/* Cancelar y Verificar, del mismo ancho */
+.verificar__acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.verificar__boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease-out;
+}
+
+.verificar__boton:active {
+  transform: scale(0.97);
+}
+
+.verificar__boton:focus-visible {
+  outline: 2px solid var(--woof-marca);
+  outline-offset: 3px;
+}
+
+.verificar__boton--secundario {
+  border: 1px solid #e7e0db;
+  background: #fff;
+  color: var(--woof-marron);
+}
+
+.verificar__boton--secundario:hover {
+  border-color: #d6cbc4;
+  background: var(--woof-fondo-suave);
+  color: var(--woof-marron);
+}
+
+.verificar__boton--principal {
+  border: 1px solid var(--woof-marron);
+  background: var(--woof-marron);
+  color: #fff;
+}
+
+.verificar__boton--principal:hover {
+  border-color: var(--woof-marron-oscuro);
+  background: var(--woof-marron-oscuro);
+}
+
+@media (max-width: 400px) {
+  .verificar__ventana {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .otp__cajas {
+    gap: 0.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verificar,
+  .verificar__ventana,
+  .otp--error .otp__cajas {
+    animation: none;
+  }
+}
