@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Inicia sesión · Woof{% endblock %}
+
+{# Página sin menú ni pie: solo el fondo y el formulario #}
+{% block menu %}{% endblock %}
+{% block pie %}{% endblock %}
+{% block main_clase %}{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'cuentas/css/cuentas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  {# Mismo diseño que el registro, espejado: foto a la izquierda y formulario de vidrio a la derecha #}
+  <section class="registro registro--derecha">
+    <img class="registro__fondo" src="{% static 'cuentas/img/login.webp' %}" width="2400" height="1340" alt="">
+
+    {# Botón de vidrio para volver a la portada (la página no tiene menú) #}
+    <a class="acceso__inicio" href="{% url 'cuentas:inicio' %}" aria-label="Volver a la portada">
+      <i class="bi bi-house-door" aria-hidden="true"></i>
+      <span class="acceso__inicio-texto">Inicio</span>
+    </a>
+
+    {# Formulario. La lógica (name, csrf, errores, next) la arma LoginView #}
+    <div class="registro__panel">
+      <a class="registro__logo" href="{% url 'cuentas:inicio' %}"><img src="{% static 'img/logo-blanco.png' %}" alt="Woof, ir a la portada"></a>
+      <h1 class="registro__titulo">¡Qué bueno verte!</h1>
+      <p class="registro__subtitulo">Ingresa tus datos para continuar.</p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <p class="campo__error mb-3" role="alert">
+            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>Usuario o contraseña incorrectos.
+          </p>
+        {% endif %}
+
+        <div class="campo">
+          <label class="campo__etiqueta" for="{{ form.username.id_for_label }}">Usuario</label>
+          {# campo__grupo envuelve el input para poder poner el ícono adentro #}
+          <div class="campo__grupo campo__grupo--icono">
+            <i class="bi bi-person campo__icono" aria-hidden="true"></i>
+            <input class="campo__entrada" type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}"
+                   autocomplete="username" autocapitalize="none" required autofocus
+                   value="{{ form.username.value|default:'' }}" placeholder="Tu nombre de usuario">
+          </div>
+        </div>
+
+        <div class="campo">
+          <label class="campo__etiqueta" for="{{ form.password.id_for_label }}">Contraseña</label>
+          <div class="campo__grupo campo__grupo--icono">
+            <i class="bi bi-lock campo__icono" aria-hidden="true"></i>
+            <input class="campo__entrada" type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}"
+                   autocomplete="current-password" required placeholder="Tu contraseña">
+            <button type="button" class="campo__ver" data-ver-contrasena="{{ form.password.id_for_label }}"
+                    aria-label="Mostrar contraseña" aria-pressed="false">
+              <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        {# Conserva la página a la que intentaba ir (?next=) para volver ahí después del login #}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+        <button type="submit" class="acceso__boton registro__boton">Iniciar sesión</button>
+      </form>
+
+      <p class="registro__pie">¿No tienes cuenta? <a href="{% url 'cuentas:registro' %}">Regístrate</a></p>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'cuentas/js/ver-contrasena.js' %}" defer></script>
+{% endblock %}

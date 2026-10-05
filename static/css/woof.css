@@ -26,9 +26,9 @@
   --woof-amarillo-50: #fafaf9;
 
   /* Colores con significado: el resto del CSS usa estos, no los de arriba */
-  --woof-primario: var(--woof-naranja-700);          /* botones (contraste 5:1 con texto blanco) */
-  --woof-primario-hover: var(--woof-naranja-900);
-  --woof-titulo-acento: var(--woof-naranja-600);     /* palabras resaltadas en títulos grandes */
+  --woof-primario: var(--woof-naranja-500);          /* botones: naranja de la marca */
+  --woof-primario-hover: var(--woof-naranja-600);
+  --woof-titulo-acento: var(--woof-naranja-500);     /* palabras resaltadas en títulos grandes */
   --woof-fondo-suave: var(--woof-amarillo-50);
 
   --woof-radio: 1.5rem;
@@ -45,12 +45,12 @@
   --bs-body-font-size: 1.0625rem;
   --bs-body-line-height: 1.6;
   --bs-body-color: var(--woof-marron-oscuro);
-  --bs-primary: var(--woof-naranja-700);
-  --bs-primary-rgb: 180, 83, 9;
-  --bs-link-color: var(--woof-naranja-700);
-  --bs-link-color-rgb: 180, 83, 9;
-  --bs-link-hover-color: var(--woof-naranja-900);
-  --bs-link-hover-color-rgb: 122, 60, 10;
+  --bs-primary: var(--woof-naranja-500);
+  --bs-primary-rgb: 238, 154, 53;
+  --bs-link-color: var(--woof-naranja-500);
+  --bs-link-color-rgb: 238, 154, 53;
+  --bs-link-hover-color: var(--woof-naranja-600);
+  --bs-link-hover-color-rgb: 196, 106, 10;
 }
 
 h1, h2, h3 {
@@ -80,7 +80,7 @@ h1, h2, h3 {
   --bs-btn-active-border-color: var(--woof-primario-hover);
   --bs-btn-disabled-bg: var(--woof-primario);
   --bs-btn-disabled-border-color: var(--woof-primario);
-  --bs-btn-focus-shadow-rgb: 180, 83, 9;
+  --bs-btn-focus-shadow-rgb: 238, 154, 53;
 }
 
 .btn-outline-primary {
@@ -90,7 +90,7 @@ h1, h2, h3 {
   --bs-btn-hover-border-color: var(--woof-primario);
   --bs-btn-active-bg: var(--woof-primario-hover);
   --bs-btn-active-border-color: var(--woof-primario-hover);
-  --bs-btn-focus-shadow-rgb: 180, 83, 9;
+  --bs-btn-focus-shadow-rgb: 238, 154, 53;
 }
 
 .enlace-flecha {

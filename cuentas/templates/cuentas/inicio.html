@@ -51,8 +51,7 @@
       <h1 class="corredor__titulo" id="corredor-titulo">Cuidar a tu mascota.<br><span class="texto-marca">Ahora, sin papeleo.</span></h1>
       <p class="corredor__texto">Citas, recetas, tratamientos y el carnet de vacunas de tu mascota, en un solo lugar.</p>
       <div class="d-flex flex-wrap justify-content-center gap-3">
-        {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
-        <a href="#" class="corredor__boton">Crear mi cuenta <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        <a href="{% url 'cuentas:registro' %}" class="corredor__boton">Crear mi cuenta <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         <a href="#servicios" class="corredor__boton corredor__boton--secundario">Ver servicios</a>
       </div>
     </div>
@@ -519,8 +518,7 @@
             Crea tu cuenta y registra a tu primera mascota en minutos.
           </p>
           <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3" data-revelar data-revelar-retraso="3">
-            {# TODO(backend): cambiar href="#" por {% url 'cuentas:registro' %} #}
-            <a href="#" class="btn btn-primary btn-lg rounded-pill px-4">Crear mi cuenta <i class="bi bi-arrow-right ms-1"></i></a>
+            <a href="{% url 'cuentas:registro' %}" class="btn btn-primary btn-lg rounded-pill px-4">Crear mi cuenta <i class="bi bi-arrow-right ms-1"></i></a>
           </div>
         </div>
 

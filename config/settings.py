@@ -118,7 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es'
 
 TIME_ZONE = 'UTC'
 
@@ -141,3 +141,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Modelo personalizado de usuario
 AUTH_USER_MODEL = 'cuentas.Usuario'
+
+# Autenticación: a donde redirigir
+LOGIN_URL = 'cuentas:login'
+LOGIN_REDIRECT_URL = 'cuentas:inicio'
+LOGOUT_REDIRECT_URL = 'cuentas:inicio'

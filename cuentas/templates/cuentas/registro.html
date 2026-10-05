@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Crea tu cuenta · Woof{% endblock %}
+
+{# Página sin menú ni pie, igual que el login #}
+{% block menu %}{% endblock %}
+{% block pie %}{% endblock %}
+{% block main_clase %}{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'cuentas/css/cuentas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  {# Foto a pantalla completa de fondo y el formulario de vidrio encima, a la izquierda #}
+  <section class="registro">
+    <img class="registro__fondo" src="{% static 'cuentas/img/registro.webp' %}" width="2400" height="1340" alt="">
+    <p class="registro__marca-agua" aria-hidden="true">nuevo<br>amigo</p>
+
+    {# Botón de vidrio para volver a la portada #}
+    <a class="acceso__inicio" href="{% url 'cuentas:inicio' %}" aria-label="Volver a la portada">
+      <i class="bi bi-house-door" aria-hidden="true"></i>
+      <span class="acceso__inicio-texto">Inicio</span>
+    </a>
+
+    <div class="registro__panel">
+      <a class="registro__logo" href="{% url 'cuentas:inicio' %}"><img src="{% static 'img/logo-blanco.png' %}" alt="Woof, ir a la portada"></a>
+      <h1 class="registro__titulo">Crea tu cuenta</h1>
+
+      {# Indicador de pasos: lo actualiza registro-pasos.js #}
+      <ol class="pasos" aria-label="Pasos del registro">
+        <li class="pasos__item es-actual" data-indicador="1"><span class="pasos__numero">1</span><span class="pasos__texto">Tus datos</span></li>
+        <li class="pasos__item" data-indicador="2"><span class="pasos__numero">2</span><span class="pasos__texto">Tu cuenta</span></li>
+        <li class="pasos__item" data-indicador="3"><span class="pasos__numero">3</span><span class="pasos__texto">Contraseña</span></li>
+      </ol>
+
+      {# Un solo formulario: los pasos solo muestran los campos de a poco; al final se envía todo junto #}
+      <form method="post" novalidate id="form-registro">
+        {% csrf_token %}
+
+        <fieldset class="paso" data-paso="1">
+          <legend class="visually-hidden">Paso 1: tus datos</legend>
+          <p class="paso__ayuda">¿Cómo te llamas?</p>
+          <div class="registro__campos">
+            {% include 'cuentas/_campo.html' with campo=form.first_name icono='bi-person-vcard' mitad=True %}
+            {% include 'cuentas/_campo.html' with campo=form.last_name icono='bi-person-vcard' mitad=True %}
+            {% include 'cuentas/_campo.html' with campo=form.email icono='bi-envelope' %}
+          </div>
+        </fieldset>
+
+        <fieldset class="paso" data-paso="2">
+          <legend class="visually-hidden">Paso 2: tu cuenta</legend>
+          <p class="paso__ayuda">Con este usuario vas a iniciar sesión. Al teléfono te llegará el código de verificación.</p>
+          <div class="registro__campos">
+            {% include 'cuentas/_campo.html' with campo=form.username icono='bi-person' %}
+            {% include 'cuentas/_campo.html' with campo=form.telefono icono='bi-phone' %}
+          </div>
+        </fieldset>
+
+        <fieldset class="paso" data-paso="3">
+          <legend class="visually-hidden">Paso 3: contraseña</legend>
+          <p class="paso__ayuda">Usa al menos 8 caracteres, que no sean solo números.</p>
+          <div class="registro__campos">
+            {% include 'cuentas/_campo.html' with campo=form.password1 icono='bi-lock' contrasena=True %}
+            {% include 'cuentas/_campo.html' with campo=form.password2 icono='bi-lock' contrasena=True %}
+          </div>
+        </fieldset>
+
+        <div class="pasos__acciones">
+          <button type="button" class="pasos__atras" data-accion="atras">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Atrás
+          </button>
+          <button type="button" class="acceso__boton registro__boton" data-accion="siguiente">
+            Siguiente <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </button>
+          <button type="submit" class="acceso__boton registro__boton" data-accion="enviar">Crear cuenta</button>
+        </div>
+      </form>
+
+      <p class="registro__pie">¿Ya tienes cuenta? <a href="{% url 'cuentas:login' %}">Inicia sesión</a></p>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'cuentas/js/ver-contrasena.js' %}" defer></script>
+  <script src="{% static 'cuentas/js/registro-pasos.js' %}" defer></script>
+{% endblock %}

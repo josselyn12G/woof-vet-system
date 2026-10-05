@@ -1,0 +1,848 @@
+/* Estilos de la app "cuentas": inicio de sesión, registro y perfil.
+   Se cargan solo en las páginas de cuentas (bloque "estilos" de cada plantilla),
+   después de woof.css, así que pueden usar sus variables (--woof-marca, --woof-sombra...). */
+
+/* =========================================================
+   1. Acceso (login y registro): página sin menú, tarjeta blanca centrada
+   ========================================================= */
+/* Ocupa exactamente el alto de la ventana (dvh = alto real, también en celular con la barra del navegador) */
+.acceso {
+  height: 100vh;
+  height: 100dvh;
+  background: #fff;
+}
+
+/* Botón de inicio: píldora de vidrio arriba a la derecha.
+   Al pasar el mouse se eleva, la casita "salta" y aparece la palabra "Inicio". */
+.acceso__inicio {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  height: 3rem;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),          /* brillo del borde superior del vidrio */
+    0 8px 24px rgba(59, 42, 34, 0.12);
+  color: var(--woof-marron);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    transform 300ms var(--woof-curva),
+    box-shadow 300ms ease,
+    background-color 300ms ease,
+    gap 300ms var(--woof-curva);
+}
+
+.acceso__inicio .bi {
+  font-size: 1.2rem;
+  transition: transform 400ms var(--woof-curva);
+}
+
+/* El texto está oculto (ancho 0) y se despliega al pasar el mouse */
+.acceso__inicio-texto {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 350ms var(--woof-curva), opacity 250ms ease;
+}
+
+.acceso__inicio:hover,
+.acceso__inicio:focus-visible {
+  gap: 0.5rem;
+  color: var(--woof-marron);
+  background: rgba(255, 255, 255, 0.85);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 32px rgba(59, 42, 34, 0.18);
+}
+
+.acceso__inicio:hover .bi,
+.acceso__inicio:focus-visible .bi {
+  transform: translateY(-2px) rotate(-8deg) scale(1.1);
+}
+
+.acceso__inicio:hover .acceso__inicio-texto,
+.acceso__inicio:focus-visible .acceso__inicio-texto {
+  max-width: 5rem;
+  opacity: 1;
+}
+
+.acceso__inicio:active {
+  transform: scale(0.96);
+}
+
+.acceso__inicio:focus-visible {
+  outline: 2px solid var(--woof-marca);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acceso__inicio,
+  .acceso__inicio .bi,
+  .acceso__inicio-texto {
+    transition: none;
+  }
+
+  .acceso__inicio:hover,
+  .acceso__inicio:hover .bi {
+    transform: none;
+  }
+}
+
+/* La tarjeta ocupa toda la pantalla: imagen a la izquierda, formulario a la derecha */
+.acceso__tarjeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  height: 100%;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem);
+  background: #fff;
+}
+
+/* La imagen se ajusta al alto disponible: va posicionada, así su tamaño original no estira la página */
+.acceso__visual {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  background: var(--woof-marca);
+}
+
+.acceso__foto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;             /* prioriza la cara del perro al recortar */
+}
+
+.acceso__formulario {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 1rem;
+  overflow-y: auto;                        /* solo en pantallas muy bajitas: el scroll queda dentro del formulario */
+  text-align: center;
+}
+
+/* Centra verticalmente sin cortar: margen automático arriba (primer elemento) y abajo (último).
+   Si el contenido no cabe, empieza arriba y se hace scroll dentro del formulario. */
+.acceso__formulario > :first-child {
+  margin-top: auto;
+}
+
+.acceso__formulario > :last-child {
+  margin-bottom: auto;
+}
+
+.acceso__marca {
+  align-self: center;
+  margin-bottom: 2.5rem;
+}
+
+.acceso__marca img {
+  height: 80px;
+}
+
+.acceso__titulo {
+  margin-bottom: 0.4rem;
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.acceso__subtitulo {
+  margin-bottom: 2.5rem;
+  color: var(--woof-gris-calido);
+  font-size: 0.95rem;
+}
+
+.acceso__form {
+  text-align: left;
+}
+
+.acceso__error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.9rem;
+  background: #fdecea;
+  color: #9b2c1f;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+/* Botón principal: píldora oscura (marrón de la marca) */
+.acceso__boton {
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 0.95rem 1rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: var(--woof-naranja-500);
+  color: #fff;
+  font-weight: 600;
+  transition: background-color 150ms ease, transform 100ms ease-out;
+}
+
+.acceso__boton:hover {
+  background: var(--woof-primario-hover);
+}
+
+.acceso__boton:active {
+  transform: scale(0.98);
+}
+
+.acceso__boton:focus-visible {
+  outline: 2px solid var(--woof-marca);
+  outline-offset: 3px;
+}
+
+.acceso__pie {
+  margin: 2.5rem 0 0;
+  color: var(--woof-gris-calido);
+  font-size: 0.9rem;
+}
+
+.acceso__pie a {
+  color: var(--woof-marron);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.acceso__pie a:hover {
+  color: var(--woof-primario);
+}
+
+/* =========================================================
+   2. Campos de formulario: caja redondeada con fondo suave
+   (reutilizables en registro y otros formularios de cuentas)
+   ========================================================= */
+.campo {
+  margin-bottom: 1.1rem;
+}
+
+.campo__etiqueta {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--woof-marron);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.campo__grupo {
+  position: relative;
+}
+
+.campo__entrada,
+.campo__grupo > input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #e4dfda;
+  border-radius: 0.9rem;
+  background: #fafaf9;
+  color: var(--woof-marron-oscuro);
+  font-size: 1rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.campo__grupo .campo__entrada,
+.campo__grupo--ver > input {
+  padding-right: 3rem;                       /* espacio para el botón del ojo */
+}
+
+/* Ícono a la izquierda dentro del campo (usuario, contraseña...) */
+.campo__icono {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #b3a69e;
+  font-size: 1.1rem;
+  z-index: 1;                                /* siempre por encima del fondo del input */
+  pointer-events: none;                      /* el clic pasa al input */
+  transition: color 150ms ease;
+}
+
+.campo__grupo--icono .campo__entrada,
+.campo__grupo--icono > input {
+  padding-left: 2.75rem;                     /* espacio para el ícono */
+}
+
+/* Al escribir en el campo, el ícono se pinta del naranja de la marca */
+.campo__grupo--icono:focus-within .campo__icono {
+  color: var(--woof-marca);
+}
+
+.campo__entrada::placeholder,
+.campo__grupo > input::placeholder {
+  color: #b3a69e;
+}
+
+.campo__entrada:hover,
+.campo__grupo > input:hover {
+  border-color: #d3cbc4;
+}
+
+/* Al escribir: anillo naranja suave, en lugar del contorno azul del navegador */
+.campo__entrada:focus,
+.campo__grupo > input:focus {
+  outline: none;
+  border-color: var(--woof-marca);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(238, 154, 53, 0.18);
+}
+
+.campo__ver {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: none;
+  color: var(--woof-gris-calido);
+  font-size: 1.1rem;
+}
+
+.campo__ver:hover {
+  color: var(--woof-marron);
+  background: #f2efeb;
+}
+
+.campo__ver:focus-visible {
+  outline: 2px solid var(--woof-marca);
+}
+
+/* =========================================================
+   2b. Registro: foto a pantalla completa y formulario de vidrio a la izquierda
+   ========================================================= */
+.registro {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100vh;
+  height: 100dvh;                            /* exactamente el alto de la ventana: sin scroll */
+  padding: clamp(1rem, 4vw, 4rem);
+  overflow: hidden;
+  isolation: isolate;
+  background: #721c11;                       /* mismo tono que el borde izquierdo de la foto */
+}
+
+/* La foto ocupa desde un poco antes del formulario hasta el borde derecho,
+   así el perro queda a la derecha y no detrás del formulario.
+   Su borde izquierdo se funde con el color de fondo (mask-image). */
+.registro__fondo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: -2;
+  width: 78%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 30% center;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 22%);
+}
+
+/* Oscurece un poco el lado izquierdo para que el formulario se lea mejor */
+.registro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(59, 25, 10, 0.35) 0%, rgba(59, 25, 10, 0.1) 45%, transparent 70%);
+}
+
+/* Texto gigante translúcido abajo a la derecha, como en la referencia */
+.registro__marca-agua {
+  position: absolute;
+  right: clamp(1rem, 4vw, 3rem);
+  bottom: 0.05em;
+  z-index: -1;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.28);
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(4rem, 10vw, 9.5rem);
+  font-weight: 700;
+  line-height: 0.82;
+  letter-spacing: -0.06em;
+  text-align: right;
+  pointer-events: none;
+}
+
+/* El panel de vidrio con el formulario */
+.registro__panel {
+  width: 100%;
+  max-width: 470px;
+  max-height: 100%;
+  overflow-y: auto;                          /* solo si la ventana es muy baja, el scroll queda dentro del panel */
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),   /* brillo del borde superior del vidrio */
+    0 30px 60px -20px rgba(40, 15, 5, 0.45);
+  color: #fff;
+}
+
+.registro__logo img {
+  height: 26px;
+  margin-bottom: 1.25rem;
+}
+
+.registro__titulo {
+  margin-bottom: 0.3rem;
+  color: #fff;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  letter-spacing: -0.03em;
+}
+
+.registro__subtitulo {
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.registro__campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 0.85rem;
+}
+
+.registro__campos .campo {
+  grid-column: 1 / -1;                       /* por defecto, cada campo ocupa toda la fila */
+  margin-bottom: 0.8rem;
+}
+
+.registro__campos .campo--mitad {
+  grid-column: auto;                         /* nombre y apellido, lado a lado */
+}
+
+/* Campos de vidrio sobre la foto */
+.registro .campo__etiqueta {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.85rem;
+}
+
+.registro .campo__grupo > input {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.registro .campo__grupo > input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.registro .campo__grupo > input:hover {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.registro .campo__grupo > input:focus {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18);
+}
+
+.registro .campo__icono,
+.registro .campo__ver {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Cuando el navegador autocompleta un campo, le pone su propio fondo claro y el texto
+   y el ícono blancos dejan de verse. Se reemplaza ese fondo por uno del color de la marca. */
+.registro .campo__grupo > input:-webkit-autofill,
+.registro .campo__grupo > input:-webkit-autofill:hover,
+.registro .campo__grupo > input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0 100px rgba(150, 70, 20, 0.85) inset;
+  caret-color: #fff;
+  transition: background-color 9999s ease-out;   /* evita que el navegador vuelva a pintar su fondo */
+}
+
+.registro--derecha .campo__grupo > input:-webkit-autofill,
+.registro--derecha .campo__grupo > input:-webkit-autofill:hover,
+.registro--derecha .campo__grupo > input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 100px rgba(170, 100, 10, 0.9) inset;
+}
+
+.registro .campo__grupo--icono:focus-within .campo__icono {
+  color: #fff;
+}
+
+.registro .campo__ver:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ---------- Indicador de pasos (1 · 2 · 3) ---------- */
+.pasos {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.25rem 0 1.5rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.pasos__item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Línea que une los pasos */
+.pasos__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  left: calc(50% + 1.3rem);
+  right: calc(-50% + 1.3rem);
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  transition: background-color 400ms ease;
+}
+
+.pasos__numero {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, transform 300ms var(--woof-curva);
+}
+
+.pasos__item.es-actual {
+  color: #fff;
+}
+
+.pasos__item.es-actual .pasos__numero {
+  background: #fff;
+  border-color: #fff;
+  color: var(--woof-marron);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+/* Paso completado: el número se cambia por un check */
+.pasos__item.es-completo {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pasos__item.es-completo .pasos__numero {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: transparent;
+  color: transparent;
+  position: relative;
+}
+
+.pasos__item.es-completo .pasos__numero::after {
+  content: '\2713';
+  position: absolute;
+  color: var(--woof-marron);
+  font-weight: 800;
+}
+
+.pasos__item.es-completo::after {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ---------- Cada paso ---------- */
+.paso {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.paso:not([hidden]) {
+  animation: paso-entra 400ms var(--woof-curva);
+}
+
+@keyframes paso-entra {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+.paso__ayuda {
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.92rem;
+}
+
+/* ---------- Botones Atrás / Siguiente / Crear cuenta ---------- */
+.pasos__acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.pasos__acciones .registro__boton {
+  flex: 1;
+  margin-top: 0;
+}
+
+.pasos__atras {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 600;
+  transition: background-color 150ms ease, transform 100ms ease-out;
+}
+
+.pasos__atras:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.pasos__atras:active {
+  transform: scale(0.97);
+}
+
+.pasos__atras:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Sin JavaScript: se ven todos los campos juntos y solo el botón de enviar */
+.sin-js .pasos,
+.sin-js [data-accion="atras"],
+.sin-js [data-accion="siguiente"] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paso:not([hidden]) {
+    animation: none;
+  }
+
+  .pasos__numero {
+    transition: none;
+  }
+}
+
+/* Errores: placa blanca para que se lean sobre el vidrio */
+.campo__error {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+  color: #9b2c1f;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.registro .campo__error {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.registro .campo--con-error .campo__grupo > input {
+  border-color: #ffd2c8;
+}
+
+/* Botón blanco con texto marrón: se lee bien sobre el naranja */
+.registro__boton {
+  margin-top: 0.75rem;
+  background: #fff;
+  color: var(--woof-marron);
+}
+
+.registro__boton:hover {
+  background: #fff7ef;
+  color: var(--woof-marron-oscuro);
+}
+
+.registro__pie {
+  margin: 1.25rem 0 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.92rem;
+  text-align: center;
+}
+
+.registro__pie a {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.registro__pie a:hover {
+  text-decoration: underline;
+}
+
+/* La casita sobre la foto: vidrio más transparente */
+.registro .acceso__inicio {
+  position: absolute;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.registro .acceso__inicio:hover,
+.registro .acceso__inicio:focus-visible {
+  color: var(--woof-marron);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 991.98px) {
+  .registro--derecha .registro__fondo {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .registro__fondo {
+    width: 100%;                             /* en pantallas angostas, la foto ocupa todo el fondo */
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .registro {
+    align-items: flex-start;
+    padding-top: 4.5rem;
+  }
+
+  .registro--derecha .acceso__inicio {
+    left: 1rem;
+  }
+
+  .registro__panel {
+    max-width: none;
+  }
+
+  .registro__marca-agua {
+    display: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .registro__campos .campo--mitad {
+    grid-column: 1 / -1;                     /* en celular, uno debajo del otro */
+  }
+}
+
+/* Variante espejada (login): foto a la izquierda, formulario de vidrio a la derecha */
+.registro--derecha {
+  justify-content: flex-end;
+  /* mismos tonos que los bordes de la foto: más claro a la izquierda, más oscuro a la derecha */
+  background: linear-gradient(90deg, #dc8f02 0%, #c67d03 45%, #b36f03 100%);
+}
+
+/* La foto empieza un poco separada del borde izquierdo, así el gatito no queda pegado.
+   Sus dos bordes se funden con el fondo (mask-image) para que no se vea el corte. */
+.registro--derecha .registro__fondo {
+  left: 7%;
+  right: auto;
+  width: 75%;
+  object-position: 15% center;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 76%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 76%, transparent 100%);
+}
+
+.registro--derecha::before {
+  background: linear-gradient(270deg, rgba(90, 50, 0, 0.3) 0%, rgba(90, 50, 0, 0.08) 45%, transparent 70%);
+}
+
+/* La casita pasa a la izquierda, para no quedar sobre el formulario */
+.registro--derecha .acceso__inicio {
+  right: auto;
+  left: 2rem;
+}
+
+.campo__entrada {
+  color: inherit;
+}
+
+/* Sin transparencias: panel sólido */
+@media (prefers-reduced-transparency: reduce) {
+  .registro__panel {
+    background: rgba(59, 25, 10, 0.92);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* =========================================================
+   3. Celular: solo el formulario
+   ========================================================= */
+/* Tablet: la imagen se angosta para dar más espacio al formulario */
+@media (max-width: 991.98px) {
+  .acceso__tarjeta {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  }
+}
+
+/* Celular: solo el formulario, centrado */
+@media (max-width: 767.98px) {
+  .acceso__tarjeta {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .acceso__visual {
+    display: none;
+  }
+
+  .acceso__inicio {
+    top: 1rem;
+    right: 1rem;
+  }
+}
+
+/* Pantallas bajitas (laptop pequeña): menos espacio vertical entre elementos */
+@media (max-height: 720px) {
+  .acceso__marca {
+    margin-bottom: 1.25rem;
+  }
+
+  .acceso__subtitulo {
+    margin-bottom: 1.5rem;
+  }
+
+  .acceso__pie {
+    margin-top: 1.25rem;
+  }
+
+  .campo {
+    margin-bottom: 0.85rem;
+  }
+}
