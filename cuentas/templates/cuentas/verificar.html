@@ -1,0 +1,57 @@
+{% extends 'cuentas/login.html' %}
+{% load static %}
+
+{% comment %}
+  Segundo paso del login: hereda la pantalla del login y la deja de fondo, bloqueada,
+  con una ventana emergente encima que pide el código del correo.
+{% endcomment %}
+
+{% block titulo %}Revisa tu correo · Woof{% endblock %}
+
+{# inert: el login de fondo no se puede usar ni enfocar con el teclado; aria-hidden: los lectores de pantalla lo ignoran #}
+{% block fondo_atributos %}inert aria-hidden="true"{% endblock %}
+
+{% block ventana %}
+  <div class="verificar">
+    <div class="verificar__ventana" role="dialog" aria-modal="true" aria-labelledby="verificar-titulo" aria-describedby="verificar-texto">
+      <img class="verificar__logo" src="{% static 'img/logo.png' %}" width="400" height="135" alt="Woof">
+
+      <h1 class="verificar__titulo" id="verificar-titulo">Revisa tu correo</h1>
+      <p class="verificar__texto" id="verificar-texto">Te enviamos un código de 6 dígitos para terminar de iniciar sesión.</p>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% comment %}
+          Este es el campo real que recibe la vista (name="codigo").
+          verificar-codigo.js lo oculta y dibuja 6 cuadros; al escribir, junta los dígitos aquí.
+          Sin JavaScript, se ve y funciona como un campo normal.
+        {% endcomment %}
+        <div class="otp{% if form.codigo.errors %} otp--error{% endif %}" data-otp>
+          <label class="visually-hidden" for="{{ form.codigo.id_for_label }}">Código de verificación</label>
+          <input class="otp__real" type="text" name="{{ form.codigo.html_name }}" id="{{ form.codigo.id_for_label }}"
+                 inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required autofocus
+                 placeholder="000000">
+        </div>
+
+        {% if form.codigo.errors %}
+          <p class="verificar__error" role="alert">
+            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ form.codigo.errors.0 }}
+          </p>
+        {% endif %}
+
+        <p class="verificar__reenviar">¿No te llegó? <a href="{% url 'cuentas:login' %}">Vuelve a iniciar sesión</a> para recibir otro.</p>
+
+        <div class="verificar__acciones">
+          <a class="verificar__boton verificar__boton--secundario" href="{% url 'cuentas:login' %}">Cancelar</a>
+          <button type="submit" class="verificar__boton verificar__boton--principal">Verificar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'cuentas/js/verificar-codigo.js' %}" defer></script>
+{% endblock %}

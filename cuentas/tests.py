@@ -1,3 +1,7 @@
+import re
+import time
+
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
@@ -67,10 +71,15 @@ class LoginTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertTemplateUsed(respuesta, 'cuentas/login.html')
 
-    def test_login_correcto_inicia_sesion(self):
+    def test_login_correcto_pide_el_codigo(self):
         respuesta = self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'Clave-segura-123'})
-        self.assertRedirects(respuesta, reverse('cuentas:inicio'))
-        self.assertIn('_auth_user_id', self.client.session)
+        # Con doble factor, la contraseña correcta ya no inicia sesión: manda el código y pasa a /verificar/
+        self.assertRedirects(respuesta, reverse('cuentas:verificar'))
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertEqual(self.client.session['pre_2fa_user'], self.usuario.pk)
+        # En las pruebas no se envían correos reales: quedan guardados en mail.outbox
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['ana@woof.ec'])
 
     def test_login_incorrecto_muestra_error(self):
         respuesta = self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': '123'})
@@ -107,3 +116,66 @@ class RegistroTests(TestCase):
         # "rol" no está en los fields de RegistroForm: Django lo ignora y queda como cliente
         usuario = Usuario.objects.get(username='luis')
         self.assertEqual(usuario.rol, Roles.CLIENTE)
+
+
+class DobleFactorTests(TestCase):
+    def setUp(self):
+        self.usuario = crear_usuario()
+
+    def pasar_contrasena(self, siguiente=None):
+        """Primer paso del login. Devuelve el código, leído del correo como lo haría la persona."""
+        datos = {'username': 'ana', 'password': 'Clave-segura-123'}
+        if siguiente:
+            datos['next'] = siguiente
+        self.client.post(reverse('cuentas:login'), datos)
+        return re.search(r'\d{6}', mail.outbox[-1].body).group()
+
+    def test_verificar_sin_contrasena_redirige_al_login(self):
+        # Entrar directo a /verificar/ sin haber pasado la contraseña
+        respuesta = self.client.get(reverse('cuentas:verificar'))
+        self.assertRedirects(respuesta, reverse('cuentas:login'))
+
+    def test_la_pagina_de_verificar_carga(self):
+        self.pasar_contrasena()
+        respuesta = self.client.get(reverse('cuentas:verificar'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, 'cuentas/verificar.html')
+
+    def test_codigo_correcto_inicia_sesion(self):
+        codigo = self.pasar_contrasena()
+        respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': codigo})
+        self.assertRedirects(respuesta, reverse('cuentas:inicio'))
+        self.assertEqual(self.client.session['_auth_user_id'], str(self.usuario.pk))
+        # Los datos del "login a medias" y el código se borran: no se pueden volver a usar
+        for clave in ('pre_2fa_user', 'pre_2fa_next', 'codigo_2fa', 'codigo_2fa_vence'):
+            self.assertNotIn(clave, self.client.session)
+
+    def test_codigo_incorrecto_no_inicia_sesion(self):
+        codigo = self.pasar_contrasena()
+        incorrecto = '000000' if codigo != '000000' else '111111'
+        respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': incorrecto})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'El código es incorrecto o ya venció.')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_codigo_vencido_no_inicia_sesion(self):
+        codigo = self.pasar_contrasena()
+        # Se adelanta el vencimiento al pasado, en vez de esperar 5 minutos
+        sesion = self.client.session
+        sesion['codigo_2fa_vence'] = time.time() - 1
+        sesion.save()
+        respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': codigo})
+        self.assertContains(respuesta, 'El código es incorrecto o ya venció.')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_codigo_con_letras_muestra_error(self):
+        self.pasar_contrasena()
+        respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': 'abc123'})
+        self.assertContains(respuesta, 'Escribe los 6 números del código.')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_vuelve_a_la_pagina_que_pedia(self):
+        # Si venía de una página protegida (?next=), al terminar vuelve ahí
+        codigo = self.pasar_contrasena(siguiente=reverse('cuentas:registro'))
+        respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': codigo})
+        self.assertRedirects(respuesta, reverse('cuentas:registro'))

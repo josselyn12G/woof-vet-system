@@ -14,7 +14,8 @@
 
 {% block contenido %}
   {# Mismo diseño que el registro, espejado: foto a la izquierda y formulario de vidrio a la derecha #}
-  <section class="registro registro--derecha">
+  {# fondo_atributos: verificar.html lo usa para dejar el login de fondo, bloqueado (inert), detrás de su ventana #}
+  <section class="registro registro--derecha" {% block fondo_atributos %}{% endblock %}>
     <img class="registro__fondo" src="{% static 'cuentas/img/login.webp' %}" width="2400" height="1340" alt="">
 
     {# Botón de vidrio para volver a la portada (la página no tiene menú) #}
@@ -71,6 +72,9 @@
       <p class="registro__pie">¿No tienes cuenta? <a href="{% url 'cuentas:registro' %}">Regístrate</a></p>
     </div>
   </section>
+
+  {# Ventana emergente encima del login (la usa verificar.html para pedir el código) #}
+  {% block ventana %}{% endblock %}
 {% endblock %}
 
 {% block scripts %}

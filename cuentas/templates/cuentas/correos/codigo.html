@@ -1,0 +1,61 @@
+{% comment %}
+  Correo con el código de verificación (versión HTML).
+  Los programas de correo (Gmail, Outlook) no entienden CSS moderno ni hojas de estilo externas:
+  por eso se arma con tablas y estilos escritos en cada etiqueta (style="..."), que es lo que todos soportan.
+  El logo va adjunto al correo y se muestra con src="cid:logo-woof" (ver enviar_codigo en services.py).
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tu código de acceso a Woof</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f5f4; font-family:Arial, Helvetica, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f5f5f4; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+               style="max-width:480px; background-color:#ffffff; border-radius:20px; overflow:hidden;">
+
+          <tr>
+            <td align="center" style="padding:32px 32px 8px;">
+              <img src="cid:logo-woof" width="120" alt="Woof" style="display:block; width:120px; height:auto; border:0;">
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:16px 32px 0; color:#3b2a22;">
+              <p style="margin:0 0 8px; font-size:20px; font-weight:bold; color:#573f33;">Hola, {{ nombre }}</p>
+              <p style="margin:0; font-size:15px; line-height:1.6; color:#5b4a40;">
+                Usa este código para terminar de iniciar sesión en Woof:
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style="padding:24px 32px;">
+              <div style="display:inline-block; padding:16px 28px; border-radius:14px; background-color:#fdebd3;
+                          font-size:34px; font-weight:bold; letter-spacing:10px; color:#573f33;">{{ codigo }}</div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 32px 28px; color:#5b4a40; font-size:14px; line-height:1.6;">
+              <p style="margin:0 0 12px;">El código vence en <strong>{{ minutos }} minutos</strong>.</p>
+              <p style="margin:0;">Si no intentaste iniciar sesión, ignora este correo y no compartas el código con nadie:
+                 nuestro equipo nunca te lo va a pedir.</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:16px 32px; background-color:#573f33; color:#f5e9df; font-size:12px; text-align:center;">
+              Sistema Veterinario Woof
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
