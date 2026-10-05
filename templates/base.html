@@ -47,6 +47,7 @@
           <div class="menu__acciones">
             {% if user.is_authenticated %}
               <span class="menu__saludo">Hola, {{ user.first_name|default:user.username }}</span>
+              <a class="menu__enlace" href="{% url 'mascotas:lista' %}">Mis mascotas</a>
               <form method="post" action="{% url 'cuentas:logout' %}" class="d-inline">
                 {% csrf_token %}
                 <button type="submit" class="menu__enlace menu__enlace--boton">Cerrar sesión</button>

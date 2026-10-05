@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}{{ mascota.nombre }} · Woof{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  {% include 'mascotas/_mensajes.html' %}
+
+  <a class="enlace-volver" href="{% url 'mascotas:lista' %}">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>Mis mascotas
+  </a>
+
+  <article class="ficha">
+    {# Columna izquierda: la foto grande (o el ícono de la especie) #}
+    <div class="ficha__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+      {% include 'mascotas/_avatar.html' %}
+    </div>
+
+    {# Columna derecha: nombre, datos y acciones #}
+    <div class="ficha__info">
+      <div class="ficha__insignias">
+        <span class="etiqueta etiqueta--marca">{{ mascota.get_especie_display }}</span>
+        {% if mascota.sexo %}
+          <span class="etiqueta">
+            <i class="bi {% if mascota.sexo == 'M' %}bi-gender-male{% else %}bi-gender-female{% endif %}" aria-hidden="true"></i>{{ mascota.get_sexo_display }}
+          </span>
+        {% endif %}
+      </div>
+
+      <h1 class="ficha__nombre">{{ mascota.nombre }}</h1>
+      <p class="ficha__raza">{{ mascota.raza|default:'Raza sin registrar' }}</p>
+
+      <dl class="ficha__datos">
+        <div class="dato">
+          <span class="dato__icono" aria-hidden="true"><i class="bi bi-cake2"></i></span>
+          <dt>Edad</dt>
+          <dd>{{ mascota.edad|default:'Sin registrar' }}</dd>
+        </div>
+        <div class="dato">
+          <span class="dato__icono" aria-hidden="true"><i class="bi bi-calendar-heart"></i></span>
+          <dt>Fecha de nacimiento</dt>
+          <dd>{{ mascota.fecha_nacimiento|date:'d/m/Y'|default:'Sin registrar' }}</dd>
+        </div>
+        <div class="dato">
+          <span class="dato__icono" aria-hidden="true"><i class="bi bi-speedometer2"></i></span>
+          <dt>Peso</dt>
+          <dd>{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}Sin registrar{% endif %}</dd>
+        </div>
+        <div class="dato">
+          <span class="dato__icono" aria-hidden="true"><i class="bi bi-tag"></i></span>
+          <dt>Especie</dt>
+          <dd>{{ mascota.get_especie_display }}</dd>
+        </div>
+        <div class="dato">
+          <span class="dato__icono" aria-hidden="true"><i class="bi bi-gender-ambiguous"></i></span>
+          <dt>Sexo</dt>
+          <dd>{{ mascota.get_sexo_display|default:'Sin registrar' }}</dd>
+        </div>
+        <div class="dato">
+          <span class="dato__icono" aria-hidden="true"><i class="bi bi-stars"></i></span>
+          <dt>Raza</dt>
+          <dd>{{ mascota.raza|default:'Sin registrar' }}</dd>
+        </div>
+      </dl>
+
+      <div class="ficha__acciones">
+        <a class="btn btn-primary rounded-pill px-4" href="{% url 'mascotas:editar' mascota.pk %}">
+          <i class="bi bi-pencil me-1" aria-hidden="true"></i>Editar
+        </a>
+        <a class="btn btn-outline-danger rounded-pill px-4" href="{% url 'mascotas:eliminar' mascota.pk %}">
+          <i class="bi bi-trash me-1" aria-hidden="true"></i>Eliminar
+        </a>
+      </div>
+
+      <p class="ficha__registro">
+        <i class="bi bi-clock-history me-1" aria-hidden="true"></i>Registrada el {{ mascota.creado|date:'d/m/Y' }} · Última actualización: {{ mascota.actualizado|date:'d/m/Y H:i' }}
+      </p>
+    </div>
+  </article>
+{% endblock %}
