@@ -1,4 +1,6 @@
+from django import forms
 from django.contrib.auth.forms import UserCreationForm
+from django.core.validators import RegexValidator
 
 from .models import Usuario
 
@@ -14,3 +16,8 @@ class RegistroForm(UserCreationForm):
             'email': 'Correo',
             'telefono': 'Teléfono',
         }
+
+
+class VerificarCodigoForm(forms.Form):
+    codigo = forms.CharField(label='Código', max_length=6, min_length=6, validators=[RegexValidator(r'^\d{6}$', 'Escribe los 6 números del código.')])
+    
