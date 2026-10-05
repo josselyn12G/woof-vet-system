@@ -56,7 +56,7 @@ erDiagram
         string sexo "M | H"
         date fecha_nacimiento
         decimal peso_kg
-        image foto "opcional"
+        bytes foto "opcional, WEBP"
         datetime creado
         datetime actualizado
     }
@@ -384,7 +384,7 @@ En `settings.py`: `AUTH_USER_MODEL = "cuentas.Usuario"` **antes de la primera mi
 | sexo | `CharField(max_length=1, choices=...)` | |
 | fecha_nacimiento | `DateField(null=True, blank=True)` | no futura |
 | peso_kg | `DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)` | > 0 |
-| foto | `ImageField(upload_to="mascotas/", blank=True)` | requiere Pillow; se puede dejar para después |
+| foto | `BinaryField(null=True, blank=True, editable=False)` | la imagen se guarda dentro de la base (así todos la ven), reducida con Pillow a WEBP de máx. 800 px; se muestra con la URL `/mascotas/<id>/foto/` |
 | creado / actualizado | `DateTimeField(auto_now_add / auto_now)` | |
 
 ---
