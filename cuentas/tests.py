@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
+from django.urls import reverse
 
 from .models import Roles, Usuario
 
@@ -55,3 +56,30 @@ class UsuarioModelTests(TestCase):
         sin_nombre = crear_usuario(username='luis', email='luis@woof.ec')
         self.assertEqual(str(con_nombre), 'Ana Pérez')
         self.assertEqual(str(sin_nombre), 'luis')
+
+
+class LoginTests(TestCase):
+    def setUp(self):
+        self.usuario = crear_usuario()
+
+    def test_la_pagina_de_login_carga(self):
+        respuesta = self.client.get(reverse('cuentas:login'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, 'cuentas/login.html')
+
+    def test_login_correcto_inicia_sesion(self):
+        respuesta = self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'Clave-segura-123'})
+        self.assertRedirects(respuesta, reverse('cuentas:inicio'))
+        self.assertIn('_auth_user_id', self.client.session)
+
+    def test_login_incorrecto_muestra_error(self):
+        respuesta = self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': '123'})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Usuario o contraseña incorrectos')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_logout_cierra_la_sesion(self):
+        self.client.login(username='ana', password='Clave-segura-123')              
+        respuesta = self.client.post(reverse('cuentas:logout'))
+        self.assertRedirects(respuesta, reverse('cuentas:inicio'))
+        self.assertNotIn('_auth_user_id', self.client.session)
