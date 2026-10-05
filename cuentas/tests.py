@@ -79,7 +79,31 @@ class LoginTests(TestCase):
         self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_logout_cierra_la_sesion(self):
-        self.client.login(username='ana', password='Clave-segura-123')              
+        self.client.login(username='ana', password='Clave-segura-123')
         respuesta = self.client.post(reverse('cuentas:logout'))
         self.assertRedirects(respuesta, reverse('cuentas:inicio'))
         self.assertNotIn('_auth_user_id', self.client.session)
+
+
+class RegistroTests(TestCase):
+    def setUp(self):
+        self.datos = {
+            'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez',
+            'email': 'luis@woof.ec', 'telefono': '+593987654322',
+            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
+        }
+
+    def test_registro_crea_usuario_cliente(self):
+        respuesta = self.client.post(reverse('cuentas:registro'), self.datos)
+        self.assertRedirects(respuesta, reverse('cuentas:login'))
+        self.assertTrue(Usuario.objects.filter(username='luis').exists())
+        usuario = Usuario.objects.get(username='luis')
+        self.assertEqual(usuario.rol, Roles.CLIENTE)
+
+    def test_registro_ignora_el_rol_enviado(self):
+        # Alguien modifica el formulario en el navegador para registrarse como administrador
+        self.datos['rol'] = 'administrador'
+        self.client.post(reverse('cuentas:registro'), self.datos)
+        # "rol" no está en los fields de RegistroForm: Django lo ignora y queda como cliente
+        usuario = Usuario.objects.get(username='luis')
+        self.assertEqual(usuario.rol, Roles.CLIENTE)
