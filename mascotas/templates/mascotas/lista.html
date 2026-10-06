@@ -17,7 +17,7 @@
       <h1 class="portada-mascotas__titulo">Mis mascotas</h1>
       <p class="portada-mascotas__resumen">
         {% if mascotas %}
-          Tienes <strong>{{ mascotas|length }} mascota{{ mascotas|length|pluralize }}</strong> registrada{{ mascotas|length|pluralize }}. Toca una para ver sus datos.
+          Tienes <strong>{{ mascotas|length }} mascota{{ mascotas|length|pluralize }}</strong> registrada{{ mascotas|length|pluralize }}. Desde cada tarjeta puedes ver su ficha, su carnet, editarla o eliminarla.
         {% else %}
           Aquí vas a tener los datos de tu familia peluda siempre a mano.
         {% endif %}
@@ -34,31 +34,49 @@
   {% if mascotas %}
     <div class="galeria-mascotas">
       {% for mascota in mascotas %}
-        <a class="tarjeta-mascota" href="{% url 'mascotas:detalle' mascota.pk %}">
-          <span class="tarjeta-mascota__foto foto-mascota foto-mascota--{{ mascota.especie }}">
-            {% include 'mascotas/_avatar.html' %}
-            <span class="tarjeta-mascota__especie">{{ mascota.get_especie_display }}</span>
-          </span>
-
-          <span class="tarjeta-mascota__cuerpo">
-            <span class="tarjeta-mascota__nombre">
-              {{ mascota.nombre }}
-              {% if mascota.sexo == 'M' %}
-                <i class="bi bi-gender-male tarjeta-mascota__sexo tarjeta-mascota__sexo--macho" title="Macho" aria-label="Macho"></i>
-              {% elif mascota.sexo == 'H' %}
-                <i class="bi bi-gender-female tarjeta-mascota__sexo tarjeta-mascota__sexo--hembra" title="Hembra" aria-label="Hembra"></i>
-              {% endif %}
+        <article class="tarjeta-mascota">
+          {# La foto y los datos llevan a la ficha; abajo van los botones de acción #}
+          <a class="tarjeta-mascota__enlace" href="{% url 'mascotas:detalle' mascota.pk %}">
+            <span class="tarjeta-mascota__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+              {% include 'mascotas/_avatar.html' %}
+              <span class="tarjeta-mascota__especie">{{ mascota.get_especie_display }}</span>
             </span>
-            <span class="tarjeta-mascota__raza">{{ mascota.raza|default:'Raza sin registrar' }}</span>
 
-            <span class="tarjeta-mascota__etiquetas">
-              {% if mascota.edad %}<span class="etiqueta"><i class="bi bi-cake2" aria-hidden="true"></i>{{ mascota.edad }}</span>{% endif %}
-              {% if mascota.peso_kg %}<span class="etiqueta"><i class="bi bi-speedometer2" aria-hidden="true"></i>{{ mascota.peso_kg }} kg</span>{% endif %}
+            <span class="tarjeta-mascota__cuerpo">
+              <span class="tarjeta-mascota__nombre">
+                {{ mascota.nombre }}
+                {% if mascota.sexo == 'M' %}
+                  <i class="bi bi-gender-male tarjeta-mascota__sexo tarjeta-mascota__sexo--macho" title="Macho" aria-label="Macho"></i>
+                {% elif mascota.sexo == 'H' %}
+                  <i class="bi bi-gender-female tarjeta-mascota__sexo tarjeta-mascota__sexo--hembra" title="Hembra" aria-label="Hembra"></i>
+                {% endif %}
+              </span>
+              <span class="tarjeta-mascota__raza">{{ mascota.raza|default:'Raza sin registrar' }}</span>
+
+              <span class="tarjeta-mascota__etiquetas">
+                {% if mascota.edad %}<span class="etiqueta"><i class="bi bi-cake2" aria-hidden="true"></i>{{ mascota.edad }}</span>{% endif %}
+                {% if mascota.peso_kg %}<span class="etiqueta"><i class="bi bi-speedometer2" aria-hidden="true"></i>{{ mascota.peso_kg }} kg</span>{% endif %}
+              </span>
             </span>
-          </span>
+          </a>
 
-          <span class="tarjeta-mascota__ver">Ver ficha <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
-        </a>
+          <div class="tarjeta-mascota__acciones">
+            <a class="btn btn-primary rounded-pill tarjeta-mascota__ver" href="{% url 'mascotas:detalle' mascota.pk %}">
+              Ver ficha completa <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+            </a>
+            <div class="tarjeta-mascota__botones">
+              <a class="accion-mascota" href="{% url 'mascotas:carnet' mascota.pk %}" title="Carnet de vacunación de {{ mascota.nombre }}">
+                <i class="bi bi-journal-medical" aria-hidden="true"></i>Carnet
+              </a>
+              <a class="accion-mascota" href="{% url 'mascotas:editar' mascota.pk %}" title="Editar a {{ mascota.nombre }}">
+                <i class="bi bi-pencil" aria-hidden="true"></i>Editar
+              </a>
+              <a class="accion-mascota accion-mascota--peligro" href="{% url 'mascotas:eliminar' mascota.pk %}" title="Eliminar a {{ mascota.nombre }}">
+                <i class="bi bi-trash" aria-hidden="true"></i>Eliminar
+              </a>
+            </div>
+          </div>
+        </article>
       {% endfor %}
 
       {# Última tarjeta: atajo para registrar otra mascota #}
