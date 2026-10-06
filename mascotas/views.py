@@ -35,7 +35,23 @@ class MascotaDetailView(MascotasDelUsuarioMixin, DetailView):
     context_object_name = 'mascota'
 
 
-class MascotaCreateView(MascotasDelUsuarioMixin, SuccessMessageMixin, CreateView):
+class MascotaCarnetView(MascotasDelUsuarioMixin, DetailView):
+    """Carnet de vacunación (HU-36). Las vacunas llegan con la app historial (HU-35);
+    mientras tanto el carnet se muestra vacío."""
+    template_name = 'mascotas/carnet.html'
+    context_object_name = 'mascota'
+
+
+class FormularioMascotaMixin:
+    """El formulario recibe al dueño para no repetir nombres entre sus mascotas."""
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['dueno'] = self.request.user
+        return kwargs
+
+
+class MascotaCreateView(MascotasDelUsuarioMixin, FormularioMascotaMixin, SuccessMessageMixin, CreateView):
     form_class = MascotaForm
     template_name = 'mascotas/formulario.html'
     success_message = '%(nombre)s se registró correctamente.'
@@ -48,7 +64,7 @@ class MascotaCreateView(MascotasDelUsuarioMixin, SuccessMessageMixin, CreateView
         return reverse_lazy('mascotas:detalle', kwargs={'pk': self.object.pk})
 
 
-class MascotaUpdateView(MascotasDelUsuarioMixin, SuccessMessageMixin, UpdateView):
+class MascotaUpdateView(MascotasDelUsuarioMixin, FormularioMascotaMixin, SuccessMessageMixin, UpdateView):
     form_class = MascotaForm
     template_name = 'mascotas/formulario.html'
     context_object_name = 'mascota'

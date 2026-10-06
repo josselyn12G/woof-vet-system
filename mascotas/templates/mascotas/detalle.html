@@ -71,6 +71,9 @@
         <a class="btn btn-primary rounded-pill px-4" href="{% url 'mascotas:editar' mascota.pk %}">
           <i class="bi bi-pencil me-1" aria-hidden="true"></i>Editar
         </a>
+        <a class="btn btn-light rounded-pill px-4" href="{% url 'mascotas:carnet' mascota.pk %}">
+          <i class="bi bi-journal-medical me-1" aria-hidden="true"></i>Carnet de vacunación
+        </a>
         <a class="btn btn-outline-danger rounded-pill px-4" href="{% url 'mascotas:eliminar' mascota.pk %}">
           <i class="bi bi-trash me-1" aria-hidden="true"></i>Eliminar
         </a>

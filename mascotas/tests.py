@@ -101,14 +101,57 @@ class MascotaFormTests(TestCase):
     def test_formulario_valido(self):
         self.assertTrue(MascotaForm(data=datos_validos()).is_valid())
 
-    def test_solo_nombre_y_especie_son_obligatorios(self):
-        form = MascotaForm(data={'nombre': 'Michi', 'especie': 'gato'})
-        self.assertTrue(form.is_valid(), form.errors)
-
-        form = MascotaForm(data={'nombre': '', 'especie': ''})
+    def test_los_datos_necesarios_son_obligatorios(self):
+        form = MascotaForm(data={})
         self.assertFalse(form.is_valid())
-        self.assertIn('nombre', form.errors)
-        self.assertIn('especie', form.errors)
+        for campo in ('nombre', 'especie', 'sexo', 'fecha_nacimiento', 'peso_kg'):
+            with self.subTest(campo=campo):
+                self.assertIn(campo, form.errors)
+        self.assertIn('Escribe el nombre de tu mascota.', form.errors['nombre'])
+
+    def test_la_raza_es_opcional(self):
+        self.assertTrue(MascotaForm(data=datos_validos(raza='')).is_valid())
+
+    def test_el_nombre_quita_espacios_de_mas(self):
+        form = MascotaForm(data=datos_validos(nombre='  Señor   Bigotes '))
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['nombre'], 'Señor Bigotes')
+
+    def test_el_nombre_solo_acepta_letras(self):
+        for nombre in ('M', '123', 'Max!!', '   '):
+            with self.subTest(nombre=nombre):
+                form = MascotaForm(data=datos_validos(nombre=nombre))
+                self.assertFalse(form.is_valid())
+                self.assertIn('nombre', form.errors)
+
+    def test_la_raza_solo_acepta_letras(self):
+        form = MascotaForm(data=datos_validos(raza='Siamés 2'))
+        self.assertFalse(form.is_valid())
+        self.assertIn('raza', form.errors)
+
+    def test_no_se_repite_el_nombre_entre_mis_mascotas(self):
+        ana = crear_usuario()
+        crear_mascota(ana, nombre='Michi')
+        form = MascotaForm(data=datos_validos(nombre='michi'), dueno=ana)
+        self.assertFalse(form.is_valid())
+        self.assertIn('Ya tienes una mascota llamada michi.', form.errors['nombre'])
+        # Otro cliente sí puede usar el mismo nombre
+        self.assertTrue(MascotaForm(data=datos_validos(), dueno=crear_usuario('luis')).is_valid())
+
+    def test_editar_puede_conservar_su_propio_nombre(self):
+        ana = crear_usuario()
+        michi = crear_mascota(ana, nombre='Michi')
+        self.assertTrue(MascotaForm(data=datos_validos(), instance=michi, dueno=ana).is_valid())
+
+    def test_peso_tiene_un_maximo(self):
+        form = MascotaForm(data=datos_validos(peso_kg='150.01'))
+        self.assertFalse(form.is_valid())
+        self.assertIn('peso_kg', form.errors)
+
+    def test_fecha_de_nacimiento_demasiado_antigua(self):
+        form = MascotaForm(data=datos_validos(fecha_nacimiento='1950-01-01'))
+        self.assertFalse(form.is_valid())
+        self.assertIn('fecha_nacimiento', form.errors)
 
     def test_peso_debe_ser_mayor_que_cero(self):
         for peso in ('0', '-3'):
@@ -137,6 +180,7 @@ class AccesoSinSesionTests(TestCase):
             reverse('mascotas:detalle', args=[mascota.pk]),
             reverse('mascotas:editar', args=[mascota.pk]),
             reverse('mascotas:eliminar', args=[mascota.pk]),
+            reverse('mascotas:carnet', args=[mascota.pk]),
         ]
         for url in urls:
             with self.subTest(url=url):
@@ -167,6 +211,13 @@ class MascotaViewTests(TestCase):
         self.assertContains(respuesta, 'Firulais')
         self.assertNotContains(respuesta, 'Rocky')
 
+    def test_cada_tarjeta_tiene_sus_botones(self):
+        respuesta = self.client.get(reverse('mascotas:lista'))
+        for nombre in ('detalle', 'carnet', 'editar', 'eliminar'):
+            with self.subTest(boton=nombre):
+                self.assertContains(respuesta, reverse(f'mascotas:{nombre}', args=[self.firulais.pk]))
+        self.assertContains(respuesta, 'Ver ficha completa')
+
     def test_lista_vacia_invita_a_registrar(self):
         self.firulais.delete()
         respuesta = self.client.get(reverse('mascotas:lista'))
@@ -181,6 +232,12 @@ class MascotaViewTests(TestCase):
         self.assertEqual(michi.dueno, self.ana)
         self.assertRedirects(respuesta, reverse('mascotas:detalle', args=[michi.pk]))
         self.assertContains(respuesta, 'Michi se registró correctamente.')
+
+    def test_crear_con_nombre_repetido_no_guarda(self):
+        respuesta = self.client.post(reverse('mascotas:crear'), datos_validos(nombre='Firulais'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Ya tienes una mascota llamada Firulais.')
+        self.assertEqual(Mascota.objects.filter(dueno=self.ana).count(), 1)
 
     def test_crear_con_errores_no_guarda(self):
         respuesta = self.client.post(reverse('mascotas:crear'), datos_validos(nombre='', peso_kg='0'))
@@ -257,6 +314,22 @@ class MascotaViewTests(TestCase):
         self.assertEqual(self.client.get(url).status_code, 404)
         self.assertEqual(self.client.post(url).status_code, 404)
         self.assertTrue(Mascota.objects.filter(pk=self.mascota_de_luis.pk).exists())
+
+    # ----- HU-36: carnet de vacunación -----
+    def test_carnet_muestra_la_mascota(self):
+        respuesta = self.client.get(reverse('mascotas:carnet', args=[self.firulais.pk]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, 'mascotas/carnet.html')
+        self.assertContains(respuesta, 'Carnet de vacunación')
+        self.assertContains(respuesta, 'Aún no hay vacunas registradas')
+
+    def test_detalle_enlaza_al_carnet(self):
+        respuesta = self.client.get(reverse('mascotas:detalle', args=[self.firulais.pk]))
+        self.assertContains(respuesta, reverse('mascotas:carnet', args=[self.firulais.pk]))
+
+    def test_carnet_de_mascota_ajena_da_404(self):
+        respuesta = self.client.get(reverse('mascotas:carnet', args=[self.mascota_de_luis.pk]))
+        self.assertEqual(respuesta.status_code, 404)
 
     # ----- HU-01: el menú enlaza a Mis mascotas -----
     def test_el_menu_muestra_mis_mascotas_con_sesion(self):
