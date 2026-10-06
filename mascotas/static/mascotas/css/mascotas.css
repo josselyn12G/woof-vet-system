@@ -190,8 +190,6 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: inherit;
-  text-decoration: none;
   background: #fff;
   border: 1px solid rgba(87, 63, 51, 0.08);
   border-radius: 1.75rem;
@@ -200,15 +198,28 @@
 }
 
 .tarjeta-mascota:hover,
-.tarjeta-mascota:focus-visible {
-  color: inherit;
+.tarjeta-mascota:focus-within {
   transform: translateY(-6px);
   box-shadow: var(--woof-sombra-grande);
 }
 
-.tarjeta-mascota:focus-visible {
+/* Foto y datos: un enlace a la ficha */
+.tarjeta-mascota__enlace {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tarjeta-mascota__enlace:hover {
+  color: inherit;
+}
+
+.tarjeta-mascota__enlace:focus-visible {
   outline: 3px solid var(--woof-naranja-300);
-  outline-offset: 3px;
+  outline-offset: -3px;
+  border-radius: 1.75rem 1.75rem 0 0;
 }
 
 .tarjeta-mascota__foto {
@@ -281,22 +292,68 @@
   margin-top: 0.6rem;
 }
 
-.tarjeta-mascota__ver {
+/* Botones de la tarjeta: "Ver ficha completa" y, debajo, carnet, editar y eliminar */
+.tarjeta-mascota__acciones {
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.75rem 1.25rem 1.15rem;
-  color: var(--woof-naranja-700);
-  font-size: 0.9rem;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem 1.25rem;
+}
+
+.tarjeta-mascota__ver {
+  width: 100%;
   font-weight: 700;
 }
 
-.tarjeta-mascota__ver .bi {
-  transition: transform 300ms var(--woof-curva);
+.tarjeta-mascota__botones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 
-.tarjeta-mascota:hover .tarjeta-mascota__ver .bi {
-  transform: translateX(4px);
+/* Botón chico con el ícono arriba y el texto abajo */
+.accion-mascota {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.55rem 0.25rem;
+  color: var(--woof-marron);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--woof-fondo-suave);
+  border: 1px solid rgba(87, 63, 51, 0.06);
+  border-radius: 1rem;
+  transition: background-color 200ms ease, color 200ms ease, transform 300ms var(--woof-curva);
+}
+
+.accion-mascota .bi {
+  color: var(--woof-naranja-600);
+  font-size: 1.1rem;
+  transition: color 200ms ease;
+}
+
+.accion-mascota:hover,
+.accion-mascota:focus-visible {
+  color: var(--woof-naranja-900);
+  background: var(--woof-naranja-100);
+  transform: translateY(-2px);
+}
+
+.accion-mascota:focus-visible {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+.accion-mascota--peligro:hover,
+.accion-mascota--peligro:focus-visible {
+  color: #b02a37;
+  background: #fdecee;
+}
+
+.accion-mascota--peligro .bi {
+  color: #dc3545;
 }
 
 /* Tarjeta para registrar otra mascota */
@@ -647,7 +704,128 @@
 }
 
 /* =========================================================
-   5. Confirmar eliminación
+   5. Carnet de vacunación
+   ========================================================= */
+.carnet {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(87, 63, 51, 0.08);
+  border-radius: 2rem;
+  box-shadow: var(--woof-sombra);
+}
+
+/* Portada del carnet: la mascota y sus datos de identificación */
+.carnet__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.75rem;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(238, 154, 53, 0.3), transparent 45%),
+    linear-gradient(120deg, var(--woof-naranja-100) 0%, #fff7ec 100%);
+  border-bottom: 2px dashed rgba(238, 154, 53, 0.35);
+}
+
+.carnet__foto {
+  flex-shrink: 0;
+  width: 6.5rem;
+  height: 6.5rem;
+  font-size: 3rem;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 10px 24px -12px rgba(59, 42, 34, 0.4);
+}
+
+.carnet__titulo {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.5vw, 2.6rem);
+  letter-spacing: -0.03em;
+}
+
+.carnet__identidad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.carnet__cuerpo {
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+}
+
+.carnet__subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--woof-marron);
+  font-size: 1.15rem;
+}
+
+.carnet__subtitulo .bi {
+  color: var(--woof-marca);
+}
+
+.carnet__tabla {
+  margin: 0;
+  overflow-x: auto;
+  border: 1px solid rgba(87, 63, 51, 0.08);
+  border-radius: 1.25rem;
+}
+
+.carnet__tabla table {
+  width: 100%;
+  min-width: 36rem;
+  margin: 0;
+  border-collapse: collapse;
+}
+
+.carnet__tabla th {
+  padding: 0.8rem 1rem;
+  color: var(--woof-gris-calido);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--woof-fondo-suave);
+}
+
+.carnet__vacio {
+  padding: 2.5rem 1.5rem;
+  color: var(--woof-gris-calido);
+  text-align: center;
+}
+
+.carnet__vacio-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 0.75rem;
+  color: var(--woof-naranja-700);
+  font-size: 1.75rem;
+  background: var(--woof-naranja-100);
+  border-radius: 50%;
+}
+
+.carnet__vacio strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--woof-marron);
+  font-size: 1.05rem;
+}
+
+.carnet__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+/* =========================================================
+   6. Confirmar eliminación
    ========================================================= */
 .confirmar {
   max-width: 30rem;
@@ -716,7 +894,7 @@
 }
 
 /* =========================================================
-   6. Pantallas pequeñas y accesibilidad
+   7. Pantallas pequeñas y accesibilidad
    ========================================================= */
 @media (max-width: 767.98px) {
   .portada-mascotas {
@@ -754,15 +932,16 @@
 @media (prefers-reduced-motion: reduce) {
   .tarjeta-mascota,
   .tarjeta-mascota__foto img,
-  .tarjeta-mascota__ver .bi,
+  .accion-mascota,
   .tarjeta-nueva__icono,
   .enlace-volver {
     transition: none;
   }
 
   .tarjeta-mascota:hover,
+  .tarjeta-mascota:focus-within,
   .tarjeta-mascota:hover .tarjeta-mascota__foto img,
-  .tarjeta-mascota:hover .tarjeta-mascota__ver .bi,
+  .accion-mascota:hover,
   .tarjeta-nueva:hover .tarjeta-nueva__icono {
     transform: none;
   }
