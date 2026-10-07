@@ -59,3 +59,14 @@ def verificar_codigo(request, codigo_escrito):
     del request.session['codigo_2fa']
     del request.session['codigo_2fa_vence']
     return True
+
+
+def hay_login_pendiente(request):
+    """True si alguien pasó la contraseña y su código todavía no vence."""
+    return bool(request.session.get('pre_2fa_user')) and time.time() <= request.session.get('codigo_2fa_vence', 0)
+
+
+def cancelar_login_pendiente(request):
+    """Borra el "login a medias": quién pasó la contraseña, a dónde iba y su código."""
+    for clave in ('pre_2fa_user', 'pre_2fa_next', 'codigo_2fa', 'codigo_2fa_vence'):
+        request.session.pop(clave, None)

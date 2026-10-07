@@ -158,15 +158,24 @@ class DobleFactorTests(TestCase):
         self.assertContains(respuesta, 'El código es incorrecto o ya venció.')
         self.assertNotIn('_auth_user_id', self.client.session)
 
-    def test_codigo_vencido_no_inicia_sesion(self):
+    def test_codigo_vencido_vuelve_al_login(self):
         codigo = self.pasar_contrasena()
         # Se adelanta el vencimiento al pasado, en vez de esperar 5 minutos
         sesion = self.client.session
         sesion['codigo_2fa_vence'] = time.time() - 1
         sesion.save()
         respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': codigo})
-        self.assertContains(respuesta, 'El código es incorrecto o ya venció.')
+        self.assertRedirects(respuesta, reverse('cuentas:login'))
         self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertNotIn('pre_2fa_user', self.client.session)
+
+    def test_cancelar_cierra_la_ventana_del_codigo(self):
+        # Pasa la contraseña, pulsa "Cancelar" (vuelve al login) y luego intenta abrir /verificar/
+        self.pasar_contrasena()
+        self.client.get(reverse('cuentas:login'))
+        self.assertNotIn('pre_2fa_user', self.client.session)
+        respuesta = self.client.get(reverse('cuentas:verificar'))
+        self.assertRedirects(respuesta, reverse('cuentas:login'))
 
     def test_codigo_con_letras_muestra_error(self):
         self.pasar_contrasena()
