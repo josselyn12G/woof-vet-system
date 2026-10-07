@@ -43,13 +43,13 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 
 ## Estado del proyecto
 
-🚧 **En desarrollo.** La Entrega 1 está terminada.
+**En desarrollo.** La Entrega 1 está terminada.
 
 | Fase | Alcance | Estado |
 |---|---|---|
-| Entrega 1 | Portada, registro, login con doble factor, CRUD de mascotas con URLs protegidas | ✅ Terminada |
-| Fase 2 | Login con Google y correos con SendGrid | ⏳ Pendiente |
-| Fase 3 | Roles, citas, historia clínica y carnet de vacunación | ⏳ Pendiente |
+| Entrega 1 | Portada, registro, login con doble factor, CRUD de mascotas con URLs protegidas | Terminada |
+| Fase 2 | Login con Google y correos con SendGrid | Pendiente |
+| Fase 3 | Roles, citas, historia clínica y carnet de vacunación | Pendiente |
 
 ## Funcionalidades
 
@@ -65,13 +65,27 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 
 ## Capturas
 
-| Inicio de sesión | Código de verificación |
-|---|---|
-| <img src="docs/img/login.webp" alt="Pantalla de inicio de sesión" width="400"> | <img src="docs/img/verificar.webp" alt="Ventana para escribir el código de 6 dígitos" width="400"> |
+### Cuentas
 
-| Registro |
-|---|
-| <img src="docs/img/registro.webp" alt="Registro en 3 pasos" width="400"> |
+| Registro | Inicio de sesión | Código de verificación |
+|---|---|---|
+| <img src="docs/img/registro.webp" alt="Registro en 3 pasos" width="280"> | <img src="docs/img/login.webp" alt="Pantalla de inicio de sesión" width="280"> | <img src="docs/img/verificar.webp" alt="Ventana para escribir el código de 6 dígitos" width="280"> |
+
+### CRUD de mascotas
+
+<p align="center">
+  <img src="docs/img/mascotas-lista.webp" alt="Lista de mascotas del usuario, con foto, especie, edad y peso" width="800">
+</p>
+
+| Crear | Ver detalle |
+|---|---|
+| <img src="docs/img/mascotas-nueva.webp" alt="Formulario para registrar una mascota" width="400"> | <img src="docs/img/mascotas-detalle.webp" alt="Ficha completa de una mascota" width="400"> |
+
+| Editar | Eliminar |
+|---|---|
+| <img src="docs/img/mascotas-editar.webp" alt="Formulario para editar una mascota" width="400"> | <img src="docs/img/mascotas-eliminar.webp" alt="Confirmación antes de eliminar una mascota" width="400"> |
+
+<sub>Las capturas usan datos de ejemplo.</sub>
 
 ## Cómo ejecutarlo
 
