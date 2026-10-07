@@ -5,7 +5,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, FormView, TemplateView
 
 from cuentas.forms import RegistroForm, VerificarCodigoForm
-from cuentas.services import enviar_codigo, verificar_codigo
+from cuentas.services import cancelar_login_pendiente, enviar_codigo, hay_login_pendiente, verificar_codigo
 
 
 class InicioView(TemplateView):
@@ -22,6 +22,11 @@ class LoginDosPasosView(LoginView):
     """Primer paso del login: valida usuario y contraseña, pero en vez de iniciar sesión envía un código al correo."""
     template_name = 'cuentas/login.html'
 
+    def get(self, request, *args, **kwargs):
+        # Volver al login (por ejemplo, con "Cancelar") empieza de cero: se descarta el login a medias
+        cancelar_login_pendiente(request)
+        return super().get(request, *args, **kwargs)
+
     def form_valid(self, form):
         usuario = form.get_user()
         self.request.session['pre_2fa_user'] = usuario.pk           # la sesión es JSON: se guarda el pk, no el objeto
@@ -35,7 +40,9 @@ class VerificarView(FormView):
     form_class = VerificarCodigoForm
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.session.get('pre_2fa_user'):
+        # Solo se entra si se acaba de pasar la contraseña y el código sigue vigente (como LoginRequiredMixin en mascotas)
+        if not hay_login_pendiente(request):
+            cancelar_login_pendiente(request)
             return redirect('cuentas:login')
 
         return super().dispatch(request, *args, **kwargs)
