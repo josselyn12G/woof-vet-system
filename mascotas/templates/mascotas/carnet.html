@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Carnet de {{ mascota.nombre }} · Woof{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  <a class="enlace-volver" href="{% url 'mascotas:detalle' mascota.pk %}">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>{{ mascota.nombre }}
+  </a>
+
+  {# Carnet de vacunación (HU-36). Las vacunas las registra el veterinario (HU-35, app historial) #}
+  <article class="carnet">
+    <header class="carnet__cabecera">
+      <span class="carnet__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+        {% include 'mascotas/_avatar.html' %}
+      </span>
+      <div>
+        <p class="sobretitulo mb-1">Carnet de vacunación</p>
+        <h1 class="carnet__titulo">{{ mascota.nombre }}</h1>
+        <div class="carnet__identidad">
+          <span class="etiqueta etiqueta--marca">{{ mascota.get_especie_display }}</span>
+          {% if mascota.sexo %}<span class="etiqueta">{{ mascota.get_sexo_display }}</span>{% endif %}
+          {% if mascota.raza %}<span class="etiqueta">{{ mascota.raza }}</span>{% endif %}
+          {% if mascota.edad %}<span class="etiqueta"><i class="bi bi-cake2" aria-hidden="true"></i>{{ mascota.edad }}</span>{% endif %}
+          {% if mascota.peso_kg %}<span class="etiqueta"><i class="bi bi-speedometer2" aria-hidden="true"></i>{{ mascota.peso_kg }} kg</span>{% endif %}
+        </div>
+      </div>
+    </header>
+
+    <div class="carnet__cuerpo">
+      <h2 class="carnet__subtitulo"><i class="bi bi-shield-check" aria-hidden="true"></i>Vacunas aplicadas</h2>
+
+      <div class="carnet__tabla">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Vacuna</th>
+              <th scope="col">Fecha de aplicación</th>
+              <th scope="col">Lote</th>
+              <th scope="col">Próxima dosis</th>
+              <th scope="col">Veterinario</th>
+            </tr>
+          </thead>
+        </table>
+        <div class="carnet__vacio">
+          <span class="carnet__vacio-icono" aria-hidden="true"><i class="bi bi-journal-medical"></i></span>
+          <strong>Aún no hay vacunas registradas</strong>
+          El veterinario anotará aquí cada vacuna que reciba {{ mascota.nombre }} en sus visitas a la clínica.
+        </div>
+      </div>
+
+      <div class="carnet__acciones">
+        <a class="btn btn-primary rounded-pill px-4" href="{% url 'mascotas:detalle' mascota.pk %}">
+          <i class="bi bi-card-text me-1" aria-hidden="true"></i>Ver ficha completa
+        </a>
+        <a class="btn btn-light rounded-pill px-4" href="{% url 'mascotas:lista' %}">Mis mascotas</a>
+      </div>
+    </div>
+  </article>
+{% endblock %}

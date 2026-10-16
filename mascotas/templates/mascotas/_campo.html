@@ -1,0 +1,14 @@
+{% comment %}
+  Un campo del formulario con su etiqueta, ayuda y errores.
+  Se usa así: include 'mascotas/_campo.html' with campo=form.nombre
+{% endcomment %}
+<div class="campo-mascota">
+  <label class="form-label" for="{{ campo.id_for_label }}">
+    {{ campo.label }}{% if campo.field.required %} <span class="campo-mascota__obligatorio" aria-hidden="true">*</span>{% endif %}
+  </label>
+  {{ campo }}
+  {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+  {% for error in campo.errors %}
+    <div class="invalid-feedback">{{ error }}</div>
+  {% endfor %}
+</div>

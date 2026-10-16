@@ -1,0 +1,23 @@
+{% comment %}
+  Un campo del formulario con su etiqueta, ícono y errores.
+  Se usa así: include 'cuentas/_campo.html' with campo=form.email icono='bi-envelope'
+  El guion bajo del nombre (_campo) indica que es un fragmento: no es una página completa.
+{% endcomment %}
+<div class="campo{% if mitad %} campo--mitad{% endif %}{% if campo.errors %} campo--con-error{% endif %}">
+  <label class="campo__etiqueta" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+
+  <div class="campo__grupo campo__grupo--icono{% if contrasena %} campo__grupo--ver{% endif %}">
+    <i class="bi {{ icono }} campo__icono" aria-hidden="true"></i>
+    {{ campo }}
+    {% if contrasena %}
+      <button type="button" class="campo__ver" data-ver-contrasena="{{ campo.id_for_label }}"
+              aria-label="Mostrar contraseña" aria-pressed="false">
+        <i class="bi bi-eye" aria-hidden="true"></i>
+      </button>
+    {% endif %}
+  </div>
+
+  {% for error in campo.errors %}
+    <p class="campo__error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</p>
+  {% endfor %}
+</div>

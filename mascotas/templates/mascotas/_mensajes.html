@@ -1,0 +1,17 @@
+{% comment %}
+  Mensajes de confirmación (messages de Django): "Firulais se registró correctamente", etc.
+  Se usa así: include 'mascotas/_mensajes.html'
+{% endcomment %}
+{% if messages %}
+  <div class="avisos" role="status">
+    {% for mensaje in messages %}
+      <div class="aviso aviso--{{ mensaje.tags|default:'info' }} alert alert-dismissible fade show" role="alert">
+        <span class="aviso__icono" aria-hidden="true">
+          <i class="bi {% if mensaje.tags == 'error' %}bi-exclamation-lg{% else %}bi-check-lg{% endif %}"></i>
+        </span>
+        <span class="aviso__texto">{{ mensaje }}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

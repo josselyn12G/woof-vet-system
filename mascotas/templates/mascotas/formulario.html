@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Una sola plantilla para crear y editar: al editar, la vista envía "mascota" y "nombre_original" #}
+{% block titulo %}{% if mascota %}Editar a {{ nombre_original }}{% else %}Registrar mascota{% endif %} · Woof{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  <a class="enlace-volver" href="{% if mascota %}{% url 'mascotas:detalle' mascota.pk %}{% else %}{% url 'mascotas:lista' %}{% endif %}">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>{% if mascota %}{{ nombre_original }}{% else %}Mis mascotas{% endif %}
+  </a>
+
+  <div class="formulario-mascota">
+    <header class="formulario-mascota__cabecera">
+      <p class="sobretitulo mb-1">{% if mascota %}Actualiza su ficha{% else %}Nuevo integrante{% endif %}</p>
+      <h1 class="formulario-mascota__titulo">{% if mascota %}Editar a {{ nombre_original }}{% else %}Registrar mascota{% endif %}</h1>
+      <p class="formulario-mascota__ayuda">Los campos con <span class="campo-mascota__obligatorio">*</span> son obligatorios.</p>
+    </header>
+
+    {# enctype multipart: sin esto el navegador no envía el archivo de la foto #}
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      {% for error in form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+      {% endfor %}
+
+      <div class="formulario-mascota__cuerpo">
+        {# ----- Columna de la foto: vista previa + botón para elegirla ----- #}
+        <div class="subir-foto">
+          <div class="subir-foto__vista foto-mascota foto-mascota--{{ mascota.especie|default:'otro' }}" data-foto-vista>
+            {% if mascota.tiene_foto %}
+              <img src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="Foto actual" data-foto-imagen>
+            {% else %}
+              <span class="subir-foto__vacia" data-foto-vacia>
+                <i class="bi bi-camera" aria-hidden="true"></i>
+                <span>Sin foto</span>
+              </span>
+              <img src="" alt="Vista previa de la foto" data-foto-imagen hidden>
+            {% endif %}
+          </div>
+
+          {# El input de archivo queda oculto a la vista; la etiqueta funciona como botón #}
+          <label class="btn btn-light rounded-pill subir-foto__boton" for="{{ form.foto.id_for_label }}">
+            <i class="bi bi-image me-1" aria-hidden="true"></i>{% if mascota.tiene_foto %}Cambiar foto{% else %}Elegir foto{% endif %}
+          </label>
+          <div class="subir-foto__entrada">{{ form.foto }}</div>
+          <p class="subir-foto__nombre" data-foto-nombre hidden></p>
+          <p class="form-text text-center mb-0">{{ form.foto.help_text }}</p>
+          {% for error in form.foto.errors %}
+            <div class="invalid-feedback d-block text-center">{{ error }}</div>
+          {% endfor %}
+
+          {# Solo al editar una mascota que ya tiene foto: casilla para quitarla #}
+          {% if mascota.tiene_foto %}
+            <div class="form-check subir-foto__quitar">
+              {{ form.quitar_foto }}
+              <label class="form-check-label" for="{{ form.quitar_foto.id_for_label }}">{{ form.quitar_foto.label }}</label>
+            </div>
+          {% endif %}
+        </div>
+
+        {# ----- Columna de los datos ----- #}
+        <div class="formulario-mascota__campos">
+          <fieldset class="grupo-campos">
+            <legend class="grupo-campos__titulo"><i class="bi bi-heart" aria-hidden="true"></i>Datos básicos</legend>
+            <div class="row g-3">
+              <div class="col-12">{% include 'mascotas/_campo.html' with campo=form.nombre %}</div>
+              <div class="col-12 col-md-6">{% include 'mascotas/_campo.html' with campo=form.especie %}</div>
+              <div class="col-12 col-md-6">{% include 'mascotas/_campo.html' with campo=form.sexo %}</div>
+              <div class="col-12">{% include 'mascotas/_campo.html' with campo=form.raza %}</div>
+            </div>
+          </fieldset>
+
+          <fieldset class="grupo-campos">
+            <legend class="grupo-campos__titulo"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>Salud</legend>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">{% include 'mascotas/_campo.html' with campo=form.fecha_nacimiento %}</div>
+              <div class="col-12 col-md-6">{% include 'mascotas/_campo.html' with campo=form.peso_kg %}</div>
+            </div>
+          </fieldset>
+
+          <div class="formulario-mascota__acciones">
+            <a class="btn btn-light rounded-pill px-4" href="{% if mascota %}{% url 'mascotas:detalle' mascota.pk %}{% else %}{% url 'mascotas:lista' %}{% endif %}">Cancelar</a>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">
+              <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{% if mascota %}Guardar cambios{% else %}Registrar mascota{% endif %}
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'mascotas/js/vista-previa-foto.js' %}" defer></script>
+{% endblock %}
