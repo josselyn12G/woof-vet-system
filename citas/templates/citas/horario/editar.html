@@ -1,0 +1,23 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Editar bloque · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_titulo %}Editar bloque{% endblock %}
+{% block panel_subtitulo %}{{ bloque.fecha|date:'l j \d\e F'|capfirst }}, de {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}.{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel">
+    <form class="formulario-panel" method="post" novalidate>
+      {% include 'citas/horario/_campos.html' %}
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>Guardar cambios</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'citas:horario' %}?semana={{ bloque.fecha|date:'Y-m-d' }}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

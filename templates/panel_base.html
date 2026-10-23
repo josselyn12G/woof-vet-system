@@ -81,7 +81,7 @@
         <nav class="nav-arriba__opciones" aria-label="Menú del panel">
           <a class="nav-arriba__opcion{% if ruta == 'cuentas:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_veterinario' %}"{% if ruta == 'cuentas:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
           <span class="nav-arriba__opcion es-pronto" aria-disabled="true" title="Pronto">Agenda</span>
-          <span class="nav-arriba__opcion es-pronto" aria-disabled="true" title="Pronto">Mi horario</span>
+          <a class="nav-arriba__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"{% if ruta == 'citas:horario' %} aria-current="page"{% endif %}>Mi horario</a>
           <span class="nav-arriba__opcion es-pronto" aria-disabled="true" title="Pronto">Pacientes</span>
         </nav>
         <div class="nav-arriba__lado">

@@ -112,8 +112,155 @@ fieldset.formulario-panel__campo {
   background: var(--p-acento-tinte);
 }
 
+.casillas-veterinarios--una-columna {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* =========================================================
+   Mi horario (veterinario): la semana a la izquierda, los formularios a la derecha
+   ========================================================= */
+.horario {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.horario__lado {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.bloque-panel__titulo--espacio {
+  margin-bottom: 1rem;
+}
+
+.semana__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.semana__rango {
+  flex: 1;
+  text-align: center;
+}
+
+.semana__rango .bloque-panel__meta {
+  margin: 0.2rem 0 0;
+}
+
+.semana__dias {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dia {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.dia:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dia__fecha {
+  display: flex;
+  flex-direction: column;
+}
+
+.dia__nombre {
+  color: var(--p-texto);
+  font-weight: 600;
+}
+
+.dia__numero {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dia__bloques {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dia__vacio {
+  color: #a3a3aa;
+  font-size: 0.9rem;
+}
+
+.dia--pasado .dia__nombre,
+.dia--pasado .bloque-hora {
+  opacity: 0.55;
+}
+
+/* Cada bloque es una píldora con su hora y sus acciones */
+.bloque-hora {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.75rem;
+  border: 1px solid #f4d3ab;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.bloque-hora form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.bloque-hora__texto {
+  color: var(--p-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.dia--pasado .bloque-hora {
+  padding-right: 0.75rem;
+}
+
+.boton-fila--chico {
+  position: relative;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  font-size: 0.85rem;
+}
+
+.bloque-hora .boton-fila:hover {
+  background: #fff;
+}
+
+@media (max-width: 991.98px) {
+  .horario {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 575.98px) {
   .formulario-servicio__par {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dia {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
   }
 }
