@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
+from .validators import validar_cedula
 
 # Validador del formato del telefono
 validar_telefono = RegexValidator(
@@ -22,8 +23,9 @@ class Usuario(AbstractUser):
     telefono = models.CharField(max_length=16, validators=[validar_telefono])
     rol = models.CharField(max_length=15, choices=Roles.choices, default=Roles.CLIENTE)
     sector = models.CharField(max_length=80, blank=True)  # opcional: se guarda '' si está vacío
+    cedula = models.CharField(max_length=10, unique=True, validators=[validar_cedula])
 
-    REQUIRED_FIELDS = ['email', 'telefono']
+    REQUIRED_FIELDS = ['email', 'telefono', 'cedula']
 
     # Clase que aporta metadatos al modelo
     class Meta:
@@ -37,6 +39,10 @@ class Usuario(AbstractUser):
             models.CheckConstraint(
                 condition=models.Q(telefono__regex=validar_telefono.regex.pattern),
                 name='usuario_telefono_formato',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(cedula__regex=r'^\d{10}$'),
+                name='usuario_cedula_formato',
             ),
         ]
 

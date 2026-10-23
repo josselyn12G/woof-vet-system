@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import Roles, Usuario
+from .validators import CEDULA_NO_VALIDA, validar_cedula
 
 
 def crear_usuario(**datos):
@@ -17,6 +18,7 @@ def crear_usuario(**datos):
         'email': 'ana@woof.ec',
         'telefono': '+593987654321',
         'password': 'Clave-segura-123',
+        'cedula': '1710034065',
     }
     valores.update(datos)
     # create_user (y no Usuario(...).save()) para que la contraseña se guarde cifrada.
@@ -39,7 +41,7 @@ class UsuarioModelTests(TestCase):
         crear_usuario()
         # Otro username, mismo correo: la base de datos lo rechaza por unique=True.
         with self.assertRaises(IntegrityError):
-            crear_usuario(username='luis')
+            crear_usuario(username='luis', cedula='0926687856')
 
     def test_telefono_debe_ser_internacional(self):
         usuario = crear_usuario()
@@ -57,7 +59,7 @@ class UsuarioModelTests(TestCase):
 
     def test_str_muestra_nombre_o_usuario(self):
         con_nombre = crear_usuario(first_name='Ana', last_name='Pérez')
-        sin_nombre = crear_usuario(username='luis', email='luis@woof.ec')
+        sin_nombre = crear_usuario(username='luis', email='luis@woof.ec', cedula='0926687856')
         self.assertEqual(str(con_nombre), 'Ana Pérez')
         self.assertEqual(str(sin_nombre), 'luis')
 
@@ -98,7 +100,7 @@ class RegistroTests(TestCase):
     def setUp(self):
         self.datos = {
             'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez',
-            'email': 'luis@woof.ec', 'telefono': '+593987654322',
+            'email': 'luis@woof.ec', 'telefono': '+593987654322', 'cedula': '0926687856',
             'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
         }
 
@@ -116,6 +118,49 @@ class RegistroTests(TestCase):
         # "rol" no está en los fields de RegistroForm: Django lo ignora y queda como cliente
         usuario = Usuario.objects.get(username='luis')
         self.assertEqual(usuario.rol, Roles.CLIENTE)
+
+
+class CedulaTests(TestCase):
+    """La cédula es el dato sensible: se valida en el servidor (validar_cedula) y en la base (unique y CheckConstraint)."""
+
+    def test_cedula_valida_pasa(self):
+        for cedula in ('1710034065', '0926687856'):
+            validar_cedula(cedula)  # no lanza error
+
+    def test_cedulas_invalidas_se_rechazan(self):
+        casos = {
+            '1710034064': 'dígito verificador incorrecto',
+            '2510034065': 'provincia 25',
+            '1790034065': 'tercer dígito 9',
+            '17100340A5': 'tiene una letra',
+            '171003406': 'solo 9 dígitos',
+        }
+        for cedula, motivo in casos.items():
+            with self.subTest(motivo=motivo), self.assertRaises(ValidationError):
+                validar_cedula(cedula)
+
+    def test_registro_rechaza_cedula_invalida_sin_importar_el_js(self):
+        # El POST llega directo al servidor, como si el JavaScript estuviera desactivado
+        datos = {
+            'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez',
+            'email': 'luis@woof.ec', 'telefono': '+593987654322', 'cedula': '1710034064',
+            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
+        }
+        respuesta = self.client.post(reverse('cuentas:registro'), datos)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, CEDULA_NO_VALIDA)
+        self.assertFalse(Usuario.objects.filter(username='luis').exists())
+
+    def test_la_cedula_no_se_repite(self):
+        crear_usuario()
+        with self.assertRaises(IntegrityError):
+            crear_usuario(username='luis', email='luis@woof.ec')  # misma cédula 1710034065
+
+    def test_la_base_rechaza_una_cedula_sin_formato(self):
+        crear_usuario()
+        # update() va directo a SQL sin pasar por validar_cedula: solo la CheckConstraint lo detiene
+        with self.assertRaises(IntegrityError):
+            Usuario.objects.filter(username='ana').update(cedula='abc')
 
 
 class DobleFactorTests(TestCase):

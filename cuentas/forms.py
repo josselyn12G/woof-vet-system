@@ -8,13 +8,18 @@ from .models import Usuario
 class RegistroForm(UserCreationForm):
     class Meta:
         model = Usuario
-        fields = ['username', 'first_name', 'last_name', 'email', 'telefono']
+        fields = ['username', 'first_name', 'last_name', 'email', 'telefono', 'cedula']
         labels = {
             'username': 'Usuario',
             'first_name': 'Nombre',
             'last_name': 'Apellido',
             'email': 'Correo',
             'telefono': 'Teléfono',
+            'cedula': 'Cédula',
+        }
+        widgets = {
+            # Solo cambian cómo se ve el campo: teclado numérico en el celular y como máximo 10 caracteres
+            'cedula': forms.TextInput(attrs={'inputmode': 'numeric', 'maxlength': 10, 'placeholder': 'Tus 10 números'}),
         }
 
 

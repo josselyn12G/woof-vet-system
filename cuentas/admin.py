@@ -7,11 +7,11 @@ from .models import Usuario
 @admin.register(Usuario)
 class UsuarioAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Woof', {'fields': ('rol', 'telefono', 'sector',)}),
+        ('Woof', {'fields': ('rol', 'telefono', 'sector', 'cedula')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Woof', {'fields': ('rol', 'telefono', 'email',)}),
+        ('Woof', {'fields': ('rol', 'telefono', 'email', 'cedula')}),
     )
     list_display = ['username', 'email', 'first_name', 'last_name', 'rol', 'is_staff']
     list_filter = UserAdmin.list_filter + ('rol',)
-    search_fields = ['username', 'first_name', 'last_name', 'email', 'telefono']
+    search_fields = ['username', 'first_name', 'last_name', 'email', 'telefono', 'cedula']
