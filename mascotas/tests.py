@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 from io import BytesIO
+from itertools import count
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -16,6 +17,19 @@ from .forms import MascotaForm
 from .models import Especies, Mascota
 
 
+_cedulas_usadas = count(1)
+
+
+def cedula_de_prueba():
+    """Una cédula válida y distinta en cada llamada (17 = Pichincha, módulo 10), porque la cédula es única."""
+    base = f'171{next(_cedulas_usadas):06d}'
+    suma = 0
+    for digito, coeficiente in zip(base, [2, 1, 2, 1, 2, 1, 2, 1, 2]):
+        producto = int(digito) * coeficiente
+        suma += producto - 9 if producto > 9 else producto
+    return base + str((10 - suma % 10) % 10)
+
+
 def crear_usuario(username='ana', **datos):
     """Crea un usuario válido; el correo se arma con el username para poder crear varios."""
     valores = {
@@ -23,6 +37,7 @@ def crear_usuario(username='ana', **datos):
         'email': f'{username}@woof.ec',
         'telefono': '+593987654321',
         'password': 'Clave-segura-123',
+        'cedula': cedula_de_prueba(),
     }
     valores.update(datos)
     return Usuario.objects.create_user(**valores)

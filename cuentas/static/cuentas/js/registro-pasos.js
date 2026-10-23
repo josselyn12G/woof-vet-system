@@ -10,6 +10,8 @@ if (form) {
   const botonSiguiente = form.querySelector('[data-accion="siguiente"]');
   const botonEnviar = form.querySelector('[data-accion="enviar"]');
   const telefonoValido = /^\+\d{8,15}$/;   // mismo formato que validar_telefono en models.py
+  // Solo el formato de la cédula: el algoritmo (provincia, módulo 10) lo decide el servidor con validar_cedula
+  const cedulaConFormato = /^\d{10}$/;
   let actual = 0;
 
   function mostrar(indice) {
@@ -33,6 +35,9 @@ if (form) {
     if (input.type === 'email' && !input.checkValidity()) return 'Escribe un correo válido, por ejemplo ana@correo.com.';
     if (input.name === 'telefono' && !telefonoValido.test(input.value.trim())) {
       return 'Ingresa el número en formato internacional, por ejemplo +593987654321.';
+    }
+    if (input.name === 'cedula' && !cedulaConFormato.test(input.value.trim())) {
+      return 'La cédula debe tener 10 números, sin letras ni espacios.';
     }
     return '';
   }
