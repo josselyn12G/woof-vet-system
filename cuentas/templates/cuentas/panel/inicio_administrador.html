@@ -1,0 +1,165 @@
+{% extends 'panel_base.html' %}
+{% load static l10n %}
+
+{% block titulo %}Clínica · Woof{% endblock %}
+
+{% block panel_icono %}bi-grid{% endblock %}
+{% block panel_seccion %}Inicio{% endblock %}
+
+{# Título sustantivo y, debajo, el hallazgo: lo que más necesita atención #}
+{% block panel_titulo %}Clínica{% endblock %}
+{% block panel_subtitulo %}{% if total_veterinarios == 0 %}Todavía no hay veterinarios: nadie podría atender una cita.{% elif pasos_hechos < pasos|length %}{{ total_veterinarios }} veterinario{{ total_veterinarios|pluralize }} listo{{ total_veterinarios|pluralize }}. Faltan los servicios y los horarios para abrir la agenda.{% else %}La agenda está abierta para recibir citas.{% endif %}{% endblock %}
+
+{% block panel_contenido %}
+  {# Fila de herramientas: período a la izquierda, reporte a la derecha #}
+  <div class="herramientas entra entra--1">
+    <nav class="segmentos" aria-label="Período" data-segmentos>
+      <span class="segmentos__pildora" aria-hidden="true"></span>
+      {% for valor, nombre in periodos %}
+        <a class="segmentos__opcion{% if valor == periodo %} es-activo{% endif %}" href="?periodo={{ valor }}"{% if valor == periodo %} aria-current="true"{% endif %}>{{ nombre }}</a>
+      {% endfor %}
+    </nav>
+    <div class="herramientas__acciones">
+      <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:reporte_usuarios' %}"><i class="bi bi-download" aria-hidden="true"></i>Descargar reporte</a>
+      <a class="boton-panel boton-panel--secundario boton-panel--icono" href="{% url 'cuentas:usuarios' %}" aria-label="Ver todos los usuarios" title="Ver todos los usuarios"><i class="bi bi-three-dots" aria-hidden="true"></i></a>
+    </div>
+  </div>
+
+  {# Tira de cifras + gráfico en una sola tarjeta #}
+  <section class="estadisticas entra entra--1" aria-label="Cifras del período">
+    <div class="tira-cifras">
+      {% for cifra in cifras %}
+        <div class="cifra">
+          <p class="cifra__etiqueta"><i class="bi {{ cifra.icono }}" aria-hidden="true"></i>{{ cifra.etiqueta }}</p>
+          <p class="cifra__fila">
+            <span class="cifra__valor" data-contar="{{ cifra.valor }}">{{ cifra.valor }}</span>
+            {% if cifra.variacion %}
+              <span class="variacion variacion--{{ cifra.variacion.tipo }}" title="Frente al período anterior">
+                {% if cifra.variacion.tipo == 'sube' %}<i class="bi bi-arrow-up-circle-fill" aria-hidden="true"></i>{% elif cifra.variacion.tipo == 'baja' %}<i class="bi bi-arrow-down-circle-fill" aria-hidden="true"></i>{% endif %}{{ cifra.variacion.texto }}
+              </span>
+            {% else %}
+              <span class="variacion" title="Total actual">total</span>
+            {% endif %}
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <figure class="grafico">
+      {# localize off: en español Django escribe 44,0; el SVG necesita 44.0 #}
+      {% localize off %}
+      <svg viewBox="0 0 {{ grafico.ancho }} {{ grafico.alto }}" role="img" aria-label="Cuentas nuevas por día en el período: {{ nuevas_periodo }} en total">
+        {% for guia in grafico.guias %}
+          <line class="grafico__guia" x1="{{ grafico.izquierda }}" x2="{{ grafico.derecha }}" y1="{{ guia.y }}" y2="{{ guia.y }}"></line>
+          <text class="grafico__eje" x="{{ grafico.izquierda|add:'-12' }}" y="{{ guia.y }}" text-anchor="end" dominant-baseline="middle">{{ guia.texto }}</text>
+        {% endfor %}
+        <path class="grafico__area" d="{{ grafico.area }}"></path>
+        <path class="grafico__linea" d="{{ grafico.linea }}" pathLength="1"></path>
+        {% for etiqueta in grafico.etiquetas %}
+          <text class="grafico__eje" x="{{ etiqueta.x }}" y="{{ grafico.alto|add:'-8' }}" text-anchor="middle">{{ etiqueta.fecha|date:'j M' }}</text>
+        {% endfor %}
+      </svg>
+      {% endlocalize %}
+      <figcaption class="grafico__nota">Cuentas nuevas por día · {{ nuevas_periodo }} en el período</figcaption>
+    </figure>
+  </section>
+
+  {# Tres paneles en un solo contenedor #}
+  <div class="paneles entra entra--2">
+    <section class="paneles__panel" aria-labelledby="roles-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="roles-titulo"><i class="bi bi-diagram-3" aria-hidden="true"></i>Cuentas por rol</h2>
+        <a class="paneles__enlace" href="{% url 'cuentas:usuarios' %}">Ver usuarios <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      <p class="paneles__cifra" data-contar="{{ total_usuarios }}">{{ total_usuarios }}</p>
+      <p class="paneles__texto">cuentas en total</p>
+      {# Una barra repartida por rol, al porcentaje real #}
+      <div class="reparto" role="img" aria-label="{% for rol in por_rol %}{{ rol.nombre }}: {{ rol.valor }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+        {% for rol in por_rol %}{% if rol.valor %}<span class="reparto__parte reparto__parte--{{ rol.clase }}" style="width: {{ rol.porcentaje }}%"></span>{% endif %}{% endfor %}
+      </div>
+      <ul class="reparto__leyenda">
+        {% for rol in por_rol %}
+          <li><span class="reparto__punto reparto__parte--{{ rol.clase }}" aria-hidden="true"></span>{{ rol.nombre }}<strong>{{ rol.valor }}</strong></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="paneles__panel" aria-labelledby="puesta-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="puesta-titulo"><i class="bi bi-flag" aria-hidden="true"></i>Abrir la agenda</h2>
+        <span class="paneles__meta">{{ pasos_hechos }} de {{ pasos|length }}</span>
+      </header>
+      <p class="paneles__cifra"><span data-contar="{{ avance }}">{{ avance }}</span><span class="cuadro__unidad">%</span></p>
+      <div class="avance" role="progressbar" aria-valuenow="{{ avance }}" aria-valuemin="0" aria-valuemax="100" aria-label="Avance para abrir la agenda">
+        <span class="avance__barra" style="width: {{ avance }}%"></span>
+      </div>
+      <ul class="pasos-mini">
+        {% for paso in pasos %}
+          <li class="{% if paso.hecho %}es-hecho{% endif %}"><i class="bi {% if paso.hecho %}bi-check-circle-fill{% else %}bi-circle{% endif %}" aria-hidden="true"></i>{{ paso.titulo }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="paneles__panel" aria-labelledby="mascotas-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="mascotas-titulo"><i class="bi bi-heart" aria-hidden="true"></i>Mascotas</h2>
+      </header>
+      <p class="paneles__cifra" data-contar="{{ total_mascotas }}">{{ total_mascotas }}</p>
+      <p class="paneles__texto">fichas registradas por sus dueños</p>
+    </section>
+  </div>
+
+  {# Cuentas recientes, como una tabla de movimientos #}
+  <section class="tabla-tarjeta entra entra--3" aria-labelledby="recientes-titulo">
+    <header class="tabla-tarjeta__cabecera">
+      <h2 class="paneles__titulo" id="recientes-titulo"><i class="bi bi-person-lines-fill" aria-hidden="true"></i>Cuentas recientes</h2>
+      <form class="buscador buscador--chico" method="get" action="{% url 'cuentas:usuarios' %}" role="search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="visually-hidden" for="buscar-recientes">Buscar cuentas</label>
+        <input class="control-panel" type="search" id="buscar-recientes" name="q" placeholder="Buscar cuentas…">
+      </form>
+    </header>
+    <div class="tabla-envoltorio tabla-envoltorio--plano">
+      <table class="tabla-panel tabla-panel--movimientos">
+        <thead>
+          <tr>
+            <th scope="col">N.º</th>
+            <th scope="col">Persona</th>
+            <th scope="col" class="tabla-panel__ocultable">Correo</th>
+            <th scope="col">Rol</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="tabla-panel__ocultable">Registro</th>
+            <th scope="col"><span class="visually-hidden">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for persona in recientes %}
+            <tr>
+              <td class="tabla-panel__id">#{{ persona.pk|stringformat:'05d' }}</td>
+              <td class="tabla-panel__nombre">{{ persona }}</td>
+              <td class="tabla-panel__secundario tabla-panel__ocultable">{{ persona.email }}</td>
+              <td><span class="estado{% if persona.rol != 'cliente' %} estado--acento{% endif %}">{{ persona.get_rol_display }}</span></td>
+              <td>
+                {% if persona.is_active %}
+                  <span class="estado estado--listo"><i class="bi bi-check-circle" aria-hidden="true"></i>Activa</span>
+                {% else %}
+                  <span class="estado"><i class="bi bi-dash-circle" aria-hidden="true"></i>Desactivada</span>
+                {% endif %}
+              </td>
+              <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.date_joined|date:'j M Y' }}</td>
+              <td class="tabla-panel__accion">
+                <a class="boton-fila" href="{% url 'cuentas:usuario_editar' persona.pk %}" aria-label="Editar a {{ persona }}" title="Editar"><i class="bi bi-three-dots" aria-hidden="true"></i></a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="tabla-panel__vacia">Todavía no hay cuentas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'js/segmentos.js' %}" defer></script>
+{% endblock %}

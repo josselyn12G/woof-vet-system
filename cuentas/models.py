@@ -49,3 +49,15 @@ class Usuario(AbstractUser):
     # Funcion que devuelve el nombre completo o su nombre de usuario
     def __str__(self):
         return self.get_full_name() or self.get_username()
+
+    @property
+    def es_cliente(self):
+        return self.rol == Roles.CLIENTE
+
+    @property
+    def es_veterinario(self):
+        return self.rol == Roles.VETERINARIO
+
+    @property
+    def es_administrador(self):
+        return self.rol == Roles.ADMINISTRADOR

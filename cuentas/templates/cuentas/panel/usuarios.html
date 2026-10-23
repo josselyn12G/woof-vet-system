@@ -1,0 +1,80 @@
+{% extends 'panel_base.html' %}
+
+{% block titulo %}Usuarios · Woof{% endblock %}
+
+{% block panel_icono %}bi-people{% endblock %}
+{% block panel_seccion %}Usuarios{% endblock %}
+{% block panel_titulo %}Usuarios{% endblock %}
+{% block panel_subtitulo %}Cambia el rol de una cuenta para darle acceso como veterinario o administrador, o desactívala.{% endblock %}
+
+{% block panel_contenido %}
+  {# Filtros por GET: la búsqueda queda en la URL y se puede recargar o compartir #}
+  <form class="filtros" method="get" role="search">
+    <div class="buscador">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="visually-hidden" for="buscar-usuario">Buscar</label>
+      <input class="control-panel" type="search" id="buscar-usuario" name="q" value="{{ buscar }}"
+             placeholder="Buscar por nombre, usuario, correo o cédula">
+    </div>
+    <label class="visually-hidden" for="filtro-rol">Rol</label>
+    <select class="control-panel filtros__rol" id="filtro-rol" name="rol" onchange="this.form.submit()">
+      <option value="">Todos los roles</option>
+      {% for valor, nombre in roles %}
+        <option value="{{ valor }}"{% if valor == rol_elegido %} selected{% endif %}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
+  </form>
+
+  <p class="tabla-panel__total">{{ paginator.count }} cuenta{{ paginator.count|pluralize }}{% if buscar or rol_elegido %} con estos filtros{% endif %}</p>
+
+  {% if usuarios %}
+    <div class="tabla-envoltorio">
+      <table class="tabla-panel">
+        <thead>
+          <tr>
+            <th scope="col">Persona</th>
+            <th scope="col">Rol</th>
+            <th scope="col" class="tabla-panel__ocultable">Cédula</th>
+            <th scope="col" class="tabla-panel__ocultable">Desde</th>
+            <th scope="col"><span class="visually-hidden">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for persona in usuarios %}
+            <tr>
+              <td>
+                <span class="tabla-panel__persona">
+                  <span class="inicial" aria-hidden="true">{{ persona.first_name|default:persona.username|slice:':1'|upper }}{{ persona.last_name|slice:':1'|upper }}</span>
+                  <span>
+                    <span class="tabla-panel__nombre d-block">{{ persona }}</span>
+                    <span class="tabla-panel__secundario">{{ persona.email }}</span>
+                  </span>
+                </span>
+              </td>
+              <td>
+                <span class="estado{% if persona.rol != 'cliente' %} estado--acento{% endif %}">{{ persona.get_rol_display }}</span>
+                {% if not persona.is_active %}<span class="estado">Desactivada</span>{% endif %}
+              </td>
+              <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.cedula|default:'—' }}</td>
+              <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.date_joined|date:'j M Y' }}</td>
+              <td class="tabla-panel__accion">
+                <a class="bloque-panel__enlace" href="{% url 'cuentas:usuario_editar' persona.pk %}">Editar<span class="visually-hidden"> a {{ persona }}</span></a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="filtros" aria-label="Páginas">
+        {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if rol_elegido %}&rol={{ rol_elegido }}{% endif %}">Anterior</a>{% endif %}
+        <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if rol_elegido %}&rol={{ rol_elegido }}{% endif %}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="bloque-panel__vacio">Ninguna cuenta coincide con la búsqueda. Prueba con otro nombre o quita el filtro de rol.</p>
+  {% endif %}
+{% endblock %}

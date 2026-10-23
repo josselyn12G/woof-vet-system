@@ -1,0 +1,3508 @@
+/* Panel de Woof (después del login): sidebar blanco + barra superior + contenido sobre gris muy claro.
+   Limpio y nítido: superficies blancas con borde de 1px, sin sombras en reposo, el naranja de la marca
+   solo en la opción activa, las acciones principales y los datos. */
+
+.panel {
+  /* Tokens del panel */
+  --p-fondo: #f6f6f7;
+  --p-superficie: #ffffff;
+  --p-borde: #e9e9ec;
+  --p-linea: #f1f1f3;
+  --p-control: #d7d7dc;
+  --p-texto: #1d1d1f;
+  --p-texto-2: #5f5f66;
+  --p-acento: var(--woof-naranja-500);
+  --p-acento-texto: #c26a12;          /* naranja oscuro: 4.5:1 sobre el tinte y sobre blanco */
+  --p-acento-tinte: #fdf1e3;
+  --p-radio: 14px;
+  --p-radio-control: 10px;
+
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--p-fondo);
+  color: var(--p-texto);
+}
+
+.panel__zona {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel__pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 82rem;
+  padding: 2rem clamp(1rem, 3vw, 2.5rem) 3rem;
+}
+
+.panel__contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* =========================================================
+   1. Sidebar desplegable
+   Abierto: grupos, íconos y textos. Cerrado (html.menu-compacto): una barra de íconos con la
+   opción activa en un círculo naranja. El ancho cambia con una transición corta (solo en la computadora).
+   ========================================================= */
+.panel {
+  --ancho-menu: 16.5rem;
+}
+
+html.menu-compacto .panel {
+  --ancho-menu: 5.25rem;
+}
+
+.panel:not(.panel--arriba) {
+  grid-template-columns: var(--ancho-menu) minmax(0, 1fr);
+}
+
+html.menu-listo .panel:not(.panel--arriba) {
+  transition: grid-template-columns 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.panel-menu {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--p-superficie);
+  border-right: 1px solid var(--p-borde);
+}
+
+.panel-menu__marca {
+  display: flex;
+  align-items: center;
+  height: 4.25rem;
+  padding: 0 1.4rem;
+  border-bottom: 1px solid var(--p-borde);
+}
+
+.panel-menu__logo {
+  width: auto;
+  height: 2rem;
+}
+
+.panel-menu__isotipo {
+  display: none;
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.panel-menu__nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+
+.panel-menu__grupo {
+  margin: 0.5rem 0.75rem 0.5rem;
+  color: var(--p-texto-2);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.panel-menu__lista + .panel-menu__grupo {
+  margin-top: 1.5rem;
+}
+
+.panel-menu__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-menu__enlace {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  height: 2.6rem;
+  padding: 0 0.75rem;
+  border-radius: 10px;
+  color: var(--p-texto);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1), color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.panel-menu__enlace .bi {
+  flex: none;
+  width: 1.25rem;
+  color: #3a3a3f;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+a.panel-menu__enlace:hover {
+  background: #f4f4f6;
+  color: var(--p-texto);
+}
+
+.panel-menu__enlace:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: -2px;
+}
+
+/* Opción activa: píldora gris clara, como la referencia; el ícono en naranja */
+.panel-menu__enlace.es-activo,
+.panel-menu__enlace.es-activo:hover {
+  background: #f1f1f3;
+  color: var(--p-texto);
+  font-weight: 600;
+}
+
+.panel-menu__enlace.es-activo .bi {
+  color: var(--p-acento);
+}
+
+.panel-menu__enlace.es-pronto {
+  color: #8a8a91;
+  cursor: default;
+}
+
+.panel-menu__enlace.es-pronto .bi {
+  color: #b4b4ba;
+}
+
+.panel-menu__pronto {
+  margin-left: auto;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: #f1f1f3;
+  color: #6b6b72;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.panel-menu__usuario {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 1rem 1rem 1.1rem 1.25rem;
+  border-top: 1px solid var(--p-borde);
+}
+
+.panel-menu__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--p-acento);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.panel-menu__persona {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.panel-menu__nombre {
+  overflow: hidden;
+  color: var(--p-texto);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-menu__rol {
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+}
+
+.panel-menu__salir {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: var(--p-radio-control);
+  background: transparent;
+  color: var(--p-texto-2);
+  font-size: 1.1rem;
+}
+
+.panel-menu__salir:hover {
+  background: #f1f1f3;
+  color: var(--p-texto);
+}
+
+.panel-menu__salir:focus-visible {
+  outline: 2px solid var(--p-acento);
+}
+
+/* ---------- Cerrado: barra de íconos ---------- */
+@media (min-width: 992px) {
+  html.menu-compacto .panel-menu__logo,
+  html.menu-compacto .panel-menu__texto,
+  html.menu-compacto .panel-menu__pronto,
+  html.menu-compacto .panel-menu__grupo,
+  html.menu-compacto .panel-menu__persona,
+  html.menu-compacto .panel-menu__usuario form {
+    display: none;
+  }
+
+  html.menu-compacto .panel-menu__isotipo {
+    display: block;
+  }
+
+  html.menu-compacto .panel-menu__marca {
+    justify-content: center;
+    padding: 0;
+  }
+
+  /* Los grupos se ven como "cápsulas" separadas, como en la referencia */
+  html.menu-compacto .panel-menu__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1rem 0.85rem;
+  }
+
+  html.menu-compacto .panel-menu__lista {
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0;
+    border: 1px solid var(--p-borde);
+    border-radius: 999px;
+  }
+
+  html.menu-compacto .panel-menu__lista + .panel-menu__grupo {
+    margin: 0;
+  }
+
+  html.menu-compacto .panel-menu__enlace {
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  /* Activa: un círculo naranja con el ícono blanco */
+  html.menu-compacto .panel-menu__enlace.es-activo,
+  html.menu-compacto .panel-menu__enlace.es-activo:hover {
+    background: var(--p-acento);
+  }
+
+  html.menu-compacto .panel-menu__enlace.es-activo .bi {
+    color: #fff;
+  }
+
+  html.menu-compacto .panel-menu__usuario {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 1rem 0;
+  }
+}
+
+/* =========================================================
+   2. Barra superior y título de la pantalla
+   ========================================================= */
+.panel-barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 4.25rem;
+  padding: 0 clamp(1rem, 3vw, 2.5rem);
+  background: var(--p-superficie);
+  border-bottom: 1px solid var(--p-borde);
+}
+
+.panel-barra__separador {
+  width: 1px;
+  height: 1.4rem;
+  background: var(--p-borde);
+}
+
+.panel-barra__seccion {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-right: auto;
+  color: var(--p-texto);
+  font-weight: 500;
+}
+
+.panel-barra__boton {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--p-radio-control);
+  background: transparent;
+  color: #2b2b2e;
+  font-size: 1.15rem;
+  text-decoration: none;
+}
+
+a.panel-barra__boton:hover,
+button.panel-barra__boton:hover {
+  background: #f4f4f6;
+  color: var(--p-texto);
+}
+
+.panel-barra__boton:focus-visible {
+  outline: 2px solid var(--p-acento);
+}
+
+.panel-barra__avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-left: 0.25rem;
+  font-size: 0.85rem;
+}
+
+/* Buscador con su atajo ⌘K */
+.panel-buscar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(18rem, 30vw);
+}
+
+.panel-buscar .bi {
+  position: absolute;
+  left: 0.85rem;
+  color: var(--p-texto-2);
+}
+
+.panel-buscar input {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 3.6rem 0 2.4rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  font-size: 0.9rem;
+}
+
+.panel-buscar input:focus {
+  border-color: var(--p-acento);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(238, 154, 53, 0.2);
+}
+
+.panel-buscar__atajo {
+  position: absolute;
+  right: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  background: #f1f1f3;
+  color: var(--p-texto-2);
+  font-family: var(--woof-fuente-texto);
+  font-size: 0.75rem;
+}
+
+.panel-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel-titulo__texto {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: clamp(1.6rem, 2.4vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.panel-titulo__bajada {
+  max-width: 44rem;
+  margin: 0.35rem 0 0;
+  color: var(--p-texto-2);
+}
+
+.panel-titulo__bajada:empty {
+  display: none;
+}
+
+.panel-titulo__acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.panel-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.panel-aviso {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #bfe8cd;
+  border-radius: var(--p-radio-control);
+  background: #effbf3;
+  color: #14532d;
+  font-size: 0.92rem;
+}
+
+.panel-aviso--error {
+  border-color: #f6c6bd;
+  background: #fff3f1;
+  color: #831c1e;
+}
+
+/* =========================================================
+   3. Piezas comunes: botones, tarjetas, listas, vacíos
+   ========================================================= */
+.boton-panel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  padding: 0 1.1rem;
+  border: 1px solid var(--p-acento);
+  border-radius: var(--p-radio-control);
+  background: var(--p-acento);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 150ms cubic-bezier(0.23, 1, 0.32, 1), transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.boton-panel:hover {
+  border-color: var(--woof-naranja-600);
+  background: var(--woof-naranja-600);
+  color: #fff;
+}
+
+/* Responde en el momento del clic */
+.boton-panel:active {
+  transform: scale(0.97);
+}
+
+.boton-panel:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 2px;
+}
+
+.boton-panel--secundario {
+  border-color: var(--p-control);
+  background: var(--p-superficie);
+  color: var(--p-texto);
+}
+
+.boton-panel--secundario:hover {
+  border-color: #c4c4cb;
+  background: #f7f7f8;
+  color: var(--p-texto);
+}
+
+.bloque-panel,
+.tarjeta-panel {
+  padding: 1.25rem 1.4rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+}
+
+.bloque-panel__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bloque-panel__titulo,
+.tarjeta-panel__titulo {
+  margin: 0;
+  color: var(--p-texto);
+  font-family: var(--woof-fuente-texto);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.tarjeta-panel__titulo {
+  margin-bottom: 0.6rem;
+}
+
+.bloque-panel__meta {
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bloque-panel__enlace {
+  color: var(--p-acento-texto);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bloque-panel__enlace:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bloque-panel__vacio,
+.panel-vacio {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.92rem;
+}
+
+.bloque-panel__vacio {
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--p-control);
+  border-radius: var(--p-radio-control);
+}
+
+.panel-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+/* =========================================================
+   4. Administrador (como el tablero de referencia)
+   ========================================================= */
+.herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.herramientas__acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.boton-panel--icono {
+  width: 2.75rem;
+  padding: 0;
+}
+
+.herramientas .boton-panel {
+  height: 2.75rem;
+}
+
+/* Tira de 4 cifras: la primera con un fondo apenas distinto */
+.tira-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--p-borde);
+}
+
+.cifra {
+  padding: 1.35rem 1.6rem 1.45rem;
+  border-left: 1px solid var(--p-borde);
+}
+
+.cifra:first-child {
+  border-left: 0;
+  background: #fafafa;
+}
+
+.cifra__etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+  color: var(--p-texto-2);
+  font-size: 0.95rem;
+}
+
+.cifra__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.cifra__valor {
+  color: var(--p-texto);
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.variacion .bi {
+  margin-right: 0.3rem;
+}
+
+.variacion--nuevo {
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+}
+
+/* Reparto de cuentas por rol */
+.paneles__meta {
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.reparto {
+  display: flex;
+  gap: 3px;
+  height: 0.6rem;
+  margin-top: 0.9rem;
+  border-radius: 999px;
+  background: #f1f1f3;
+  overflow: hidden;
+}
+
+.reparto__parte {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--p-control);
+  transform-origin: left center;
+  animation: reparto-crecer 700ms cubic-bezier(0.32, 0.72, 0, 1) 250ms both;
+}
+
+@keyframes reparto-crecer {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.reparto__parte--cliente {
+  background: var(--woof-naranja-300);
+}
+
+.reparto__parte--veterinario {
+  background: var(--p-acento);
+}
+
+.reparto__parte--administrador {
+  background: var(--woof-marron);
+}
+
+.reparto__leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  list-style: none;
+}
+
+.reparto__leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.reparto__leyenda strong {
+  color: var(--p-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.reparto__punto {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  animation: none;
+}
+
+.pasos-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+  list-style: none;
+}
+
+.pasos-mini li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pasos-mini li.es-hecho {
+  color: var(--p-texto);
+}
+
+.pasos-mini li.es-hecho .bi {
+  color: var(--p-acento);
+}
+
+/* Tabla de cuentas recientes */
+.tabla-tarjeta {
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  background: var(--p-superficie);
+  overflow: hidden;
+}
+
+.tabla-tarjeta__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--p-borde);
+}
+
+.tabla-tarjeta__cabecera .buscador--chico {
+  flex: 0 1 18rem;               /* más específico que .buscador, que se estira */
+}
+
+.buscador--chico .control-panel {
+  height: 2.5rem;
+}
+
+.tabla-envoltorio--plano {
+  border: 0;
+  border-radius: 0;
+}
+
+.tabla-panel--movimientos th,
+.tabla-panel--movimientos td {
+  padding: 0.95rem 1.4rem;
+}
+
+.tabla-panel--movimientos tbody tr {
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.tabla-panel--movimientos tbody tr:hover {
+  background: #fafafa;
+}
+
+.tabla-panel__id {
+  color: var(--p-texto-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88rem;
+}
+
+.boton-fila {
+  display: inline-grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 8px;
+  color: var(--p-texto-2);
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+
+.boton-fila:hover {
+  background: #f1f1f3;
+  color: var(--p-texto);
+}
+
+.boton-fila:focus-visible {
+  outline: 2px solid var(--p-acento);
+}
+
+.estado .bi {
+  font-size: 0.85rem;
+}
+
+.inicial {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Barra de avance (también en "Abrir la agenda") */
+.avance {
+  height: 0.45rem;
+  margin-top: 0.8rem;
+  border-radius: 999px;
+  background: #f1f1f3;
+  overflow: hidden;
+}
+
+.avance__barra {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--p-acento);
+  transform-origin: left center;
+  animation: avance-llenar 600ms cubic-bezier(0.32, 0.72, 0, 1) 250ms both;
+}
+
+@keyframes avance-llenar {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Estados con tinte pálido y texto oscuro del mismo tono */
+.estado {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  background: #f1f1f3;
+  color: #4b4b52;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estado--listo {
+  background: #e7f8ee;
+  color: #12622f;
+}
+
+.estado--acento {
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+}
+
+@media (max-width: 1199.98px) {
+  .tira-cifras {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cifra:nth-child(3) {
+    border-left: 0;
+  }
+
+  .cifra:nth-child(n + 3) {
+    border-top: 1px solid var(--p-borde);
+  }
+}
+
+/* =========================================================
+   5. Usuarios (administrador): filtros y tabla
+   ========================================================= */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.buscador {
+  position: relative;
+  flex: 1 1 22rem;
+}
+
+.buscador .bi {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  color: var(--p-texto-2);
+  transform: translateY(-50%);
+}
+
+.control-panel {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  font-size: 0.95rem;
+}
+
+.buscador .control-panel {
+  padding-left: 2.6rem;
+}
+
+.control-panel:focus {
+  border-color: var(--p-acento);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(238, 154, 53, 0.2);
+}
+
+.filtros__rol {
+  flex: 0 1 13rem;
+}
+
+.tabla-envoltorio {
+  overflow-x: auto;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+}
+
+.tabla-panel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+.tabla-panel th {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--p-borde);
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabla-panel td {
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--p-linea);
+  vertical-align: middle;
+}
+
+.tabla-panel tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla-panel__persona {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tabla-panel__nombre {
+  color: var(--p-texto);
+  font-weight: 600;
+}
+
+.tabla-panel__secundario {
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+}
+
+.tabla-panel__num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabla-panel__accion {
+  text-align: right;
+}
+
+.tabla-panel__total {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+/* Formulario corto (editar el rol) */
+.formulario-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 34rem;
+}
+
+.formulario-panel__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.formulario-panel__etiqueta {
+  color: var(--p-texto);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.formulario-panel__ayuda {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+}
+
+.formulario-panel__error {
+  margin: 0;
+  color: #9b2c1f;
+  font-size: 0.85rem;
+}
+
+.formulario-panel__casilla {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.formulario-panel__casilla input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--p-acento);
+}
+
+.formulario-panel__acciones {
+  display: flex;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+}
+
+/* =========================================================
+   8. Tablet y celular: el sidebar se abre con el botón ☰
+   ========================================================= */
+.panel__velo {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+  .panel,
+  .panel:not(.panel--arriba) {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-buscar {
+    display: none;
+  }
+
+  .panel-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 17rem;
+    max-width: 85vw;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);   /* flota sobre el contenido */
+    transform: translateX(-105%);
+    transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .panel.menu-abierto .panel-menu {
+    transform: none;
+  }
+
+  .panel__velo {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    display: block;
+    background: rgba(29, 29, 31, 0.32);
+  }
+
+  .panel__velo[hidden] {
+    display: none;
+  }
+
+  /* Las cifras pasan a 2 x 2 y los paneles se apilan */
+  .paneles {
+    grid-template-columns: 1fr;
+  }
+
+  .paneles__panel {
+    border-left: 0;
+    border-top: 1px solid var(--p-borde);
+  }
+
+  .paneles__panel:first-child {
+    border-top: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .tabla-panel__ocultable {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-menu,
+  .panel-menu__enlace,
+  .boton-panel,
+  .tabla-panel--movimientos tbody tr {
+    transition: none;
+  }
+
+  html.menu-listo .panel:not(.panel--arriba) {
+    transition: none;
+  }
+
+  .avance__barra,
+  .reparto__parte {
+    animation: none;
+  }
+
+  .boton-panel:active {
+    transform: none;
+  }
+}
+
+/* En la fila de filtros, los botones miden lo mismo que el buscador */
+.filtros .boton-panel {
+  height: 2.75rem;
+}
+
+/* =========================================================
+   9. Veterinario: navegación arriba, estadísticas y gráfico
+   Patrón de la referencia: una tarjeta con la tira de cifras arriba y la línea debajo,
+   selector de período segmentado, y una fila de paneles con "Ver más".
+   Movimiento (Emil Kowalski como guía: poco, rápido y con propósito):
+   - la línea del gráfico se dibuja una vez al cargar (lo único que se mueve solo);
+   - la píldora del período se desliza a la opción elegida (responde a una acción);
+   - botones y flechas responden al presionar o al pasar el mouse.
+   ========================================================= */
+.panel--arriba {
+  grid-template-columns: 1fr;
+}
+
+.panel--arriba .panel__pagina {
+  max-width: 90rem;
+  margin: 0 auto;
+}
+
+.nav-arriba {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem clamp(1rem, 3vw, 2.5rem) 0;
+  padding: 0.6rem 0.75rem 0.6rem 1.25rem;
+  border: 1px solid var(--p-borde);
+  border-radius: 999px;
+  background: var(--p-superficie);
+}
+
+.nav-arriba__marca img {
+  width: auto;
+  height: 1.9rem;
+}
+
+.nav-arriba__opciones {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav-arriba__opcion {
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  color: var(--p-texto);
+  font-size: 0.93rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+a.nav-arriba__opcion:hover {
+  background: #f3f3f5;
+  color: var(--p-texto);
+}
+
+.nav-arriba__opcion.es-activo,
+.nav-arriba__opcion.es-activo:hover {
+  background: var(--p-acento);
+  color: #fff;
+  font-weight: 600;
+}
+
+.nav-arriba__opcion.es-pronto {
+  color: #8a8a91;
+  cursor: default;
+}
+
+.nav-arriba__opcion:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 2px;
+}
+
+.nav-arriba__lado {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.nav-arriba__avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 0.85rem;
+}
+
+.saludo-vet {
+  color: var(--p-acento-texto);
+}
+
+.boton-panel.es-deshabilitado {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.boton-panel.es-deshabilitado:active {
+  transform: none;
+}
+
+/* Selector de período segmentado: la píldora es un elemento aparte que se mueve con transform */
+.segmentos {
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.3rem;
+  border: 1px solid var(--p-borde);
+  border-radius: 14px;
+  background: var(--p-superficie);
+}
+
+.segmentos__pildora {
+  position: absolute;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: 0;
+  border-radius: 10px;
+  background: #f1f1f3;
+}
+
+.segmentos.esta-listo .segmentos__pildora {
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1), width 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.segmentos__opcion {
+  position: relative;            /* por encima de la píldora */
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  color: var(--p-texto-2);
+  font-size: 0.93rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.segmentos__opcion:hover,
+.segmentos__opcion.es-activo {
+  color: var(--p-texto);
+}
+
+.segmentos__opcion.es-activo {
+  font-weight: 600;
+}
+
+.segmentos__opcion:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 2px;
+}
+
+/* Sin JavaScript la píldora no se ubica: la opción activa lleva su propio fondo */
+html:not(.con-js) .segmentos__opcion.es-activo {
+  background: #f1f1f3;
+}
+
+html:not(.con-js) .segmentos__pildora {
+  display: none;
+}
+
+/* Tarjeta de estadísticas: tira de cifras + gráfico */
+.estadisticas {
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  background: var(--p-superficie);
+  overflow: hidden;
+}
+
+/* Variación frente al período anterior: gris cuando no hay con qué comparar (nunca un % inventado) */
+.variacion {
+  flex: none;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: #f1f1f3;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.variacion--sube {
+  background: #e7f8ee;
+  color: #12622f;
+}
+
+.variacion--baja {
+  background: #ffedea;
+  color: #831c1e;
+}
+
+/* Gráfico de línea */
+.grafico {
+  margin: 0;
+  padding: 1.5rem 1.5rem 1rem;
+}
+
+.grafico svg {
+  display: block;
+  width: 100%;
+  height: auto;                  /* mantiene la proporción: los textos de los ejes no se estiran */
+  overflow: visible;
+}
+
+.grafico__guia {
+  stroke: #e7e7ea;
+  stroke-dasharray: 4 6;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.grafico__eje {
+  fill: #6b6b72;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.grafico__area {
+  fill: var(--p-acento);
+  opacity: 0.08;
+}
+
+/* La línea se dibuja una vez al cargar: pathLength="1" hace que 1 sea el largo total */
+.grafico__linea {
+  fill: none;
+  stroke: var(--p-acento);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: grafico-dibujar 900ms cubic-bezier(0.32, 0.72, 0, 1) 150ms both;
+}
+
+@keyframes grafico-dibujar {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+.grafico__nota {
+  margin: 0.25rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+/* Fila de paneles en un solo contenedor */
+.paneles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  background: var(--p-superficie);
+}
+
+.paneles__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.4rem 1.6rem 1.5rem;
+  border-left: 1px solid var(--p-borde);
+}
+
+.paneles__panel:first-child {
+  border-left: 0;
+}
+
+.paneles__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.paneles__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--p-texto-2);
+  font-family: var(--woof-fuente-texto);
+  font-size: 0.97rem;
+  font-weight: 500;
+}
+
+.paneles__enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.paneles__enlace .bi {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+a.paneles__enlace:hover {
+  color: var(--p-texto);
+}
+
+/* La flecha se adelanta un poco: dice "esto lleva a otra pantalla" */
+a.paneles__enlace:hover .bi {
+  transform: translateX(2px);
+}
+
+.paneles__enlace.es-pronto {
+  color: #a3a3aa;
+  cursor: default;
+}
+
+.paneles__cifra {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.paneles__texto {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.92rem;
+}
+
+.datos-vet {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+  margin: 0;
+}
+
+.datos-vet dt {
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.datos-vet dd {
+  margin: 0.1rem 0 0;
+  overflow-wrap: anywhere;
+  color: var(--p-texto);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+@media (max-width: 1199.98px) {
+  .paneles {
+    grid-template-columns: 1fr;
+  }
+
+  .paneles__panel {
+    border-left: 0;
+    border-top: 1px solid var(--p-borde);
+  }
+
+  .paneles__panel:first-child {
+    border-top: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .nav-arriba {
+    grid-template-columns: auto 1fr;
+    border-radius: 18px;
+  }
+
+  .nav-arriba__opciones {
+    grid-column: 1 / -1;
+    order: 3;
+    overflow-x: auto;
+  }
+
+  .paneles__cifra {
+    font-size: 1.75rem;
+  }
+
+  /* El SVG se achica entero en el celular: los textos de los ejes crecen en sus propias unidades */
+  .grafico__eje {
+    font-size: 30px;
+  }
+
+  .grafico {
+    padding: 1rem 1rem 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grafico__linea {
+    animation: none;
+  }
+
+  .segmentos.esta-listo .segmentos__pildora,
+  .paneles__enlace .bi,
+  .nav-arriba__opcion {
+    transition: none;
+  }
+
+  a.paneles__enlace:hover .bi {
+    transform: none;
+  }
+}
+
+/* =========================================================
+   10. Veterinario: la agenda de hoy en grande y el resumen al costado
+   Movimiento (Jakub Krehel: pulido, se ve a diario):
+   - una sola secuencia al entrar: agenda, resumen y gráfico suben y aparecen escalonados (3 grupos);
+   - las cifras cuentan desde 0 (panel-veterinario.js);
+   - la línea de "ahora" avanza con la hora.
+   ========================================================= */
+.vet-principal {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+/* ---------- Agenda de hoy ---------- */
+.agenda-hoy {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1.6rem 1.25rem;
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  background: var(--p-superficie);
+}
+
+.agenda-hoy__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.agenda-hoy__titulo {
+  margin: 0;
+  color: var(--p-texto);
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.agenda-hoy__fecha {
+  margin: 0.15rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.92rem;
+}
+
+/* Solo la primera letra en mayúscula ("Jueves 22 de octubre"), no cada palabra */
+.agenda-hoy__fecha::first-letter {
+  text-transform: uppercase;
+}
+
+.linea-tiempo {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-auto-rows: minmax(2.6rem, 1fr);
+}
+
+.linea-tiempo__fila {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  align-items: start;
+}
+
+.linea-tiempo__hora {
+  margin-top: -0.55rem;
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.linea-tiempo__carril {
+  height: 100%;
+  border-top: 1px solid var(--p-linea);
+}
+
+/* La línea de "ahora": cruza la agenda a la altura de la hora actual */
+.linea-tiempo__ahora {
+  position: absolute;
+  right: 0;
+  left: 3.5rem;
+  z-index: 2;
+  height: 0;
+  border-top: 2px solid var(--p-acento);
+}
+
+.linea-tiempo__ahora::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--p-acento);
+}
+
+.linea-tiempo__ahora-hora {
+  position: absolute;
+  top: -0.75rem;
+  right: 0;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--p-acento);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cuando ya está ubicada, avanza suave cada minuto */
+.linea-tiempo.esta-listo .linea-tiempo__ahora {
+  transition: top 600ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.linea-tiempo__vacia {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 1.75rem);
+  z-index: 1;
+  width: min(26rem, 80%);
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--p-borde);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.linea-tiempo__vacia .bi {
+  color: var(--p-acento);
+  font-size: 1.6rem;
+}
+
+.linea-tiempo__vacia-titulo {
+  margin: 0.35rem 0 0.2rem;
+  color: var(--p-texto);
+  font-weight: 700;
+}
+
+.linea-tiempo__vacia-texto {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+/* ---------- Resumen al costado ---------- */
+.resumen-vet {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  background: var(--p-superficie);
+  overflow: hidden;
+}
+
+.resumen-vet__cabecera,
+.estadisticas__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.25rem 1.4rem 0;
+}
+
+.resumen-vet__titulo {
+  margin: 0;
+  color: var(--p-texto);
+  font-family: var(--woof-fuente-texto);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.resumen-vet .segmentos {
+  padding: 0.2rem;
+  border-radius: 12px;
+}
+
+.resumen-vet .segmentos__opcion {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.resumen-vet .segmentos__pildora {
+  top: 0.2rem;
+  bottom: 0.2rem;
+}
+
+/* Ganancias: la cifra más grande del costado */
+.ganancias {
+  margin: 1.1rem 1.4rem 0;
+  padding: 1.25rem 1.3rem;
+  border-radius: 14px;
+  background: var(--p-acento-tinte);
+}
+
+.ganancias__etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--p-acento-texto);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.ganancias__valor {
+  margin: 0.5rem 0 0.35rem;
+  color: var(--p-texto);
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ganancias__nota {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.82rem;
+}
+
+/* Las cuatro cifras en cuadros de 2 x 2, cada uno con su borde */
+.cuadros {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.85rem 1.4rem 1.4rem;
+}
+
+.cuadro {
+  padding: 0.95rem 1rem 1rem;
+  border: 1px solid var(--p-borde);
+  border-radius: 14px;
+  background: var(--p-superficie);
+}
+
+.cuadro__etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.65rem;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+.cuadro__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.cuadro__valor {
+  color: var(--p-texto);
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cuadro__unidad {
+  margin-left: 0.1rem;
+  color: var(--p-texto-2);
+  font-size: 1.1rem;
+}
+
+.estadisticas__cabecera {
+  padding-bottom: 0;
+}
+
+.paneles--dos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ---------- La secuencia de entrada: 3 grupos, una sola vez ---------- */
+.entra {
+  animation: vet-entrar 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.entra--2 {
+  animation-delay: 90ms;
+}
+
+.entra--3 {
+  animation-delay: 180ms;
+}
+
+@keyframes vet-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .vet-principal {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .paneles--dos {
+    grid-template-columns: 1fr;
+  }
+
+  .paneles--dos .paneles__panel {
+    border-left: 0;
+    border-top: 1px solid var(--p-borde);
+  }
+
+  .paneles--dos .paneles__panel:first-child {
+    border-top: 0;
+  }
+
+  .linea-tiempo__vacia {
+    left: 50%;
+    width: 90%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entra {
+    animation: none;
+  }
+
+  .linea-tiempo.esta-listo .linea-tiempo__ahora {
+    transition: none;
+  }
+}
+
+/* =========================================================
+   11. Cliente: mis mascotas al centro y "tu día" al costado
+   (estructura de la referencia, con la paleta de Woof: naranja para la acción y
+   marrón para la tarjeta destacada y el botón oscuro)
+   ========================================================= */
+.saludo-cliente {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--p-texto-2);
+  font-family: var(--woof-fuente-texto);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.cliente {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.cliente__principal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  min-width: 0;
+}
+
+.cliente__principal .buscador {
+  flex: none;                    /* en una columna, .buscador (flex: 1) se estiraría hacia abajo */
+}
+
+.buscador--suave .control-panel {
+  height: 3.1rem;
+  border-color: transparent;
+  background: #ececef;
+}
+
+.buscador--suave .control-panel:focus {
+  background: var(--p-superficie);
+}
+
+.cliente__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.cliente__titulo {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+/* Pestañas por especie: texto, la activa en naranja */
+.pestanas {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.pestanas__opcion {
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  color: #8a8a91;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.pestanas__opcion:hover {
+  color: var(--p-texto);
+}
+
+.pestanas__opcion.es-activo {
+  color: var(--p-acento-texto);
+  font-weight: 600;
+}
+
+.pestanas__opcion:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Tarjetas de mascotas */
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));   /* tres por fila, como en "Mis mascotas" */
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ficha-mini__enlace {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  padding: 1.25rem 1.3rem 1.3rem;
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  text-decoration: none;
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), border-color 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ficha-mini__enlace:hover {
+  border-color: #dcdce1;
+  color: var(--p-texto);
+  transform: translateY(-2px);
+}
+
+.ficha-mini__enlace:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 3px;
+}
+
+.ficha-mini__cabeza {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.ficha-mini__foto {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  font-size: 1.45rem;
+  overflow: hidden;
+}
+
+.ficha-mini__foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ficha-mini__identidad {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ficha-mini__nombre {
+  overflow: hidden;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ficha-mini__raza {
+  overflow: hidden;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ficha-mini__mas {
+  color: var(--p-texto-2);
+}
+
+.ficha-mini__datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ficha-mini__dato {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #f4f4f6;
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.ficha-mini__progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: auto;
+}
+
+.ficha-mini__progreso-texto {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.ficha-mini__progreso-texto strong {
+  color: var(--p-acento-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-mini__pista {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  overflow: hidden;
+}
+
+.ficha-mini__barra {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--p-acento);
+  transform-origin: left center;
+  animation: avance-llenar 700ms cubic-bezier(0.32, 0.72, 0, 1) 300ms both;
+}
+
+/* La primera tarjeta, destacada en el marrón de Woof (la negra de la referencia) */
+.ficha-mini--destacada .ficha-mini__enlace {
+  border-color: var(--woof-marron);
+  background: var(--woof-marron);
+  color: #fff;
+}
+
+.ficha-mini--destacada .ficha-mini__enlace:hover {
+  border-color: var(--woof-marron-oscuro);
+  color: #fff;
+}
+
+.ficha-mini--destacada .ficha-mini__raza,
+.ficha-mini--destacada .ficha-mini__mas {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.ficha-mini--destacada .ficha-mini__dato {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ficha-mini--destacada .ficha-mini__progreso-texto strong {
+  color: #fff;
+}
+
+.ficha-mini--destacada .ficha-mini__pista {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.ficha-mini--destacada .ficha-mini__barra {
+  background: #fff;
+}
+
+/* Sin mascotas: la tarjeta para registrar la primera */
+.ficha-nueva {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.4rem;
+  border: 1px dashed var(--p-control);
+  border-radius: 20px;
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  text-decoration: none;
+}
+
+.ficha-nueva:hover {
+  border-color: var(--p-acento);
+  color: var(--p-texto);
+}
+
+.ficha-nueva__icono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  background: var(--p-acento);
+  color: #fff;
+  font-size: 1.3rem;
+}
+
+.ficha-nueva__titulo {
+  display: block;
+  font-weight: 700;
+}
+
+.ficha-nueva__texto {
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+}
+
+/* ---------- Columna lateral ---------- */
+.cliente__lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  padding-left: 2rem;
+  border-left: 1px solid var(--p-borde);
+}
+
+.perfil-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.perfil-mini__nombre {
+  display: block;
+  font-weight: 700;
+}
+
+.perfil-mini__rol {
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+}
+
+.agendar-tarjeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 18px;
+  background: var(--p-superficie);
+  box-shadow: 0 10px 30px -18px rgba(29, 29, 31, 0.35);
+}
+
+.agendar-tarjeta__titulo {
+  display: block;
+  font-weight: 700;
+}
+
+.agendar-tarjeta__texto {
+  color: var(--p-texto-2);
+  font-size: 0.87rem;
+}
+
+.agendar-tarjeta__boton {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 12px;
+  background: var(--p-acento);
+  color: #fff;
+  font-size: 1.15rem;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hoy-cliente__cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.hoy-cliente__fecha {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 1rem;
+}
+
+.hoy-cliente__titulo {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.boton-panel--oscuro {
+  border-color: var(--woof-marron);
+  background: var(--woof-marron);
+}
+
+.boton-panel--oscuro:hover {
+  border-color: var(--woof-marron-oscuro);
+  background: var(--woof-marron-oscuro);
+}
+
+.semana-mini {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0 0 1.2rem;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+
+.semana-mini__dia {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem 0 0.55rem;
+  border-radius: 12px;
+}
+
+.semana-mini__nombre {
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.semana-mini__numero {
+  color: var(--p-texto);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.semana-mini__dia.es-hoy {
+  background: var(--p-acento-tinte);
+}
+
+.semana-mini__dia.es-hoy .semana-mini__nombre,
+.semana-mini__dia.es-hoy .semana-mini__numero {
+  color: var(--p-acento-texto);
+  font-weight: 700;
+}
+
+/* Línea de tiempo de las próximas citas */
+.linea-citas {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 1.6rem;
+  list-style: none;
+}
+
+.linea-citas::before {
+  content: '';
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0;
+  left: 0.4rem;
+  width: 2px;
+  background: var(--p-acento-tinte);
+}
+
+.linea-citas__item {
+  position: relative;
+}
+
+.linea-citas__punto {
+  position: absolute;
+  top: 0.35rem;
+  left: -1.6rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 3px solid var(--p-acento);
+  border-radius: 50%;
+  background: var(--p-superficie);
+}
+
+.linea-citas__tarjeta {
+  padding: 1.1rem 1.2rem;
+  border-radius: 18px;
+  background: var(--p-acento);
+  color: #fff;
+}
+
+.linea-citas__titulo {
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+}
+
+.linea-citas__texto {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 1199.98px) {
+  .cliente {
+    grid-template-columns: 1fr;
+  }
+
+  .cliente__lateral {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ficha-mini__enlace {
+    transition: none;
+  }
+
+  .ficha-mini__enlace:hover {
+    transform: none;
+  }
+
+  .ficha-mini__barra {
+    animation: none;
+  }
+}
+
+/* =========================================================
+   12. El módulo de mascotas dentro del panel
+   Las pantallas de Adrián conservan su estructura y sus tarjetas; aquí solo se alinean
+   con el panel: bordes de 1px, radios de 20px, sin sombras en reposo y la misma tipografía.
+   Van con ".panel" delante para ganarle a mascotas.css, que se carga después.
+   ========================================================= */
+/* Sin mascotas: un solo bloque blanco. El gato se asoma por el borde derecho y al centro
+   van el "+" (la acción), el título y una línea de ayuda */
+.panel .mascotas-vacio {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  max-width: none;
+  min-height: calc(100dvh - 12rem);  /* llega casi hasta abajo y deja un respiro */
+  margin: 0;
+  padding: 3rem clamp(1.5rem, 22%, 16rem) 3rem clamp(1.5rem, 6vw, 4rem);
+  overflow: hidden;
+  text-align: center;
+  background: var(--p-superficie);
+  border: 0;
+  border-radius: 20px;
+}
+
+.mascotas-vacio__gato {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: auto;
+  height: 82%;
+  pointer-events: none;
+}
+
+.mascotas-vacio__mas {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 1.5rem;
+  color: #fff;
+  font-size: 1.75rem;
+  text-decoration: none;
+  background: var(--p-acento);
+  border-radius: 50%;
+  box-shadow: 0 12px 24px -12px rgba(194, 106, 18, 0.9);
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mascotas-vacio__mas:hover {
+  color: #fff;
+  transform: rotate(90deg) scale(1.06);
+}
+
+.mascotas-vacio__mas:active {
+  transform: rotate(90deg) scale(0.94);
+}
+
+.mascotas-vacio__mas:focus-visible {
+  outline: 3px solid var(--woof-marron);
+  outline-offset: 4px;
+}
+
+.panel .mascotas-vacio__titulo {
+  margin: 0 0 0.5rem;
+  color: var(--woof-marron);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  letter-spacing: -0.02em;
+}
+
+.panel .mascotas-vacio__texto {
+  max-width: 28rem;
+  margin: 0;
+  color: var(--p-texto-2);
+}
+
+/* En el celular el gato queda arriba a la derecha, más chico, y el texto usa todo el ancho */
+@media (max-width: 720px) {
+  .panel .mascotas-vacio {
+    padding: 9rem 1.5rem 2.5rem;
+  }
+
+  .mascotas-vacio__gato {
+    height: 9rem;
+  }
+}
+
+/* "+" de la tarjeta para agregar otro amigo (con mascotas) */
+.portada-mascotas__mas {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  color: #fff;
+  font-size: 1.5rem;
+  background: var(--p-acento);
+  border-radius: 50%;
+  box-shadow: 0 10px 22px -10px rgba(194, 106, 18, 0.9);
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tarjeta-nueva:hover .portada-mascotas__mas {
+  transform: rotate(90deg) scale(1.06);
+}
+
+.tarjeta-nueva:active .portada-mascotas__mas {
+  transform: rotate(90deg) scale(0.94);
+}
+
+.panel .tarjeta-nueva:focus-visible {
+  outline: 3px solid var(--woof-marron);
+  outline-offset: 4px;
+  border-radius: 20px;
+}
+
+/* Con mascotas: la última tarjeta, blanca como las demás. El perro (foto de fondo blanco)
+   espera abajo y se asoma un poco más al pasar el mouse */
+.panel .tarjeta-nueva {
+  position: relative;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  min-height: 26rem;
+  padding: 2.75rem 1.5rem 0;
+  overflow: hidden;
+  color: var(--woof-marron);
+  text-align: center;
+  background: #fff;                /* la foto también es blanca: no se nota dónde termina */
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+  transition: border-color 180ms ease;
+}
+
+.panel .tarjeta-nueva:hover,
+.panel .tarjeta-nueva:focus-visible {
+  color: var(--woof-marron);
+  background: #fff;
+  border-color: #dcdce1;
+}
+
+.panel .tarjeta-nueva .portada-mascotas__mas {
+  margin-bottom: 0.75rem;
+}
+
+.tarjeta-nueva__texto {
+  position: relative;
+  z-index: 1;
+  font-size: 1.15rem;
+}
+
+.tarjeta-nueva__ayuda {
+  position: relative;
+  z-index: 1;
+  color: var(--p-texto-2);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.tarjeta-nueva__perrito {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 26rem);
+  height: auto;
+  mix-blend-mode: multiply;        /* el blanco casi blanco de la foto se vuelve el blanco de la tarjeta */
+  transform: translate(-50%, 1rem);
+  transition: transform 450ms cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+}
+
+.panel .tarjeta-nueva:hover .tarjeta-nueva__perrito,
+.panel .tarjeta-nueva:focus-visible .tarjeta-nueva__perrito {
+  transform: translate(-50%, 0);
+}
+
+/* Tarjetas más anchas (dos por fila en una laptop) y la foto más alta, para que se vea la carita;
+   los datos y las acciones, más compactos */
+/* Tres mascotas por fila (cliente y veterinario); dos en tablet y una en el celular */
+.panel .galeria-mascotas {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .panel .galeria-mascotas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .panel .galeria-mascotas {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel .tarjeta-mascota__foto {
+  aspect-ratio: 3 / 2;
+}
+
+.panel .tarjeta-mascota__foto img {
+  object-position: center 35%;
+}
+
+.panel .tarjeta-mascota__cuerpo {
+  padding: 1rem 1.25rem 0.25rem;
+}
+
+.panel .tarjeta-mascota__etiquetas {
+  margin-top: 0.5rem;
+}
+
+.panel .tarjeta-mascota__acciones {
+  gap: 0.35rem;
+  padding: 0.75rem 1.25rem 0.85rem;
+}
+
+/* Carnet, Editar y Eliminar: tres botones del mismo ancho, con borde fino para que se noten */
+.panel .tarjeta-mascota__botones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.panel .accion-mascota {
+  flex-direction: row;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.panel .accion-mascota .bi {
+  font-size: 1rem;
+}
+
+.panel .accion-mascota:hover,
+.panel .accion-mascota:focus-visible {
+  background: var(--p-acento-tinte);
+  border-color: var(--woof-naranja-300);
+  transform: none;
+}
+
+.panel .accion-mascota:active {
+  transform: scale(0.97);
+}
+
+.panel .accion-mascota--peligro:hover,
+.panel .accion-mascota--peligro:focus-visible {
+  background: #fdecee;
+  border-color: #f1aeb5;
+}
+
+/* Volver: botón redondo con la flecha, dentro de cada ficha (como los demás botones de ícono) */
+.boton-volver {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--p-texto);
+  font-size: 1.1rem;
+  text-decoration: none;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 50%;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.boton-volver:hover {
+  color: var(--p-texto);
+  background: var(--p-fondo);
+  border-color: var(--p-control);
+}
+
+.boton-volver:active {
+  transform: scale(0.94);
+}
+
+.boton-volver:focus-visible {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+.ficha__insignias {
+  align-items: center;
+}
+
+.ficha__insignias .boton-volver {
+  margin-right: 0.35rem;
+}
+
+.formulario-mascota__cabecera .boton-volver {
+  margin-bottom: 1rem;
+}
+
+.carnet__cabecera .boton-volver {
+  align-self: flex-start;
+}
+
+.registro .boton-volver {
+  display: none;                   /* en el pop-up se cierra con la X */
+}
+
+/* Sin foto: la inicial del nombre, en vez de un emoji */
+.avatar-inicial {
+  color: var(--woof-marron);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.ficha-mini__foto .avatar-inicial {
+  font-size: 1.15rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portada-mascotas__mas,
+  .mascotas-vacio__mas,
+  .tarjeta-nueva__perrito {
+    transition: none;
+  }
+}
+
+.panel .tarjeta-mascota,
+.panel .ficha,
+.panel .formulario-mascota,
+.panel .carnet,
+.panel .confirmar {
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+  box-shadow: none;
+}
+
+.panel .tarjeta-mascota {
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), border-color 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Al pasar el mouse: sube un poco y el borde se marca (en vez de una sombra grande) */
+.panel .tarjeta-mascota:hover,
+.panel .tarjeta-mascota:focus-within {
+  border-color: #dcdce1;
+  box-shadow: none;
+  transform: translateY(-3px);
+}
+
+.panel .tarjeta-mascota__enlace:focus-visible {
+  border-radius: 20px 20px 0 0;
+}
+
+.panel .ficha__nombre,
+.panel .formulario-mascota__titulo,
+.panel .carnet__titulo,
+.panel .confirmar__titulo {
+  color: var(--p-texto);
+}
+
+.panel .enlace-volver {
+  color: var(--p-texto-2);
+}
+
+.panel .enlace-volver:hover {
+  color: var(--p-texto);
+}
+
+/* Los avisos verdes de mascotas, con el mismo tono que los del panel */
+.panel .aviso {
+  border-radius: var(--p-radio-control);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel .tarjeta-mascota {
+    transition: none;
+  }
+
+  .panel .tarjeta-mascota:hover,
+  .panel .tarjeta-mascota:focus-within {
+    transform: none;
+  }
+}
+
+/* =========================================================
+   13. Pop-up para registrar una mascota (registro-mascota.js)
+   Ancho, para que el formulario quepa sin scroll: foto a la izquierda y los dos grupos de
+   campos lado a lado. Entra subiendo un poco y creciendo desde 0.97 (nunca desde 0);
+   sale más rápido de lo que entra. En el celular es una hoja que sube desde abajo.
+   ========================================================= */
+.registro {
+  width: min(70rem, calc(100% - 3rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  overflow: hidden auto;
+  color: var(--p-texto);
+  background: var(--p-superficie);
+  border: 0;
+  border-radius: 24px;
+  overscroll-behavior: contain;
+}
+
+.registro[open] {
+  animation: registro-entra 340ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.registro::backdrop {
+  background: rgba(29, 29, 31, 0.32);
+  backdrop-filter: blur(3px);
+  animation: velo-entra 340ms ease-out;
+}
+
+.registro.es-cerrando {
+  animation: registro-sale 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.registro.es-cerrando::backdrop {
+  animation: velo-sale 180ms ease-in forwards;
+}
+
+@keyframes registro-entra {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+}
+
+@keyframes registro-sale {
+  to { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+
+@keyframes velo-entra {
+  from { opacity: 0; }
+}
+
+@keyframes velo-sale {
+  to { opacity: 0; }
+}
+
+.registro__cerrar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--p-texto-2);
+  background: var(--p-fondo);
+  border: 0;
+  border-radius: 50%;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.registro__cerrar:hover {
+  color: var(--p-texto);
+  background: var(--p-borde);
+}
+
+.registro__cerrar:active {
+  transform: scale(0.94);
+}
+
+/* El formulario de Adrián, sin su marco (el pop-up ya es la tarjeta) y más compacto */
+.registro .formulario-mascota {
+  padding: 1.75rem 2rem 1.5rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.registro .formulario-mascota__cabecera {
+  margin-bottom: 1.25rem;
+}
+
+.registro .formulario-mascota__titulo {
+  font-size: 1.6rem;
+}
+
+.registro .formulario-mascota__cuerpo {
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 2rem;
+}
+
+/* Datos básicos y Salud, uno al lado del otro; los botones debajo, a todo el ancho */
+.registro .formulario-mascota__campos {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 0 2rem;
+  align-items: start;
+}
+
+.registro .grupo-campos {
+  margin-bottom: 0;
+}
+
+.registro .grupo-campos .col-md-6 {
+  width: 100%;                     /* en la columna angosta, un campo por fila */
+}
+
+.registro .grupo-campos:first-child .col-md-6 {
+  width: 50%;                      /* especie y sexo sí caben lado a lado */
+}
+
+.registro .formulario-mascota__acciones {
+  grid-column: 1 / -1;
+  margin-top: 1.25rem;
+}
+
+/* Mientras llega el formulario */
+.registro__cargando {
+  display: grid;
+  place-items: center;
+  min-height: 26rem;
+}
+
+.registro__cargando::after,
+.registro .esta-guardando::before {
+  content: '';
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 3px solid var(--p-borde);
+  border-top-color: var(--p-acento);
+  border-radius: 50%;
+  animation: girar 700ms linear infinite;
+}
+
+/* "Registrar mascota" mientras se guarda: el ícono se cambia por un círculo que gira */
+.registro .esta-guardando {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.registro .esta-guardando::before {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+}
+
+.registro .esta-guardando .bi {
+  display: none;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+/* Guardado: tapa el formulario, el círculo crece con un pequeño rebote y el visto se dibuja */
+.registro__listo {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 2rem;
+  text-align: center;
+  background: var(--p-superficie);
+  animation: velo-entra 200ms ease-out;
+}
+
+.registro__listo[hidden] {
+  display: none;
+}
+
+.registro.es-listo .registro__cerrar {
+  display: none;
+}
+
+.registro__visto {
+  width: 5.5rem;
+  height: 5.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.registro__visto circle {
+  fill: var(--p-acento);
+  transform-origin: center;
+  animation: visto-crece 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.registro__visto path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: visto-dibuja 320ms 260ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.registro__listo-titulo,
+.registro__listo-texto {
+  margin: 0;
+  animation: listo-sube 360ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.registro__listo-titulo {
+  color: var(--woof-marron);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  animation-delay: 380ms;
+}
+
+.registro__listo-texto {
+  margin-top: 0.35rem;
+  color: var(--p-texto-2);
+  animation-delay: 460ms;
+}
+
+@keyframes visto-crece {
+  from { transform: scale(0.5); opacity: 0; }
+}
+
+@keyframes visto-dibuja {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes listo-sube {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+/* Tablet: los campos vuelven a una sola columna */
+@media (max-width: 900px) {
+  .registro .formulario-mascota__cuerpo,
+  .registro .formulario-mascota__campos {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* En el celular: hoja que sube desde abajo, pegada al borde */
+@media (max-width: 600px) {
+  .registro {
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .registro .formulario-mascota {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .registro[open] {
+    animation-name: hoja-sube;
+  }
+
+  .registro.es-cerrando {
+    animation-name: hoja-baja;
+  }
+
+  @keyframes hoja-sube {
+    from { transform: translateY(100%); }
+  }
+
+  @keyframes hoja-baja {
+    to { transform: translateY(100%); }
+  }
+}
+
+/* Con movimiento reducido: solo cambios de opacidad, sin desplazamientos ni escalas */
+@media (prefers-reduced-motion: reduce) {
+  .registro[open],
+  .registro.es-cerrando,
+  .registro__listo-titulo,
+  .registro__listo-texto,
+  .registro__visto circle {
+    animation: velo-entra 150ms ease-out both;
+  }
+
+  .registro__visto path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .registro__cargando::after,
+  .registro .esta-guardando::before {
+    animation-duration: 1.5s;
+  }
+}
+
+/* Ficha: la foto llena todo el alto de la tarjeta (no un cuadrado fijo) y el botón de volver
+   queda en su esquina superior izquierda, de vidrio como la píldora de especie */
+.panel .ficha {
+  align-items: stretch;
+}
+
+.panel .ficha__foto {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 22rem;
+}
+
+.boton-volver--vidrio {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1;
+  color: var(--woof-marron);
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px) saturate(1.4);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+}
+
+.boton-volver--vidrio:hover {
+  color: var(--woof-marron);
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 900px) {
+  .panel .ficha__foto {
+    height: auto;
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+  }
+}
+
+/* ---------- Pulido del módulo de mascotas ---------- */
+/* Encabezado del formulario: la flecha de volver a la izquierda del título, en la misma fila */
+.formulario-mascota__cabecera:has(.boton-volver) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: center;
+}
+
+.formulario-mascota__cabecera .boton-volver {
+  margin-bottom: 0;
+}
+
+.formulario-mascota__cabecera .formulario-mascota__ayuda {
+  grid-column: 2;
+  margin-bottom: 0;
+}
+
+/* En el pop-up no hay flecha: el título vuelve a su columna */
+.registro .formulario-mascota__cabecera {
+  display: block;
+}
+
+/* Pop-up en una columna: aire entre "Datos básicos" y "Salud", y la foto más chica */
+@media (max-width: 900px) {
+  .registro .grupo-campos + .grupo-campos {
+    margin-top: 1.75rem;
+  }
+
+  .registro .subir-foto__vista {
+    max-width: 8.5rem;
+    margin-inline: auto;
+  }
+}
+
+/* Estado vacío en el celular: el gato más presente */
+@media (max-width: 720px) {
+  .mascotas-vacio__gato {
+    height: 13rem;
+  }
+
+  .panel .mascotas-vacio {
+    padding-top: 12rem;
+  }
+}
+
+/* La selección de texto, con el tono de Woof en vez del azul del navegador */
+.panel ::selection {
+  color: var(--woof-marron);
+  background: var(--p-acento-tinte);
+}
+
+/* =========================================================
+   14. Carnet de vacunación: pop-up con el librito 3D (carnet.js y carnet-3d.js)
+   Sin caja ni degradados: el librito flota sobre la página oscurecida. Arriba el título,
+   la elección 3D / Plano y cerrar; abajo, las páginas y las descargas.
+   ========================================================= */
+.carnet-popup {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  overflow: hidden;
+}
+
+.carnet-popup[open] {
+  display: grid;
+  outline: none;                   /* recibe el foco al abrirse (autofocus), sin anillo */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  animation: velo-entra 260ms ease-out;
+}
+
+.carnet-popup::backdrop {
+  background: rgba(30, 23, 19, 0.66);
+  backdrop-filter: blur(8px);
+  animation: velo-entra 260ms ease-out;
+}
+
+.carnet-popup.es-cerrando,
+.carnet-popup.es-cerrando::backdrop {
+  animation: velo-sale 180ms ease-in forwards;
+}
+
+.carnet-popup__barra,
+.carnet-popup__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem clamp(1rem, 3vw, 2rem);
+}
+
+.carnet-popup__titulo {
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: 1.15rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 3D | Plano: dos botones en una píldora */
+.carnet-popup__modos {
+  display: inline-flex;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.carnet-popup__modo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.carnet-popup__modo:hover {
+  color: #fff;
+}
+
+.carnet-popup__modo.es-activo {
+  color: var(--woof-marron);
+  background: #fff;
+}
+
+.carnet-popup__modo:disabled {
+  opacity: 0.4;
+}
+
+.carnet-popup__cerrar {
+  flex: none;
+}
+
+/* Botones redondos claros sobre el fondo oscuro */
+.carnet-popup__boton {
+  display: inline-grid;
+  grid-auto-flow: column;
+  place-items: center;
+  gap: 0.45rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 0.85rem;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+  border: 0;
+  border-radius: 999px;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.carnet-popup__boton:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.carnet-popup__boton:active {
+  transform: scale(0.95);
+}
+
+.carnet-popup__boton:disabled {
+  opacity: 0.4;
+  cursor: progress;
+}
+
+.carnet-popup__boton:focus-visible,
+.carnet-popup__modo:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.carnet-popup__boton--texto {
+  padding: 0 1.1rem;
+  color: var(--woof-marron);
+  background: #fff;
+}
+
+.carnet-popup__boton--texto:hover {
+  background: var(--woof-naranja-100);
+}
+
+/* Escena 3D: sin fondo propio, el librito flota sobre el velo */
+.carnet-popup__escena {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  cursor: grab;
+  outline: none;
+}
+
+.carnet-popup__escena.esta-arrastrando {
+  cursor: grabbing;
+}
+
+.carnet-popup__escena:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.carnet-popup__lienzo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;             /* en el celular: el dedo de lado gira el librito */
+}
+
+.carnet-popup__cargando {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: girar 700ms linear infinite;
+}
+
+/* Páginas: anterior · "Datos y vacunas · 2 de 3" · siguiente */
+.carnet-popup__paginas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.carnet-popup__pagina {
+  min-width: 14rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.carnet-popup__acciones {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+/* Vista plana: el frente y el reverso del carnet, y el resumen de vacunas en una hoja blanca */
+.carnet-popup__plano {
+  min-height: 0;
+  padding: 0.5rem clamp(1rem, 3vw, 2rem) 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.carnet-plano {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.carnet-plano__caras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.carnet-plano__cara {
+  width: 100%;
+  height: auto;
+  border-radius: clamp(12px, 2vw, 22px);
+  box-shadow: 0 24px 40px -24px rgba(0, 0, 0, 0.6);
+}
+
+.carnet-plano__vacunas {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  color: var(--p-texto);
+  background: #fff;
+  border-radius: 20px;
+}
+
+.carnet-plano__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  color: var(--woof-marron);
+  font-size: 1.2rem;
+}
+
+.carnet-plano__titulo .bi {
+  color: var(--p-acento);
+}
+
+/* La página del carnet, detrás del pop-up: mínima */
+.carnet-pagina {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  max-width: 40rem;
+}
+
+.carnet-pagina__titulo {
+  margin: 0.5rem 0 0;
+  color: var(--woof-marron);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.carnet-pagina__texto {
+  margin: 0 0 0.5rem;
+  color: var(--p-texto-2);
+}
+
+@media (max-width: 720px) {
+  .carnet-popup__titulo {
+    display: none;
+  }
+
+  .carnet-popup__pie {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .carnet-popup__pagina {
+    min-width: 10rem;
+  }
+
+  .carnet-plano__caras {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carnet-popup[open],
+  .carnet-popup::backdrop {
+    animation: none;
+  }
+
+  .carnet-popup__cargando {
+    animation-duration: 1.5s;
+  }
+}
+
+/* Inicio del cliente: dos tarjetas por fila en tablet y una en el celular */
+@media (max-width: 1100px) {
+  .fichas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .fichas {
+    grid-template-columns: 1fr;
+  }
+}
