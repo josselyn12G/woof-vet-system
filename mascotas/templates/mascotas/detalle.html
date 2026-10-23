@@ -1,23 +1,27 @@
-{% extends 'base.html' %}
+{% extends 'panel_base.html' %}
 {% load static %}
+
+{# Dentro del panel (sidebar o navegación de arriba). Las pantallas de mascotas traen su propio encabezado y sus avisos #}
+{% block panel_icono %}bi-heart{% endblock %}
+{% block panel_seccion %}Mis mascotas{% endblock %}
+{% block panel_cabecera %}{% endblock %}
+{% block panel_avisos %}{% endblock %}
 
 {% block titulo %}{{ mascota.nombre }} · Woof{% endblock %}
 
-{% block estilos %}
+{% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
 {% endblock %}
 
-{% block contenido %}
+{% block panel_contenido %}
   {% include 'mascotas/_mensajes.html' %}
-
-  <a class="enlace-volver" href="{% url 'mascotas:lista' %}">
-    <i class="bi bi-arrow-left" aria-hidden="true"></i>Mis mascotas
-  </a>
 
   <article class="ficha">
     {# Columna izquierda: la foto grande (o el ícono de la especie) #}
     <div class="ficha__foto foto-mascota foto-mascota--{{ mascota.especie }}">
       {% include 'mascotas/_avatar.html' %}
+      {# Volver: en la esquina de la foto, como una píldora de vidrio #}
+      <a class="boton-volver boton-volver--vidrio" href="{% url 'mascotas:lista' %}" aria-label="Volver a Mis mascotas" title="Volver a Mis mascotas"><i class="bi bi-arrow-left" aria-hidden="true"></i></a>
     </div>
 
     {# Columna derecha: nombre, datos y acciones #}
@@ -71,7 +75,7 @@
         <a class="btn btn-primary rounded-pill px-4" href="{% url 'mascotas:editar' mascota.pk %}">
           <i class="bi bi-pencil me-1" aria-hidden="true"></i>Editar
         </a>
-        <a class="btn btn-light rounded-pill px-4" href="{% url 'mascotas:carnet' mascota.pk %}">
+        <a class="btn btn-light rounded-pill px-4" href="{% url 'mascotas:carnet' mascota.pk %}" data-abrir-carnet>
           <i class="bi bi-journal-medical me-1" aria-hidden="true"></i>Carnet de vacunación
         </a>
         <a class="btn btn-outline-danger rounded-pill px-4" href="{% url 'mascotas:eliminar' mascota.pk %}">
@@ -84,4 +88,8 @@
       </p>
     </div>
   </article>
+{% endblock %}
+
+{% block panel_scripts %}
+  {% include 'mascotas/_carnet_scripts.html' %}
 {% endblock %}
