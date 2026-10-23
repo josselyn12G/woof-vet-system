@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, time, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -8,6 +8,7 @@ from django.db.models import ProtectedError
 from django.forms import modelform_factory
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from cuentas.models import Roles
 from mascotas.tests import crear_usuario
@@ -282,3 +283,150 @@ class CatalogoServiciosTests(TestCase):
         respuesta = self.client.get(reverse('citas:servicios'))
         self.assertContains(respuesta, '$25,00')
         self.assertContains(respuesta, 'SP')  # iniciales de Sofía Paredes
+
+
+class MiHorarioTests(TestCase):
+    """Mi horario (HU-26, RF-07 a RF-10). Las fechas se calculan desde hoy para que las pruebas no caduquen."""
+
+    def setUp(self):
+        self.sofia = crear_veterinario()
+        self.client.force_login(self.sofia)
+        self.hoy = timezone.localdate()
+        self.lunes = self.hoy - timedelta(days=self.hoy.weekday())
+        self.manana = self.hoy + timedelta(days=1)
+
+    def agregar(self, fecha, inicio, fin):
+        return self.client.post(reverse('citas:horario'), {
+            'fecha': fecha.isoformat(), 'hora_inicio': inicio, 'hora_fin': fin,
+        })
+
+    def test_cliente_y_administrador_reciben_403(self):
+        for usuario in [crear_usuario('ana'), crear_usuario('laura', rol=Roles.ADMINISTRADOR)]:
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('citas:horario')).status_code, 403)
+
+    def test_agregar_un_bloque_lo_guarda_con_el_veterinario_de_la_sesion(self):
+        respuesta = self.agregar(self.manana, '09:00', '12:00')
+        self.assertRedirects(respuesta, f"{reverse('citas:horario')}?semana={(self.manana - timedelta(days=self.manana.weekday())).isoformat()}")
+        bloque = HorarioVeterinario.objects.get()
+        self.assertEqual(bloque.veterinario, self.sofia)
+        self.assertEqual((bloque.hora_inicio, bloque.hora_fin), (time(9), time(12)))
+
+    def test_no_se_puede_elegir_otro_veterinario(self):
+        mateo = crear_veterinario('mateo')
+        self.client.post(reverse('citas:horario'), {
+            'fecha': self.manana.isoformat(), 'hora_inicio': '09:00', 'hora_fin': '12:00', 'veterinario': mateo.pk,
+        })
+        self.assertEqual(HorarioVeterinario.objects.get().veterinario, self.sofia)
+
+    def test_fin_antes_del_inicio_se_rechaza(self):
+        respuesta = self.agregar(self.manana, '12:00', '09:00')
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('hora_fin', respuesta.context['form'].errors)
+        self.assertFalse(HorarioVeterinario.objects.exists())
+
+    def test_bloque_cruzado_se_rechaza(self):
+        crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        respuesta = self.agregar(self.manana, '11:00', '14:00')
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Se cruza con otro bloque')
+        self.assertEqual(HorarioVeterinario.objects.count(), 1)
+
+    def test_bloque_seguido_si_se_acepta(self):
+        crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        self.agregar(self.manana, '12:00', '14:00')
+        self.assertEqual(HorarioVeterinario.objects.count(), 2)
+
+    def test_el_bloque_de_otro_veterinario_no_cuenta_como_cruce(self):
+        crear_horario(crear_veterinario('mateo'), time(9), time(12), fecha=self.manana)
+        self.agregar(self.manana, '09:00', '12:00')
+        self.assertEqual(HorarioVeterinario.objects.filter(veterinario=self.sofia).count(), 1)
+
+    def test_un_dia_que_ya_paso_se_rechaza(self):
+        respuesta = self.agregar(self.hoy - timedelta(days=1), '09:00', '12:00')
+        self.assertIn('fecha', respuesta.context['form'].errors)
+
+    def test_la_semana_muestra_solo_mis_bloques(self):
+        crear_horario(self.sofia, time(9), time(12), fecha=self.lunes)
+        crear_horario(crear_veterinario('mateo'), time(15), time(18), fecha=self.lunes)
+        respuesta = self.client.get(reverse('citas:horario'))
+        bloques = [bloque for dia in respuesta.context['dias'] for bloque in dia['bloques']]
+        self.assertEqual([bloque.veterinario for bloque in bloques], [self.sofia])
+        self.assertEqual(respuesta.context['total_semana'], '3 h')
+        self.assertNotContains(respuesta, '15:00')
+
+    def test_la_semana_elegida_por_la_url(self):
+        siguiente = self.lunes + timedelta(days=7)
+        crear_horario(self.sofia, time(9), time(10, 30), fecha=siguiente + timedelta(days=2))
+        respuesta = self.client.get(reverse('citas:horario'), {'semana': (siguiente + timedelta(days=4)).isoformat()})
+        self.assertEqual(respuesta.context['lunes'], siguiente)
+        self.assertEqual(respuesta.context['total_semana'], '1 h 30 min')
+        # una fecha inventada vuelve a la semana actual
+        self.assertEqual(self.client.get(reverse('citas:horario'), {'semana': 'x'}).context['lunes'], self.lunes)
+
+    def test_un_veterinario_no_ve_ni_edita_ni_borra_el_horario_de_otro(self):
+        bloque = crear_horario(crear_veterinario('mateo'), time(9), time(12), fecha=self.manana)
+        editar = reverse('citas:horario_editar', args=[bloque.pk])
+        self.assertEqual(self.client.get(editar).status_code, 404)
+        self.assertEqual(self.client.post(editar, {'fecha': self.manana.isoformat(), 'hora_inicio': '07:00',
+                                                   'hora_fin': '08:00'}).status_code, 404)
+        self.assertEqual(self.client.post(reverse('citas:horario_eliminar', args=[bloque.pk])).status_code, 404)
+        bloque.refresh_from_db()
+        self.assertEqual(bloque.hora_inicio, time(9))
+
+    def test_editar_mi_bloque(self):
+        bloque = crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        self.client.post(reverse('citas:horario_editar', args=[bloque.pk]),
+                         {'fecha': self.manana.isoformat(), 'hora_inicio': '10:00', 'hora_fin': '13:00'})
+        bloque.refresh_from_db()
+        self.assertEqual((bloque.hora_inicio, bloque.hora_fin), (time(10), time(13)))
+
+    def test_quitar_mi_bloque_solo_con_post(self):
+        bloque = crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        url = reverse('citas:horario_eliminar', args=[bloque.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.client.post(url)
+        self.assertFalse(HorarioVeterinario.objects.exists())
+
+    def test_copiar_la_semana_anterior(self):
+        siguiente = self.lunes + timedelta(days=7)
+        crear_horario(self.sofia, time(9), time(12), fecha=self.lunes)
+        crear_horario(self.sofia, time(14), time(18), fecha=self.lunes + timedelta(days=2))
+        # ya existe un bloque que se cruza con el de las 14:00: ese no se copia
+        crear_horario(self.sofia, time(15), time(16), fecha=siguiente + timedelta(days=2))
+        self.client.post(reverse('citas:horario_copiar'), {'semana': siguiente.isoformat()})
+        copiados = HorarioVeterinario.objects.filter(fecha__gte=siguiente).order_by('fecha', 'hora_inicio')
+        self.assertEqual([(b.fecha, b.hora_inicio) for b in copiados],
+                         [(siguiente, time(9)), (siguiente + timedelta(days=2), time(15))])
+
+    def test_copiar_no_toca_el_horario_de_otro_veterinario(self):
+        siguiente = self.lunes + timedelta(days=7)
+        crear_horario(crear_veterinario('mateo'), time(9), time(12), fecha=self.lunes)
+        self.client.post(reverse('citas:horario_copiar'), {'semana': siguiente.isoformat()})
+        self.assertFalse(HorarioVeterinario.objects.filter(fecha__gte=siguiente).exists())
+
+    def test_elegir_los_servicios_que_atiendo(self):
+        consulta = crear_servicio()
+        vacunacion = crear_servicio(nombre='Vacunación')
+        inactivo = crear_servicio(nombre='Peluquería', activo=False)
+        inactivo.veterinarios.add(self.sofia)
+        respuesta = self.client.get(reverse('citas:horario'))
+        self.assertContains(respuesta, f'type="checkbox" name="servicios" value="{consulta.pk}"')
+        self.assertNotContains(respuesta, 'Peluquería')
+
+        self.client.post(reverse('citas:mis_servicios'), {'servicios': [consulta.pk, vacunacion.pk]})
+        self.assertEqual(set(self.sofia.servicios.all()), {consulta, vacunacion, inactivo})
+        self.client.post(reverse('citas:mis_servicios'), {})
+        self.assertEqual(list(self.sofia.servicios.all()), [inactivo])  # el inactivo se conserva
+
+    def test_no_puede_marcar_un_servicio_inactivo(self):
+        inactivo = crear_servicio(activo=False)
+        self.client.post(reverse('citas:mis_servicios'), {'servicios': [inactivo.pk]})
+        self.assertFalse(self.sofia.servicios.exists())
+
+    def test_la_portada_del_veterinario_cuenta_sus_servicios(self):
+        crear_servicio().veterinarios.add(self.sofia)
+        respuesta = self.client.get(reverse('cuentas:inicio_veterinario'))
+        self.assertEqual(respuesta.context['servicios_que_atiendo'], 1)
+        self.assertContains(respuesta, reverse('citas:horario'))
