@@ -85,6 +85,7 @@ class InicioVeterinarioView(VeterinarioRequeridoMixin, TemplateView):
             'no_asistio': 0,
             'ganancias': 0,          # suma del precio copiado en las citas atendidas del período
         }
+        contexto['servicios_que_atiendo'] = self.request.user.servicios.filter(activo=True).count()
         contexto['citas_hoy'] = 0
         contexto['citas_de_hoy'] = []      # las citas de hoy, ordenadas por hora (cuando exista Cita)
 

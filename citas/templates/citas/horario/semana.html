@@ -1,0 +1,107 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Mi horario · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_titulo %}Mi horario{% endblock %}
+{% block panel_subtitulo %}Carga los días y las horas en que atiendes. Los clientes solo pueden agendar dentro de estos bloques.{% endblock %}
+{% block panel_acciones %}
+  {% if se_puede_copiar %}
+    {# Copiar la semana anterior para no cargarlo todo de nuevo (HU-26) #}
+    <form method="post" action="{% url 'citas:horario_copiar' %}">
+      {% csrf_token %}
+      <input type="hidden" name="semana" value="{{ lunes|date:'Y-m-d' }}">
+      <button type="submit" class="boton-panel boton-panel--secundario"><i class="bi bi-copy" aria-hidden="true"></i>Copiar la semana anterior</button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block panel_contenido %}
+  <div class="horario">
+    {# ---------- La semana: un renglón por día con sus bloques ---------- #}
+    <section class="bloque-panel semana" aria-labelledby="semana-titulo">
+      <header class="semana__cabecera">
+        <a class="boton-fila" href="?semana={{ semana_anterior|date:'Y-m-d' }}" title="Semana anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i><span class="visually-hidden">Semana anterior</span></a>
+        <div class="semana__rango">
+          <h2 class="bloque-panel__titulo" id="semana-titulo">{{ lunes|date:'j M' }} – {{ domingo|date:'j M Y' }}</h2>
+          <p class="bloque-panel__meta">{{ total_semana }} de atención{% if not es_semana_actual %} · <a class="bloque-panel__enlace" href="{% url 'citas:horario' %}">Ir a esta semana</a>{% endif %}</p>
+        </div>
+        <a class="boton-fila" href="?semana={{ semana_siguiente|date:'Y-m-d' }}" title="Semana siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i><span class="visually-hidden">Semana siguiente</span></a>
+      </header>
+
+      <ol class="semana__dias">
+        {% for dia in dias %}
+          <li class="dia{% if dia.es_hoy %} dia--hoy{% endif %}{% if dia.ya_paso %} dia--pasado{% endif %}">
+            <div class="dia__fecha">
+              <span class="dia__nombre">{{ dia.fecha|date:'l'|capfirst }}</span>
+              <span class="dia__numero">{{ dia.fecha|date:'j M' }}{% if dia.es_hoy %} <span class="estado estado--acento">Hoy</span>{% endif %}</span>
+            </div>
+            <div class="dia__bloques">
+              {% for bloque in dia.bloques %}
+                <span class="bloque-hora">
+                  <i class="bi bi-clock" aria-hidden="true"></i>
+                  <span class="bloque-hora__texto">{{ bloque.hora_inicio|time:'H:i' }} – {{ bloque.hora_fin|time:'H:i' }}</span>
+                  {% if not dia.ya_paso %}
+                    <a class="boton-fila boton-fila--chico" href="{% url 'citas:horario_editar' bloque.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></a>
+                    {# Quitar: POST con confirmación del navegador #}
+                    <form method="post" action="{% url 'citas:horario_eliminar' bloque.pk %}" onsubmit="return confirm('¿Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}?');">
+                      {% csrf_token %}
+                      <button type="submit" class="boton-fila boton-fila--chico boton-fila--peligro" title="Quitar"><i class="bi bi-x-lg" aria-hidden="true"></i><span class="visually-hidden">Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></button>
+                    </form>
+                  {% endif %}
+                </span>
+              {% empty %}
+                <span class="dia__vacio">{% if dia.ya_paso %}—{% else %}No atiendes{% endif %}</span>
+              {% endfor %}
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <div class="horario__lado">
+      {# ---------- Nuevo bloque: el veterinario es quien inició sesión, no va en el formulario ---------- #}
+      <section class="bloque-panel" id="nuevo-bloque" aria-labelledby="nuevo-titulo">
+        <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio" id="nuevo-titulo">Nuevo bloque</h2>
+        <form class="formulario-panel" method="post" action="{% url 'citas:horario' %}?semana={{ lunes|date:'Y-m-d' }}" novalidate>
+          {% include 'citas/horario/_campos.html' %}
+          <div class="formulario-panel__acciones">
+            <button type="submit" class="boton-panel"><i class="bi bi-plus-lg" aria-hidden="true"></i>Agregar bloque</button>
+          </div>
+        </form>
+      </section>
+
+      {# ---------- Servicios que atiende: casillas con los servicios activos ---------- #}
+      <section class="bloque-panel" id="mis-servicios" aria-labelledby="servicios-titulo">
+        <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio" id="servicios-titulo">Servicios que atiendo</h2>
+        {% if servicios_form.fields.servicios.queryset.exists %}
+          <form class="formulario-panel" method="post" action="{% url 'citas:mis_servicios' %}">
+            {% csrf_token %}
+            <input type="hidden" name="semana" value="{{ lunes|date:'Y-m-d' }}">
+            <fieldset class="formulario-panel__campo">
+              <legend class="visually-hidden">{{ servicios_form.servicios.label }}</legend>
+              <div class="casillas-veterinarios casillas-veterinarios--una-columna">
+                {% for casilla in servicios_form.servicios %}
+                  <label class="formulario-panel__casilla casillas-veterinarios__una" for="{{ casilla.id_for_label }}">
+                    {{ casilla.tag }}
+                    <span>{{ casilla.choice_label }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+              <p class="formulario-panel__ayuda">Solo apareces como opción al agendar los servicios que marques.</p>
+            </fieldset>
+            <div class="formulario-panel__acciones">
+              <button type="submit" class="boton-panel boton-panel--secundario">Guardar servicios</button>
+            </div>
+          </form>
+        {% else %}
+          <p class="bloque-panel__vacio">La clínica todavía no tiene servicios activos. Cuando el administrador los cree, podrás elegirlos aquí.</p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+{% endblock %}

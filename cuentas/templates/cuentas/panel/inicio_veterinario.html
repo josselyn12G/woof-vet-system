@@ -8,8 +8,8 @@
 {% block panel_subtitulo %}{% now 'l j \d\e F' %} · {% if citas_hoy %}{{ citas_hoy }} cita{{ citas_hoy|pluralize }} hoy{% else %}sin citas hoy{% endif %}{% endblock %}
 
 {% block panel_acciones %}
-  {# La acción principal del veterinario: publicar su horario (se habilita con la app citas) #}
-  <span class="boton-panel es-deshabilitado" aria-disabled="true" title="Pronto"><i class="bi bi-plus-lg" aria-hidden="true"></i>Publicar horario</span>
+  {# La acción principal del veterinario: publicar su horario #}
+  <a class="boton-panel" href="{% url 'citas:horario' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Publicar horario</a>
 {% endblock %}
 
 {% block panel_contenido %}
@@ -121,9 +121,9 @@
     <section class="paneles__panel" aria-labelledby="servicios-titulo">
       <header class="paneles__cabecera">
         <h2 class="paneles__titulo" id="servicios-titulo"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>Servicios que atiendo</h2>
-        <span class="paneles__enlace es-pronto" aria-disabled="true">Elegir <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+        <a class="paneles__enlace" href="{% url 'citas:horario' %}#mis-servicios">Elegir <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
       </header>
-      <p class="paneles__cifra">0</p>
+      <p class="paneles__cifra">{{ servicios_que_atiendo }}</p>
       <p class="paneles__texto">Solo apareces como opción en los servicios que marques.</p>
     </section>
 
