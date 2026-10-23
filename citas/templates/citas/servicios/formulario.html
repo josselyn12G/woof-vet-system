@@ -1,0 +1,93 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}{% if servicio %}Editar {{ servicio.nombre }}{% else %}Nuevo servicio{% endif %} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-clipboard2-pulse{% endblock %}
+{% block panel_seccion %}Servicios{% endblock %}
+{% block panel_titulo %}{% if servicio %}Editar servicio{% else %}Nuevo servicio{% endif %}{% endblock %}
+{% block panel_subtitulo %}La duración define cuánto espacio ocupa cada cita en la agenda del veterinario.{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel">
+    <form class="formulario-panel" method="post" novalidate>
+      {% csrf_token %}
+
+      {% for error in form.non_field_errors %}
+        <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+      {% endfor %}
+
+      <div class="formulario-panel__campo">
+        <label class="formulario-panel__etiqueta" for="{{ form.nombre.id_for_label }}">{{ form.nombre.label }}</label>
+        <input class="control-panel" type="text" name="{{ form.nombre.html_name }}" id="{{ form.nombre.id_for_label }}"
+               value="{{ form.nombre.value|default:'' }}" maxlength="80" placeholder="Por ejemplo, Consulta general" required>
+        {% for error in form.nombre.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="formulario-panel__campo">
+        <label class="formulario-panel__etiqueta" for="{{ form.descripcion.id_for_label }}">{{ form.descripcion.label|capfirst }} <span class="formulario-panel__ayuda">(opcional)</span></label>
+        <textarea class="control-panel control-panel--texto" name="{{ form.descripcion.html_name }}" id="{{ form.descripcion.id_for_label }}" rows="3"
+                  placeholder="Qué incluye: revisión general, peso, temperatura...">{{ form.descripcion.value|default:'' }}</textarea>
+        {% for error in form.descripcion.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="formulario-servicio__par">
+        <div class="formulario-panel__campo">
+          <label class="formulario-panel__etiqueta" for="{{ form.duracion_min.id_for_label }}">Duración (min)</label>
+          <div class="control-icono">
+            <i class="bi bi-clock" aria-hidden="true"></i>
+            <input class="control-panel" type="number" name="{{ form.duracion_min.html_name }}" id="{{ form.duracion_min.id_for_label }}"
+                   value="{{ form.duracion_min.value|default:'' }}" min="1" step="5" inputmode="numeric" required>
+          </div>
+          {% for error in form.duracion_min.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="formulario-panel__campo">
+          <label class="formulario-panel__etiqueta" for="{{ form.precio.id_for_label }}">Precio ($)</label>
+          <div class="control-icono">
+            <i class="bi bi-currency-dollar" aria-hidden="true"></i>
+            <input class="control-panel" type="number" name="{{ form.precio.html_name }}" id="{{ form.precio.id_for_label }}"
+                   value="{{ form.precio.value|default:''|stringformat:'s' }}" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          {% for error in form.precio.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+
+      {# Veterinarios con casillas: solo cuentas activas con rol veterinario, nunca un input con el id #}
+      <fieldset class="formulario-panel__campo">
+        <legend class="formulario-panel__etiqueta">{{ form.veterinarios.label }}</legend>
+        {% if form.veterinarios.field.queryset.exists %}
+          <div class="casillas-veterinarios">
+            {% for casilla in form.veterinarios %}
+              <label class="formulario-panel__casilla casillas-veterinarios__una" for="{{ casilla.id_for_label }}">
+                {{ casilla.tag }}
+                <span>{{ casilla.choice_label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+          <p class="formulario-panel__ayuda">Solo los veterinarios marcados aparecen cuando el cliente agenda este servicio.</p>
+        {% else %}
+          <p class="bloque-panel__vacio">Todavía no hay veterinarios. Dale el rol de veterinario a una cuenta desde <a class="bloque-panel__enlace" href="{% url 'cuentas:usuarios' %}">Usuarios</a>.</p>
+        {% endif %}
+        {% for error in form.veterinarios.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+      </fieldset>
+
+      <div class="formulario-panel__campo">
+        <label class="formulario-panel__casilla">
+          <input type="checkbox" name="{{ form.activo.html_name }}" id="{{ form.activo.id_for_label }}"{% if form.activo.value %} checked{% endif %}>
+          <span class="formulario-panel__etiqueta">{{ form.activo.label }}</span>
+        </label>
+        <p class="formulario-panel__ayuda">{{ form.activo.help_text }}</p>
+      </div>
+
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>{% if servicio %}Guardar cambios{% else %}Crear servicio{% endif %}</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'citas:servicios' %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}
