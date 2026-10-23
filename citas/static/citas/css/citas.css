@@ -1,0 +1,119 @@
+/* Catálogo de servicios (administrador). Lo común (tabla, filtros, formulario) viene de panel.css */
+
+/* Iniciales de los veterinarios apiladas, como en el prototipo */
+.iniciales {
+  display: inline-flex;
+  align-items: center;
+}
+
+.iniciales__una {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--p-superficie);
+  font-size: 0.75rem;
+}
+
+.iniciales__una + .iniciales__una {
+  margin-left: -0.55rem;
+}
+
+.iniciales__mas {
+  background: #f1f1f3;
+  color: var(--p-texto-2);
+}
+
+.acciones-fila {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.acciones-fila form {
+  margin: 0;
+}
+
+/* El texto oculto (visually-hidden) es absoluto: sin esto se sale de la tabla y estira la página en el celular */
+.tabla-panel__accion {
+  position: relative;
+}
+
+button.boton-fila {
+  border: 0;
+  background: none;
+}
+
+.boton-fila--peligro:hover {
+  background: #fff3f1;
+  color: #9b2c1f;
+}
+
+.boton-panel--peligro {
+  border-color: #c0392b;
+  background: #c0392b;
+}
+
+.boton-panel--peligro:hover {
+  border-color: #a93226;
+  background: #a93226;
+}
+
+/* Formulario */
+.control-panel--texto {
+  height: auto;
+  padding: 0.7rem 1rem;
+  resize: vertical;
+}
+
+.formulario-servicio__par {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.control-icono {
+  position: relative;
+}
+
+.control-icono .bi {
+  position: absolute;
+  top: 50%;
+  left: 0.9rem;
+  color: var(--p-acento-texto);
+  transform: translateY(-50%);
+}
+
+.control-icono .control-panel {
+  padding-left: 2.4rem;
+}
+
+fieldset.formulario-panel__campo {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.casillas-veterinarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.5rem;
+}
+
+.casillas-veterinarios__una {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.casillas-veterinarios__una:has(input:checked) {
+  border-color: var(--p-acento);
+  background: var(--p-acento-tinte);
+}
+
+@media (max-width: 575.98px) {
+  .formulario-servicio__par {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

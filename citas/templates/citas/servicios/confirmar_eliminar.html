@@ -1,0 +1,30 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Eliminar {{ servicio.nombre }} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-clipboard2-pulse{% endblock %}
+{% block panel_seccion %}Servicios{% endblock %}
+{% block panel_titulo %}¿Eliminar {{ servicio.nombre }}?{% endblock %}
+{% block panel_subtitulo %}Esta acción no se puede deshacer.{% endblock %}
+
+{% block panel_contenido %}
+  {# Se borra con un formulario POST, nunca con un enlace #}
+  <section class="bloque-panel">
+    <form class="formulario-panel" method="post">
+      {% csrf_token %}
+      <p class="formulario-panel__ayuda">
+        Si el servicio ya tiene citas no se podrá eliminar. Si solo quieres que deje de ofrecerse al agendar,
+        es mejor <strong>desactivarlo</strong>: las citas pasadas lo conservan.
+      </p>
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel boton-panel--peligro"><i class="bi bi-trash" aria-hidden="true"></i>Sí, eliminar</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'citas:servicios' %}">No, volver</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}
