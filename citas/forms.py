@@ -1,9 +1,10 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from cuentas.models import Roles
 
-from .models import Servicio
+from .models import HorarioVeterinario, Servicio
 
 
 class VeterinarioCasillas(forms.ModelMultipleChoiceField):
@@ -41,3 +42,34 @@ class ServicioForm(forms.ModelForm):
         if repetido.exists():
             raise forms.ValidationError('Ya existe un servicio con ese nombre.')
         return nombre
+
+
+class HorarioForm(forms.ModelForm):
+    """Un bloque del horario. El veterinario no va en el formulario: la vista lo toma de request.user
+    y lo pone en la instancia antes de validar, así clean() del modelo revisa los cruces con sus bloques."""
+
+    class Meta:
+        model = HorarioVeterinario
+        fields = ['fecha', 'hora_inicio', 'hora_fin']
+        widgets = {
+            # format: el input type="date" y type="time" solo entienden 2026-11-02 y 09:00
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'control-panel'}, format='%Y-%m-%d'),
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'step': 900, 'class': 'control-panel'}, format='%H:%M'),
+            'hora_fin': forms.TimeInput(attrs={'type': 'time', 'step': 900, 'class': 'control-panel'}, format='%H:%M'),
+        }
+
+    def clean_fecha(self):
+        fecha = self.cleaned_data['fecha']
+        if fecha < timezone.localdate():
+            raise forms.ValidationError('Ese día ya pasó: elige hoy o una fecha futura.')
+        return fecha
+
+
+class MisServiciosForm(forms.Form):
+    """Los servicios que atiende el veterinario: casillas con los servicios activos del catálogo."""
+    servicios = forms.ModelMultipleChoiceField(
+        label='Servicios que atiendo',
+        queryset=Servicio.objects.filter(activo=True),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
