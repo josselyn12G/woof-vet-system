@@ -1,0 +1,45 @@
+{% extends 'panel_base.html' %}
+
+{% block titulo %}Editar a {{ persona }} · Woof{% endblock %}
+
+{% block panel_icono %}bi-people{% endblock %}
+{% block panel_seccion %}Usuarios{% endblock %}
+{% block panel_titulo %}{{ persona }}{% endblock %}
+{% block panel_subtitulo %}{{ persona.email }} · cédula {{ persona.cedula|default:'sin registrar' }}{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel">
+    <form class="formulario-panel" method="post" novalidate>
+      {% csrf_token %}
+
+      {% for error in form.non_field_errors %}
+        <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+      {% endfor %}
+
+      {# El rol es un desplegable con las opciones fijas de Roles: nunca un texto libre #}
+      <div class="formulario-panel__campo">
+        <label class="formulario-panel__etiqueta" for="{{ form.rol.id_for_label }}">{{ form.rol.label }}</label>
+        <select class="control-panel" name="{{ form.rol.html_name }}" id="{{ form.rol.id_for_label }}">
+          {% for valor, nombre in form.fields.rol.choices %}
+            <option value="{{ valor }}"{% if valor == form.rol.value %} selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+        </select>
+        <p class="formulario-panel__ayuda">Veterinario: puede publicar su horario y ver su agenda. Administrador: gestiona la clínica.</p>
+        {% for error in form.rol.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="formulario-panel__campo">
+        <label class="formulario-panel__casilla">
+          <input type="checkbox" name="{{ form.is_active.html_name }}" id="{{ form.is_active.id_for_label }}"{% if form.is_active.value %} checked{% endif %}>
+          <span class="formulario-panel__etiqueta">{{ form.is_active.label }}</span>
+        </label>
+        <p class="formulario-panel__ayuda">{{ form.is_active.help_text }}</p>
+      </div>
+
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel">Guardar cambios</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:usuarios' %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

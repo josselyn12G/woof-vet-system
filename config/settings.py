@@ -121,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Guayaquil'   # hora de Ecuador: saludos, fechas de registro y edades
 
 USE_I18N = True
 
@@ -145,7 +145,7 @@ AUTH_USER_MODEL = 'cuentas.Usuario'
 
 # Autenticación: a donde redirigir
 LOGIN_URL = 'cuentas:login'
-LOGIN_REDIRECT_URL = 'cuentas:inicio'
+LOGIN_REDIRECT_URL = 'cuentas:panel'   # /panel/ reparte a cada usuario a la portada de su rol
 LOGOUT_REDIRECT_URL = 'cuentas:inicio'
 
 # Correo: Gmail por SMTP (credenciales en el .env)

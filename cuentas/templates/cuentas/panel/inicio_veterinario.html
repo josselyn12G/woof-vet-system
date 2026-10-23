@@ -1,0 +1,147 @@
+{% extends 'panel_base.html' %}
+{% load static l10n %}
+
+{% block titulo %}Panel del veterinario · Woof{% endblock %}
+
+{% block panel_seccion %}Inicio{% endblock %}
+{% block panel_titulo %}<span class="saludo-vet">{{ saludo }}, {{ user.first_name|default:user.username }}</span>{% endblock %}
+{% block panel_subtitulo %}{% now 'l j \d\e F' %} · {% if citas_hoy %}{{ citas_hoy }} cita{{ citas_hoy|pluralize }} hoy{% else %}sin citas hoy{% endif %}{% endblock %}
+
+{% block panel_acciones %}
+  {# La acción principal del veterinario: publicar su horario (se habilita con la app citas) #}
+  <span class="boton-panel es-deshabilitado" aria-disabled="true" title="Pronto"><i class="bi bi-plus-lg" aria-hidden="true"></i>Publicar horario</span>
+{% endblock %}
+
+{% block panel_contenido %}
+  {# Fila principal: la agenda de hoy (lo más grande) y, al costado, las ganancias y el resumen #}
+  <div class="vet-principal">
+    {# ---------- Agenda de hoy: línea de tiempo de 08:00 a 18:00 ---------- #}
+    <section class="agenda-hoy entra entra--1" aria-labelledby="agenda-titulo">
+      <header class="agenda-hoy__cabecera">
+        <div>
+          <h2 class="agenda-hoy__titulo" id="agenda-titulo">Agenda de hoy</h2>
+          <p class="agenda-hoy__fecha">{% now 'l j \d\e F' %}</p>
+        </div>
+        <span class="variacion">{{ citas_hoy }} cita{{ citas_hoy|pluralize }}</span>
+      </header>
+
+      <div class="linea-tiempo" data-linea-tiempo data-inicio="{{ agenda_inicio }}" data-fin="{{ agenda_fin }}">
+        {% for hora in horas_agenda %}
+          <div class="linea-tiempo__fila">
+            <span class="linea-tiempo__hora">{{ hora }}</span>
+            <span class="linea-tiempo__carril"></span>
+          </div>
+        {% endfor %}
+
+        {# Línea de "ahora": la coloca y la mueve panel-veterinario.js con la hora del dispositivo #}
+        <div class="linea-tiempo__ahora" data-ahora hidden>
+          <span class="linea-tiempo__ahora-hora" data-ahora-hora></span>
+        </div>
+
+        {% if not citas_de_hoy %}
+          <div class="linea-tiempo__vacia">
+            <i class="bi bi-calendar2-heart" aria-hidden="true"></i>
+            <p class="linea-tiempo__vacia-titulo">Hoy no tienes citas</p>
+            <p class="linea-tiempo__vacia-texto">Cuando un cliente agende dentro de tu horario, su mascota y el servicio aparecerán en su hora, ya confirmados.</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    {# ---------- Al costado: ganancias y resumen del período ---------- #}
+    <section class="resumen-vet entra entra--2" aria-labelledby="resumen-titulo">
+      <header class="resumen-vet__cabecera">
+        <h2 class="resumen-vet__titulo" id="resumen-titulo">Resumen</h2>
+        {# Período: enlaces con ?periodo= (funciona sin JavaScript); la píldora se desliza a la opción elegida #}
+        <nav class="segmentos" aria-label="Período del resumen" data-segmentos>
+          <span class="segmentos__pildora" aria-hidden="true"></span>
+          {% for valor, nombre in periodos %}
+            <a class="segmentos__opcion{% if valor == periodo %} es-activo{% endif %}" href="?periodo={{ valor }}"{% if valor == periodo %} aria-current="true"{% endif %}>{{ nombre }}</a>
+          {% endfor %}
+        </nav>
+      </header>
+
+      <div class="ganancias">
+        <p class="ganancias__etiqueta"><i class="bi bi-cash-coin" aria-hidden="true"></i>Ganancias</p>
+        <p class="ganancias__valor">$<span data-contar="{{ estadisticas.ganancias|unlocalize }}" data-decimales="2">{{ estadisticas.ganancias|floatformat:2 }}</span></p>
+        <p class="ganancias__nota">De las citas atendidas en el período, con el precio de cada cita.</p>
+      </div>
+
+      {# Las cuatro cifras del período en cuadros de 2 x 2 #}
+      <div class="cuadros">
+        <div class="cuadro">
+          <p class="cuadro__etiqueta"><i class="bi bi-calendar-check" aria-hidden="true"></i>Citas</p>
+          <p class="cuadro__fila"><span class="cuadro__valor" data-contar="{{ estadisticas.citas }}">{{ estadisticas.citas }}</span><span class="variacion" title="Sin período anterior para comparar">—</span></p>
+        </div>
+        <div class="cuadro">
+          <p class="cuadro__etiqueta"><i class="bi bi-check2-circle" aria-hidden="true"></i>Atendidas</p>
+          <p class="cuadro__fila"><span class="cuadro__valor" data-contar="{{ estadisticas.atendidas }}">{{ estadisticas.atendidas }}</span><span class="variacion" title="Sin período anterior para comparar">—</span></p>
+        </div>
+        <div class="cuadro">
+          <p class="cuadro__etiqueta"><i class="bi bi-pie-chart" aria-hidden="true"></i>Ocupación</p>
+          <p class="cuadro__fila"><span class="cuadro__valor"><span data-contar="{{ estadisticas.ocupacion }}">{{ estadisticas.ocupacion }}</span><span class="cuadro__unidad">%</span></span><span class="variacion" title="Sin período anterior para comparar">—</span></p>
+        </div>
+        <div class="cuadro">
+          <p class="cuadro__etiqueta"><i class="bi bi-person-x" aria-hidden="true"></i>No asistió</p>
+          <p class="cuadro__fila"><span class="cuadro__valor" data-contar="{{ estadisticas.no_asistio }}">{{ estadisticas.no_asistio }}</span><span class="variacion" title="Sin período anterior para comparar">—</span></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  {# ---------- Citas por día del período ---------- #}
+  <section class="estadisticas entra entra--3" aria-labelledby="grafico-titulo">
+    <header class="estadisticas__cabecera">
+      <h2 class="resumen-vet__titulo" id="grafico-titulo">Citas por día</h2>
+      <span class="variacion">{{ estadisticas.citas }} en el período</span>
+    </header>
+    <figure class="grafico">
+      {# localize off: en español Django escribe 44,0; el SVG necesita 44.0 #}
+      {% localize off %}
+      <svg viewBox="0 0 {{ grafico.ancho }} {{ grafico.alto }}" role="img" aria-label="Citas por día en el período: {{ estadisticas.citas }} en total">
+        {% for guia in grafico.guias %}
+          <line class="grafico__guia" x1="{{ grafico.izquierda }}" x2="{{ grafico.derecha }}" y1="{{ guia.y }}" y2="{{ guia.y }}"></line>
+          <text class="grafico__eje" x="{{ grafico.izquierda|add:'-12' }}" y="{{ guia.y }}" text-anchor="end" dominant-baseline="middle">{{ guia.texto }}</text>
+        {% endfor %}
+        <path class="grafico__area" d="{{ grafico.area }}"></path>
+        <path class="grafico__linea" d="{{ grafico.linea }}" pathLength="1"></path>
+        {% for etiqueta in grafico.etiquetas %}
+          <text class="grafico__eje" x="{{ etiqueta.x }}" y="{{ grafico.alto|add:'-8' }}" text-anchor="middle">{{ etiqueta.fecha|date:'j M' }}</text>
+        {% endfor %}
+      </svg>
+      {% endlocalize %}
+      {% if not estadisticas.citas %}
+        <figcaption class="grafico__nota">Todavía no hay citas en este período. La línea sube a medida que los clientes agenden.</figcaption>
+      {% endif %}
+    </figure>
+  </section>
+
+  {# ---------- Servicios y datos del veterinario ---------- #}
+  <div class="paneles paneles--dos entra entra--3">
+    <section class="paneles__panel" aria-labelledby="servicios-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="servicios-titulo"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>Servicios que atiendo</h2>
+        <span class="paneles__enlace es-pronto" aria-disabled="true">Elegir <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+      </header>
+      <p class="paneles__cifra">0</p>
+      <p class="paneles__texto">Solo apareces como opción en los servicios que marques.</p>
+    </section>
+
+    <section class="paneles__panel" aria-labelledby="perfil-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="perfil-titulo"><i class="bi bi-person-vcard" aria-hidden="true"></i>Mi información</h2>
+      </header>
+      <dl class="datos-vet">
+        <div><dt>Correo</dt><dd>{{ user.email }}</dd></div>
+        <div><dt>Teléfono</dt><dd>{{ user.telefono }}</dd></div>
+        <div><dt>Cédula</dt><dd>{{ user.cedula|default:'—' }}</dd></div>
+        <div><dt>En Woof desde</dt><dd>{{ user.date_joined|date:'j M Y' }}</dd></div>
+      </dl>
+    </section>
+  </div>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'js/segmentos.js' %}" defer></script>
+  <script src="{% static 'js/panel-veterinario.js' %}" defer></script>
+{% endblock %}
