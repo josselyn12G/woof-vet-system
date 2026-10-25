@@ -60,9 +60,20 @@ git tag -a v1.0.0 -m "Release 1.0.0"
 git push origin v1.0.0            # dispara release.yml
 ```
 
-## 6. Desplegar (cuando lo necesiten)
+## 6. Desplegar en Render
 
-Aún no hay despliegue automático. Opción sencilla: **Render** o **Railway**. Conectas el repo, comando de inicio `gunicorn config.wsgi` (agrega `gunicorn` a `requirements.txt`), y en producción configuras `DEBUG = False`, `ALLOWED_HOSTS` y un `SECRET_KEY` propio fuera del código.
+El proyecto se despliega en **Render** como *Web Service* (la base sigue en Neon):
+
+| Campo | Valor |
+|---|---|
+| Branch | `develop` |
+| Runtime | Python 3 |
+| Build Command | `./build.sh` (instala, junta los estáticos y corre las migraciones) |
+| Start Command | `gunicorn config.wsgi:application` |
+
+Variables de entorno: `DATABASE_URL`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` y `PYTHON_VERSION=3.12.10`. El dominio `*.onrender.com` se agrega solo a `ALLOWED_HOSTS` (variable `RENDER_EXTERNAL_HOSTNAME`).
+
+Si el repo se conectó como *Public Git Repository*, Render no despliega solo: hay que entrar y pulsar **Manual Deploy → Deploy latest commit**.
 
 ## 7. Errores frecuentes
 

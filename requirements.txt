@@ -3,3 +3,5 @@ dj-database-url>=2.3,<3
 psycopg[binary]>=3.2,<4
 python-dotenv>=1.0,<2
 Pillow>=11,<12
+gunicorn>=23,<24
+whitenoise>=6.8,<7
