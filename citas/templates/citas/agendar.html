@@ -1,0 +1,21 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Agendar una cita · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-calendar-plus{% endblock %}
+{% block panel_seccion %}Agendar cita{% endblock %}
+{% block panel_cabecera %}{% endblock %}
+
+{% block panel_contenido %}
+  {% include 'citas/_reserva.html' %}
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'citas/js/agendar.js' %}" defer></script>
+{% endblock %}

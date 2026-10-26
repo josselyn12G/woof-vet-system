@@ -2,17 +2,23 @@ from datetime import date, datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import ProtectedError, Q
-from django.shortcuts import get_object_or_404, redirect
+from django.core.exceptions import ValidationError
+from django.db.models import BooleanField, Count, ExpressionWrapper, ProtectedError, Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.formats import date_format
 from django.views import View
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, FormView, ListView, TemplateView, UpdateView
 
-from cuentas.mixins import AdministradorRequeridoMixin, VeterinarioRequeridoMixin
+from cuentas.mixins import AdministradorRequeridoMixin, ClienteRequeridoMixin, VeterinarioRequeridoMixin
+from cuentas.models import Roles
+from mascotas.models import Mascota
 
-from .forms import HorarioForm, MisServiciosForm, ServicioForm
-from .models import HorarioVeterinario, Servicio
+from .forms import AgendarCitaForm, HorarioForm, MisServiciosForm, ServicioForm
+from .models import Cita, EstadoCita, HorarioVeterinario, Servicio
+from .services import AgendaService
 
 # Filtro de estado del catálogo: valor en la URL -> condición
 ESTADOS_SERVICIO = {'activos': True, 'inactivos': False}
@@ -259,3 +265,281 @@ class MisServiciosView(VeterinarioRequeridoMixin, View):
         cantidad = len(formulario.cleaned_data['servicios'])
         messages.success(request, f'Ahora atiendes {cantidad} servicio{"s" if cantidad != 1 else ""}.')
         return redirect(destino)
+
+
+# ---------------------------------------------------------------------------
+# Core: el cliente agenda, ve y cancela sus citas
+# ---------------------------------------------------------------------------
+class AgendarCitaView(ClienteRequeridoMixin, FormView):
+    """
+    Formulario para agendar (HU-27). La vista no decide si el turno está libre:
+    se lo pide a AgendaService, que valida y guarda dentro de una transacción.
+    """
+    form_class = AgendarCitaForm
+    template_name = 'citas/agendar.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['cliente'] = self.request.user
+        return kwargs
+
+    def get_initial(self):
+        # Desde la ficha de una mascota se llega con ?mascota=<id> y queda elegida
+        return {'mascota': self.request.GET.get('mascota')}
+
+    def form_valid(self, form):
+        datos = form.cleaned_data
+        try:
+            cita = AgendaService.agendar(
+                mascota=datos['mascota'], veterinario=datos['veterinario'], servicio=datos['servicio'],
+                inicio=datos['inicio'], motivo=datos['motivo'],
+            )
+        except ValidationError as error:
+            # El mensaje del Core (turno ocupado, servicio inactivo...) se muestra arriba del formulario
+            form.add_error(None, error)
+            return self.form_invalid(form)
+
+        # La confirmación se muestra como pop-up: con fetch (desde el pop-up de Mis citas) van los datos en JSON;
+        # sin JavaScript, como mensaje que Mis citas abre en un pop-up al cargar
+        confirmacion = datos_de_confirmacion(cita)
+        if es_fetch(self.request):
+            return JsonResponse(confirmacion)
+        # extra_tags="agendada": Mis citas muestra este mensaje en el pop-up de confirmación (los demás, como avisos)
+        messages.success(
+            self.request, f"{confirmacion['titulo']} {confirmacion['detalle']}, {confirmacion['cuando']}.",
+            extra_tags='agendada',
+        )
+        return redirect('citas:mis_citas')
+
+    def form_invalid(self, form):
+        # Desde el pop-up, con errores se devuelve solo la reserva (el parcial) para reemplazarla ahí mismo
+        if es_fetch(self.request):
+            return render(self.request, 'citas/_reserva.html', {'form': form})
+        return super().form_invalid(form)
+
+
+def es_fetch(request):
+    """True si el pedido viene de fetch (agendar.js manda la cabecera X-Requested-With: fetch)."""
+    return request.headers.get('X-Requested-With') == 'fetch'
+
+
+def datos_de_confirmacion(cita):
+    """Lo que se ve en el pop-up de "cita agendada": mascota, servicio, día, hora y doctor."""
+    inicio = timezone.localtime(cita.inicio)
+    return {
+        'titulo': f'{cita.mascota} tiene cita.',
+        'detalle': f'{cita.servicio} con {cita.veterinario.get_full_name() or cita.veterinario.username}',
+        'cuando': date_format(inicio, r'l j \d\e F, H:i'),
+    }
+
+
+def leer_fecha(texto):
+    """"2026-11-03" -> date; None si viene vacía o inventada."""
+    try:
+        return date.fromisoformat(texto or '')
+    except ValueError:
+        return None
+
+
+class TurnosDelDiaView(ClienteRequeridoMixin, View):
+    """
+    Devuelve en JSON las horas libres de un servicio en una fecha, agrupadas por veterinario.
+    La pide agendar.js al tocar un día; la regla es la misma que usa agendar().
+    """
+
+    def get(self, request):
+        servicio = Servicio.objects.filter(pk=request.GET.get('servicio') or 0, activo=True).first()
+        fecha = leer_fecha(request.GET.get('fecha'))
+        if not (servicio and fecha):
+            return JsonResponse({'turnos': []})
+
+        turnos = [
+            {
+                'veterinario': veterinario.pk,
+                'nombre': veterinario.get_full_name() or veterinario.username,
+                'horas': [f'{timezone.localtime(inicio):%H:%M}' for inicio in espacios],
+            }
+            for veterinario, espacios in AgendaService.turnos_del_dia(servicio, fecha)
+        ]
+        return JsonResponse({'turnos': turnos})
+
+
+class DiasDisponiblesView(ClienteRequeridoMixin, View):
+    """Devuelve en JSON los días del mes (?mes=2026-11) en que el servicio tiene turnos libres; el calendario los marca."""
+
+    def get(self, request):
+        servicio = Servicio.objects.filter(pk=request.GET.get('servicio') or 0, activo=True).first()
+        try:
+            anio, mes = (int(parte) for parte in request.GET.get('mes', '').split('-'))
+            date(anio, mes, 1)
+        except ValueError:
+            anio = None
+
+        if not (servicio and anio):
+            return JsonResponse({'dias': []})
+        dias = AgendaService.dias_del_servicio(servicio, anio, mes)
+        return JsonResponse({'dias': [dia.isoformat() for dia in dias]})
+
+
+# Pestañas de Mis citas: valor en la URL (?vista=) -> nombre que se muestra
+VISTAS_CITAS = {'proximas': 'Próximas', 'pasadas': 'Pasadas', 'canceladas': 'Canceladas'}
+
+
+class MisCitasView(ClienteRequeridoMixin, TemplateView):
+    """
+    Las citas de las mascotas del cliente en tres pestañas (?vista=proximas|pasadas|canceladas),
+    agrupadas por día; al costado, su próxima cita, la última y sus mascotas.
+    """
+    template_name = 'citas/mis_citas.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        ahora = timezone.now()
+        # Cada cliente ve solo las citas de sus mascotas; tiene_foto dice si mostrar la foto de la mascota
+        citas = list(
+            Cita.objects.filter(mascota__dueno=self.request.user)
+            .select_related('mascota', 'servicio', 'veterinario')
+            .defer('mascota__foto')
+            .annotate(foto_mascota=ExpressionWrapper(Q(mascota__foto__isnull=False), output_field=BooleanField()))
+        )
+        for cita in citas:
+            cita.mascota.tiene_foto = cita.foto_mascota
+
+        proximas = [c for c in citas if c.estado == EstadoCita.CONFIRMADA and c.inicio > ahora]
+        canceladas = sorted((c for c in citas if c.estado == EstadoCita.CANCELADA), key=lambda c: c.inicio, reverse=True)
+        pasadas = sorted((c for c in citas if c not in proximas and c not in canceladas), key=lambda c: c.inicio, reverse=True)
+        listas = {'proximas': proximas, 'pasadas': pasadas, 'canceladas': canceladas}
+
+        vista = self.request.GET.get('vista', 'proximas')
+        if vista not in VISTAS_CITAS:   # una pestaña inventada en la URL vuelve a Próximas
+            vista = 'proximas'
+
+        # Las citas de la pestaña, agrupadas por día (fecha local): [(fecha, [citas]), ...]
+        por_dia = {}
+        for cita in listas[vista]:
+            por_dia.setdefault(timezone.localtime(cita.inicio).date(), []).append(cita)
+
+        mascotas = (
+            Mascota.objects.filter(dueno=self.request.user).defer('foto')
+            .annotate(tiene_foto=ExpressionWrapper(Q(foto__isnull=False), output_field=BooleanField()))
+            .order_by('nombre')
+        )
+        contexto.update({
+            # La reserva del pop-up "Agendar cita" (el mismo formulario de AgendarCitaView)
+            'form': AgendarCitaForm(cliente=self.request.user),
+            'abrir_agendar': 'agendar' in self.request.GET,   # ?agendar abre el pop-up al cargar (desde el inicio)
+            'vista': vista,
+            'pestanas': [(valor, nombre, len(listas[valor])) for valor, nombre in VISTAS_CITAS.items()],
+            'por_dia': list(por_dia.items()),
+            'proximas': proximas,
+            'proxima': proximas[0] if proximas else None,
+            'ultima': pasadas[0] if pasadas else None,
+            'mascotas': mascotas,
+            'hoy': timezone.localdate(),
+            'ahora': ahora,
+        })
+        return contexto
+
+
+class CancelarCitaView(ClienteRequeridoMixin, View):
+    """Cancela una cita por POST. Una cita de otro cliente responde 404, como si no existiera."""
+
+    def post(self, request, pk):
+        cita = get_object_or_404(Cita, pk=pk, mascota__dueno=request.user)
+        try:
+            AgendaService.cancelar(cita)
+        except ValidationError as error:
+            messages.error(request, error.messages[0])
+        else:
+            messages.success(request, f'Se canceló la cita de {cita.mascota}. El horario quedó libre.')
+        return redirect('citas:mis_citas')
+
+
+# ---------------------------------------------------------------------------
+# Core: la agenda del veterinario
+# ---------------------------------------------------------------------------
+class AgendaVeterinarioView(VeterinarioRequeridoMixin, TemplateView):
+    """
+    Las citas del veterinario en un día (?fecha=2026-11-02; por defecto hoy), en orden de hora.
+    Desde aquí marca cada cita como atendida o no asistió.
+    """
+    template_name = 'citas/agenda.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        try:
+            fecha = date.fromisoformat(self.request.GET.get('fecha', ''))
+        except ValueError:
+            fecha = timezone.localdate()   # una fecha inventada vuelve a hoy
+
+        citas = (
+            Cita.objects.filter(veterinario=self.request.user, inicio__date=fecha)
+            .select_related('mascota', 'mascota__dueno', 'servicio')
+            .defer('mascota__foto')
+        )
+        contexto.update({
+            'fecha': fecha,
+            'hoy': timezone.localdate(),
+            'anterior': fecha - timedelta(days=1),
+            'siguiente': fecha + timedelta(days=1),
+            'citas': citas,
+            'activas': sum(1 for cita in citas if cita.estado != EstadoCita.CANCELADA),
+            'bloques': HorarioVeterinario.objects.filter(veterinario=self.request.user, fecha=fecha),
+            'ahora': timezone.now(),
+        })
+        return contexto
+
+
+class ResultadoCitaView(VeterinarioRequeridoMixin, View):
+    """Marca una cita como atendida o no asistió (POST). Solo las citas del propio veterinario: las de otro, 404."""
+
+    def post(self, request, pk):
+        cita = get_object_or_404(Cita, pk=pk, veterinario=request.user)
+        try:
+            AgendaService.registrar_resultado(cita, request.POST.get('estado'))
+        except ValidationError as error:
+            messages.error(request, error.messages[0])
+        else:
+            messages.success(request, f'La cita de {cita.mascota} quedó como «{cita.get_estado_display().lower()}».')
+        fecha = timezone.localtime(cita.inicio).date()
+        return redirect(f"{reverse('citas:agenda')}?fecha={fecha.isoformat()}")
+
+
+class PacientesView(VeterinarioRequeridoMixin, ListView):
+    """
+    Pacientes del veterinario: una tarjeta por mascota con su dueño asociado.
+    Busca por el nombre de la mascota o por nombre, usuario, correo, cédula o teléfono del dueño.
+    Con ?mios=1 deja solo las mascotas que ya tuvieron o tienen cita con él.
+    """
+    template_name = 'citas/pacientes.html'
+    context_object_name = 'mascotas'
+    paginate_by = 12
+
+    def get_queryset(self):
+        mascotas = (
+            Mascota.objects.filter(dueno__rol=Roles.CLIENTE)
+            .select_related('dueno')
+            .defer('foto')   # tiene_foto basta para mostrar su foto, sin traer los bytes
+            .annotate(
+                tiene_foto=ExpressionWrapper(Q(foto__isnull=False), output_field=BooleanField()),
+                citas_conmigo=Count('citas', filter=Q(citas__veterinario=self.request.user)),
+            )
+            .order_by('nombre')
+        )
+        buscar = self.request.GET.get('q', '').strip()
+        if buscar:
+            mascotas = mascotas.filter(
+                Q(nombre__icontains=buscar)
+                | Q(dueno__first_name__icontains=buscar) | Q(dueno__last_name__icontains=buscar)
+                | Q(dueno__username__icontains=buscar) | Q(dueno__email__icontains=buscar)
+                | Q(dueno__cedula__icontains=buscar) | Q(dueno__telefono__icontains=buscar)
+            )
+        if self.request.GET.get('mios'):
+            mascotas = mascotas.filter(citas_conmigo__gt=0)
+        return mascotas
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['buscar'] = self.request.GET.get('q', '').strip()
+        contexto['solo_mios'] = bool(self.request.GET.get('mios'))
+        return contexto
