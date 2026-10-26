@@ -4,7 +4,7 @@ import time
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Roles, Usuario
@@ -393,3 +393,20 @@ class GestionUsuariosTests(TestCase):
         self.assertTrue(contenido.startswith('Usuario,Nombre,Correo,Rol,Cédula'))
         self.assertIn(self.cliente.cedula, contenido)
         self.assertNotIn(self.cliente.password, contenido)  # el hash de la contraseña nunca sale
+
+
+@override_settings(DOBLE_FACTOR=False)
+class LoginSinDobleFactorTests(TestCase):
+    """En Render (DJANGO_DOBLE_FACTOR=False) el login entra directo: no hay código ni correo."""
+
+    def test_entra_directo_al_panel_sin_enviar_correo(self):
+        crear_usuario()
+        respuesta = self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'Clave-segura-123'})
+        self.assertRedirects(respuesta, reverse('cuentas:panel'), target_status_code=302)
+        self.assertIn('_auth_user_id', self.client.session)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_contrasena_incorrecta_sigue_fallando(self):
+        crear_usuario()
+        self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'otra-clave'})
+        self.assertNotIn('_auth_user_id', self.client.session)

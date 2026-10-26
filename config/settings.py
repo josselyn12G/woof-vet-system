@@ -170,6 +170,10 @@ LOGIN_URL = 'cuentas:login'
 LOGIN_REDIRECT_URL = 'cuentas:panel'   # /panel/ reparte a cada usuario a la portada de su rol
 LOGOUT_REDIRECT_URL = 'cuentas:inicio'
 
+# Doble factor (código al correo) al iniciar sesión. Render (plan gratis) bloquea el SMTP,
+# así que allá se apaga con DJANGO_DOBLE_FACTOR=False; en local queda activo
+DOBLE_FACTOR = os.environ.get('DJANGO_DOBLE_FACTOR', 'True') == 'True'
+
 # Correo: Gmail por SMTP (credenciales en el .env)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

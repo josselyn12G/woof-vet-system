@@ -1,6 +1,7 @@
 import csv
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
@@ -296,6 +297,10 @@ class LoginDosPasosView(LoginView):
         return super().get(request, *args, **kwargs)
 
     def form_valid(self, form):
+        # Con el doble factor apagado (Render), LoginView inicia sesión directo y va a ?next= o al panel
+        if not settings.DOBLE_FACTOR:
+            return super().form_valid(form)
+
         usuario = form.get_user()
         self.request.session['pre_2fa_user'] = usuario.pk           # la sesión es JSON: se guarda el pk, no el objeto
         self.request.session['pre_2fa_next'] = self.get_success_url()  # a dónde ir al terminar (respeta ?next=)
