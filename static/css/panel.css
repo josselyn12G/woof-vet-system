@@ -1685,6 +1685,49 @@ a.paneles__enlace:hover .bi {
   font-variant-numeric: tabular-nums;
 }
 
+/* Una cita de hoy sobre la línea de tiempo: bloque con tinte naranja en su hora; las ya cerradas, en gris */
+.linea-tiempo__cita {
+  position: absolute;
+  right: 0;
+  left: 3.75rem;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-height: 1.9rem;
+  padding: 0.3rem 0.6rem;
+  overflow: hidden;
+  color: var(--woof-marron);
+  font-size: 0.85rem;
+  text-decoration: none;
+  background: var(--p-acento-tinte);
+  border-radius: 8px;
+  transition: background-color 150ms ease;
+}
+
+.linea-tiempo__cita:hover {
+  color: var(--woof-marron);
+  background: #fbe2c3;
+}
+
+.linea-tiempo__cita--atendida,
+.linea-tiempo__cita--no_asistio {
+  color: var(--p-texto-2);
+  background: var(--p-fondo);
+}
+
+.linea-tiempo__cita-hora {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.linea-tiempo__cita-texto {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* Cuando ya está ubicada, avanza suave cada minuto */
 .linea-tiempo.esta-listo .linea-tiempo__ahora {
   transition: top 600ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -2268,8 +2311,23 @@ a.paneles__enlace:hover .bi {
   background: var(--p-acento);
   color: #fff;
   font-size: 1.15rem;
-  opacity: 0.6;
-  cursor: not-allowed;
+  text-decoration: none;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.agendar-tarjeta__boton:hover {
+  color: #fff;
+  background: var(--woof-naranja-600);
+}
+
+.agendar-tarjeta__boton:active {
+  transform: scale(0.94);
+}
+
+a.linea-citas__tarjeta {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
 .hoy-cliente__cabecera {
@@ -3504,5 +3562,188 @@ a.paneles__enlace:hover .bi {
 @media (max-width: 560px) {
   .fichas {
     grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   15. Inicio del cliente: accesos rápidos
+   Tarjetas grandes en gris cálido (una en naranja) con una mascota asomándose desde abajo.
+   Distribución: tres arriba, "Mis mascotas" alta a la derecha y "Registrar" ancha abajo.
+   ========================================================= */
+.accesos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: 17.5rem 12.5rem;
+  grid-template-areas:
+    "agendar citas mascotas"
+    "nuevo   nuevo mascotas";
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.acceso {
+  --fondo-acceso: #efece8;
+  position: relative;
+  display: block;
+  padding: 1.6rem 1.6rem 0;
+  overflow: hidden;
+  color: var(--woof-marron);
+  text-decoration: none;
+  background: var(--fondo-acceso);
+  border-radius: 24px;
+  isolation: isolate;
+}
+
+.acceso:hover {
+  color: var(--woof-marron);
+}
+
+.acceso--agendar { grid-area: agendar; }
+.acceso--mascotas { grid-area: mascotas; }
+.acceso--nuevo { grid-area: nuevo; }
+
+.acceso--citas {
+  grid-area: citas;
+  --fondo-acceso: var(--p-acento);
+  color: #fff;
+}
+
+.acceso--citas:hover {
+  color: #fff;
+}
+
+.acceso__cabecera {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.acceso__texto {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.acceso__titulo {
+  max-width: 12ch;
+  margin-bottom: 0.6rem;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.acceso__dato {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  opacity: 0.75;
+}
+
+/* Botón redondo con la flecha y un halo suave alrededor */
+.acceso__flecha {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  color: #fff;
+  font-size: 1.05rem;
+  background: var(--p-acento);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.45rem rgba(255, 255, 255, 0.55);
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.acceso--citas .acceso__flecha {
+  color: var(--p-acento-texto);
+  background: #fff;
+  box-shadow: 0 0 0 0.45rem rgba(255, 255, 255, 0.22);
+}
+
+/* La mascota se asoma desde el borde de abajo; al pasar el mouse sube un poco */
+.acceso__foto {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 0;
+  width: auto;
+  height: 62%;
+  max-width: none;
+  transform: translateX(-50%);
+  transition: transform 450ms cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+}
+
+.acceso--mascotas .acceso__foto {
+  height: 74%;
+}
+
+/* En la tarjeta ancha el gato se asoma desde el borde derecho */
+.acceso--nuevo .acceso__foto {
+  right: 0;
+  left: auto;
+  height: 118%;
+  transform: translateY(14%);
+}
+
+.acceso:hover .acceso__flecha,
+.acceso:focus-visible .acceso__flecha {
+  transform: rotate(45deg) scale(1.06);
+}
+
+.acceso:hover .acceso__foto,
+.acceso:focus-visible .acceso__foto {
+  transform: translate(-50%, -6px);
+}
+
+.acceso--nuevo:hover .acceso__foto,
+.acceso--nuevo:focus-visible .acceso__foto {
+  transform: translateY(11%);
+}
+
+.acceso:active .acceso__flecha {
+  transform: rotate(45deg) scale(0.94);
+}
+
+.acceso:focus-visible {
+  outline: 3px solid var(--woof-marron);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1100px) {
+  .accesos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 15rem);
+    grid-template-areas:
+      "agendar citas"
+      "mascotas nuevo";
+  }
+
+  .acceso--mascotas .acceso__foto {
+    height: 62%;
+  }
+
+  .acceso--nuevo .acceso__foto {
+    height: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .accesos {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-rows: 13rem;
+    grid-template-areas: "agendar" "citas" "mascotas" "nuevo";
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acceso__flecha,
+  .acceso__foto {
+    transition: none;
   }
 }

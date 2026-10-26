@@ -1,12 +1,12 @@
 import csv
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import BooleanField, ExpressionWrapper, Q
+from django.db.models import BooleanField, ExpressionWrapper, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
 
+from citas.models import Cita, EstadoCita, HorarioVeterinario, Servicio
 from cuentas.forms import RegistroForm, UsuarioRolForm, VerificarCodigoForm
 from cuentas.mixins import AdministradorRequeridoMixin, ClienteRequeridoMixin, VeterinarioRequeridoMixin
 from cuentas.models import Roles
@@ -49,7 +50,14 @@ class InicioClienteView(ClienteRequeridoMixin, TemplateView):
         lunes = hoy - timedelta(days=hoy.weekday())
         contexto['hoy'] = hoy
         contexto['semana'] = [lunes + timedelta(days=i) for i in range(7)]
-        contexto['proximas_citas'] = []
+        # Las próximas 4 citas confirmadas de sus mascotas, para la línea de tiempo
+        contexto['proximas_citas'] = list(
+            Cita.objects.filter(mascota__dueno=self.request.user, estado=EstadoCita.CONFIRMADA, inicio__gt=timezone.now())
+            .select_related('mascota', 'servicio', 'veterinario')[:4]
+        )
+        # Para los accesos rápidos: la cita más cercana y cuántos servicios se pueden agendar
+        contexto['proxima_cita'] = contexto['proximas_citas'][0] if contexto['proximas_citas'] else None
+        contexto['servicios_disponibles'] = Servicio.objects.filter(activo=True, veterinarios__isnull=False).distinct().count()
         return contexto
 
 
@@ -76,23 +84,71 @@ class InicioVeterinarioView(VeterinarioRequeridoMixin, TemplateView):
         contexto['periodos'] = [(valor, nombre) for valor, (nombre, _) in periodos.items()]
         contexto['periodo'] = clave
 
-        # Citas por día del período. Se llenan cuando exista el modelo Cita (app citas); hoy son 0, de verdad.
-        fechas = [hoy - timedelta(days=dias - 1 - i) for i in range(dias)]
-        citas_por_dia = [0 for _ in fechas]
+        # Período actual (los últimos N días, hasta hoy) y el anterior del mismo largo, para comparar
+        desde = hoy - timedelta(days=dias - 1)
+        desde_anterior = desde - timedelta(days=dias)
+        mis_citas = Cita.objects.filter(veterinario=self.request.user).exclude(estado=EstadoCita.CANCELADA)
+        del_periodo = mis_citas.filter(inicio__date__range=(desde, hoy))
+        del_anterior = mis_citas.filter(inicio__date__range=(desde_anterior, desde - timedelta(days=1)))
+
+        # Citas por día para el gráfico (las canceladas no cuentan: no ocuparon tiempo)
+        fechas = [desde + timedelta(days=i) for i in range(dias)]
+        por_dia = {fecha: 0 for fecha in fechas}
+        for inicio in del_periodo.values_list('inicio', flat=True):
+            por_dia[timezone.localtime(inicio).date()] += 1
+        citas_por_dia = [por_dia[fecha] for fecha in fechas]
+
+        # Ocupación: minutos con cita sobre los minutos de horario publicado en el período
+        minutos_citas = sum((fin - inicio).total_seconds() / 60 for inicio, fin in del_periodo.values_list('inicio', 'fin'))
+        minutos_horario = sum(
+            (datetime.combine(hoy, fin) - datetime.combine(hoy, inicio)).total_seconds() / 60
+            for inicio, fin in HorarioVeterinario.objects
+            .filter(veterinario=self.request.user, fecha__range=(desde, hoy))
+            .values_list('hora_inicio', 'hora_fin')
+        )
+
+        def contar(consulta, estado=None):
+            return consulta.filter(estado=estado).count() if estado else consulta.count()
+
         contexto['estadisticas'] = {
             'citas': sum(citas_por_dia),
-            'atendidas': 0,
-            'ocupacion': 0,
-            'no_asistio': 0,
-            'ganancias': 0,          # suma del precio copiado en las citas atendidas del período
+            'atendidas': contar(del_periodo, EstadoCita.ATENDIDA),
+            'ocupacion': round(minutos_citas * 100 / minutos_horario) if minutos_horario else 0,
+            'no_asistio': contar(del_periodo, EstadoCita.NO_ASISTIO),
+            # suma del precio copiado en las citas atendidas del período
+            'ganancias': del_periodo.filter(estado=EstadoCita.ATENDIDA).aggregate(total=Sum('precio'))['total'] or 0,
+        }
+        # Cambio frente al período anterior (sin datos anteriores no se inventa un porcentaje)
+        contexto['variaciones'] = {
+            'citas': variacion(contexto['estadisticas']['citas'], contar(del_anterior)),
+            'atendidas': variacion(contexto['estadisticas']['atendidas'], contar(del_anterior, EstadoCita.ATENDIDA)),
+            'no_asistio': variacion(contexto['estadisticas']['no_asistio'], contar(del_anterior, EstadoCita.NO_ASISTIO)),
         }
         contexto['servicios_que_atiendo'] = self.request.user.servicios.filter(activo=True).count()
-        contexto['citas_hoy'] = 0
-        contexto['citas_de_hoy'] = []      # las citas de hoy, ordenadas por hora (cuando exista Cita)
 
-        # Agenda de hoy como línea de tiempo: de 08:00 a 18:00, una fila por hora
-        contexto['agenda_inicio'], contexto['agenda_fin'] = 8, 18
-        contexto['horas_agenda'] = [f'{hora:02d}:00' for hora in range(8, 18)]
+        # Agenda de hoy: cada cita se ubica en la línea de tiempo por porcentaje (como la línea de "ahora")
+        citas_de_hoy = list(
+            Cita.objects.filter(veterinario=self.request.user, inicio__date=hoy)
+            .exclude(estado=EstadoCita.CANCELADA)
+            .select_related('mascota', 'servicio')
+        )
+        horas_en = [timezone.localtime(cita.inicio) for cita in citas_de_hoy]
+        horas_fin = [timezone.localtime(cita.fin) for cita in citas_de_hoy]
+        # De 08:00 a 18:00, o más si hay citas antes o después
+        inicio_agenda = min([8] + [h.hour for h in horas_en])
+        fin_agenda = max([18] + [h.hour + (1 if h.minute else 0) for h in horas_fin])
+        largo = (fin_agenda - inicio_agenda) * 60
+
+        def posicion(momento):
+            return (momento.hour * 60 + momento.minute - inicio_agenda * 60) * 100 / largo
+
+        contexto['citas_hoy'] = len(citas_de_hoy)
+        contexto['citas_de_hoy'] = [
+            {'cita': cita, 'arriba': posicion(inicio), 'alto': posicion(fin) - posicion(inicio)}
+            for cita, inicio, fin in zip(citas_de_hoy, horas_en, horas_fin)
+        ]
+        contexto['agenda_inicio'], contexto['agenda_fin'] = inicio_agenda, fin_agenda
+        contexto['horas_agenda'] = [f'{hora:02d}:00' for hora in range(inicio_agenda, fin_agenda)]
         contexto['grafico'] = grafico_de_linea(fechas, citas_por_dia)
         return contexto
 

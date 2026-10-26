@@ -43,8 +43,8 @@
           {% else %}
             <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_cliente' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_cliente' %}" title="Inicio"{% if ruta == 'cuentas:inicio_cliente' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
             <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
-            <li><span class="panel-menu__enlace es-pronto" aria-disabled="true" title="Agendar cita (pronto)"><i class="bi bi-calendar-plus" aria-hidden="true"></i><span class="panel-menu__texto">Agendar cita</span><span class="panel-menu__pronto">Pronto</span></span></li>
-            <li><span class="panel-menu__enlace es-pronto" aria-disabled="true" title="Mis citas (pronto)"><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="panel-menu__texto">Mis citas</span><span class="panel-menu__pronto">Pronto</span></span></li>
+            {# Agendar vive dentro de Mis citas (botón que abre un pop-up), así que el menú solo lleva Mis citas #}
+            <li><a class="panel-menu__enlace{% if ruta == 'citas:mis_citas' or ruta == 'citas:agendar' %} es-activo{% endif %}" href="{% url 'citas:mis_citas' %}" title="Mis citas"{% if ruta == 'citas:mis_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="panel-menu__texto">Mis citas</span></a></li>
           {% endif %}
         </ul>
 
@@ -80,9 +80,9 @@
         <a class="nav-arriba__marca" href="{% url 'cuentas:panel' %}"><img src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel"></a>
         <nav class="nav-arriba__opciones" aria-label="Menú del panel">
           <a class="nav-arriba__opcion{% if ruta == 'cuentas:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_veterinario' %}"{% if ruta == 'cuentas:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
-          <span class="nav-arriba__opcion es-pronto" aria-disabled="true" title="Pronto">Agenda</span>
+          <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda</a>
           <a class="nav-arriba__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"{% if ruta == 'citas:horario' %} aria-current="page"{% endif %}>Mi horario</a>
-          <span class="nav-arriba__opcion es-pronto" aria-disabled="true" title="Pronto">Pacientes</span>
+          <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
         </nav>
         <div class="nav-arriba__lado">
           <span class="panel-barra__boton" aria-label="Notificaciones (pronto)" title="Notificaciones: pronto"><i class="bi bi-bell" aria-hidden="true"></i></span>

@@ -11,9 +11,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from cuentas.models import Roles
-from mascotas.tests import crear_usuario
+from mascotas.tests import crear_mascota, crear_usuario
 
-from .models import HorarioVeterinario, Servicio
+from .models import Cita, EstadoCita, HorarioVeterinario, Servicio
+from .services import TURNO_OCUPADO, AgendaService
 
 
 def crear_veterinario(username='sofia', **datos):
@@ -430,3 +431,352 @@ class MiHorarioTests(TestCase):
         respuesta = self.client.get(reverse('cuentas:inicio_veterinario'))
         self.assertEqual(respuesta.context['servicios_que_atiendo'], 1)
         self.assertContains(respuesta, reverse('citas:horario'))
+
+
+# ---------------------------------------------------------------------------
+# Core: AgendaService (turnos libres, agendar y cancelar)
+# ---------------------------------------------------------------------------
+class AgendaServiceTests(TestCase):
+    """El veterinario atiende de 9:00 a 11:00 dentro de una semana; la consulta dura 30 minutos."""
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.mascota = crear_mascota(crear_usuario('ana'))
+
+    def hora(self, horas, minutos=0):
+        """Fecha y hora con zona horaria (America/Guayaquil), como las guarda la cita."""
+        return timezone.make_aware(timezone.datetime.combine(self.fecha, time(horas, minutos)))
+
+    def agendar(self, inicio, **datos):
+        valores = {'mascota': self.mascota, 'veterinario': self.veterinario, 'servicio': self.servicio}
+        valores.update(datos)
+        return AgendaService.agendar(inicio=inicio, **valores)
+
+    def test_corta_el_horario_en_turnos_del_largo_del_servicio(self):
+        espacios = AgendaService.espacios_disponibles(self.veterinario, self.servicio, self.fecha)
+        self.assertEqual(espacios, [self.hora(9), self.hora(9, 30), self.hora(10), self.hora(10, 30)])
+
+    def test_un_turno_que_no_cabe_completo_no_se_ofrece(self):
+        servicio_largo = crear_servicio(nombre='Cirugía menor', duracion_min=90)
+        espacios = AgendaService.espacios_disponibles(self.veterinario, servicio_largo, self.fecha)
+        self.assertEqual(espacios, [self.hora(9)])  # 10:30 + 90 min pasaría de las 11:00
+
+    def test_agendar_crea_la_cita_confirmada_con_fin_y_precio(self):
+        cita = self.agendar(self.hora(9, 30), motivo='Control anual')
+        self.assertEqual(cita.estado, EstadoCita.CONFIRMADA)
+        self.assertEqual(cita.fin, self.hora(10))
+        self.assertEqual(cita.precio, Decimal('25.00'))
+
+    def test_el_turno_agendado_deja_de_estar_libre(self):
+        self.agendar(self.hora(9, 30))
+        espacios = AgendaService.espacios_disponibles(self.veterinario, self.servicio, self.fecha)
+        self.assertNotIn(self.hora(9, 30), espacios)
+
+    def test_no_se_puede_agendar_un_turno_ocupado(self):
+        self.agendar(self.hora(9, 30))
+        otra_mascota = crear_mascota(crear_usuario('luis'), nombre='Michi')
+        with self.assertRaisesMessage(ValidationError, TURNO_OCUPADO):
+            self.agendar(self.hora(9, 30), mascota=otra_mascota)
+        self.assertEqual(Cita.objects.count(), 1)
+
+    def test_un_cruce_parcial_tambien_se_rechaza(self):
+        # 9:15 no es un turno ofrecido y además se cruza con la cita de 9:00 a 9:30
+        self.agendar(self.hora(9))
+        with self.assertRaisesMessage(ValidationError, TURNO_OCUPADO):
+            self.agendar(self.hora(9, 15))
+
+    def test_fuera_del_horario_no_se_puede_agendar(self):
+        with self.assertRaisesMessage(ValidationError, TURNO_OCUPADO):
+            self.agendar(self.hora(15))
+
+    def test_veterinario_que_no_atiende_el_servicio(self):
+        otro = crear_veterinario('mario')
+        crear_horario(otro, time(9, 0), time(11, 0), fecha=self.fecha)
+        with self.assertRaisesMessage(ValidationError, 'no atiende este servicio'):
+            self.agendar(self.hora(9), veterinario=otro)
+
+    def test_servicio_desactivado_no_se_agenda(self):
+        self.servicio.activo = False
+        self.servicio.save()
+        with self.assertRaisesMessage(ValidationError, 'ya no se ofrece'):
+            self.agendar(self.hora(9))
+
+    def test_hora_pasada_no_se_agenda(self):
+        with self.assertRaisesMessage(ValidationError, 'todavía no haya pasado'):
+            self.agendar(timezone.now() - timedelta(hours=1))
+
+    def test_el_precio_queda_copiado(self):
+        cita = self.agendar(self.hora(9))
+        self.servicio.precio = Decimal('40.00')
+        self.servicio.save()
+        cita.refresh_from_db()
+        self.assertEqual(cita.precio, Decimal('25.00'))
+
+    def test_cancelar_libera_el_turno(self):
+        cita = self.agendar(self.hora(9))
+        AgendaService.cancelar(cita)
+        self.assertEqual(cita.estado, EstadoCita.CANCELADA)
+        # El mismo turno se puede volver a agendar: la UniqueConstraint ignora las canceladas
+        self.assertEqual(self.agendar(self.hora(9)).estado, EstadoCita.CONFIRMADA)
+
+    def test_una_cita_atendida_no_se_cancela(self):
+        cita = self.agendar(self.hora(9))
+        cita.estado = EstadoCita.ATENDIDA
+        cita.save()
+        with self.assertRaisesMessage(ValidationError, 'Solo se puede cancelar una cita confirmada'):
+            AgendaService.cancelar(cita)
+
+    def test_la_base_rechaza_dos_citas_activas_a_la_misma_hora(self):
+        # Aunque alguien se salte AgendaService, la UniqueConstraint lo impide
+        datos = {'mascota': self.mascota, 'veterinario': self.veterinario, 'servicio': self.servicio,
+                 'inicio': self.hora(9), 'fin': self.hora(9, 30), 'precio': Decimal('25.00')}
+        Cita.objects.create(**datos)
+        with self.assertRaises(IntegrityError):
+            Cita.objects.create(**datos)
+
+
+class AgendarVistasTests(TestCase):
+    """Agendar, horas libres, Mis citas y cancelar, desde el navegador del cliente."""
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.cliente = crear_usuario('ana')
+        self.mascota = crear_mascota(self.cliente)
+        self.client.force_login(self.cliente)
+
+    def datos(self, **cambios):
+        valores = {'mascota': self.mascota.pk, 'servicio': self.servicio.pk, 'veterinario': self.veterinario.pk,
+                   'fecha': self.fecha.isoformat(), 'hora': '09:30', 'motivo': 'Control'}
+        valores.update(cambios)
+        return valores
+
+    def test_solo_el_cliente_puede_agendar(self):
+        self.client.force_login(self.veterinario)
+        self.assertEqual(self.client.get(reverse('citas:agendar')).status_code, 403)
+
+    def test_agendar_crea_la_cita_y_va_a_mis_citas(self):
+        respuesta = self.client.post(reverse('citas:agendar'), self.datos())
+        self.assertRedirects(respuesta, reverse('citas:mis_citas'))
+        cita = Cita.objects.get()
+        self.assertEqual(timezone.localtime(cita.inicio).time(), time(9, 30))
+
+    def test_no_se_agenda_con_la_mascota_de_otro(self):
+        ajena = crear_mascota(crear_usuario('luis'), nombre='Michi')
+        respuesta = self.client.post(reverse('citas:agendar'), self.datos(mascota=ajena.pk))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('mascota', respuesta.context['form'].errors)
+        self.assertFalse(Cita.objects.exists())
+
+    def test_veterinario_que_no_atiende_el_servicio_da_error(self):
+        otro = crear_veterinario('mario')
+        respuesta = self.client.post(reverse('citas:agendar'), self.datos(veterinario=otro.pk))
+        self.assertIn('veterinario', respuesta.context['form'].errors)
+
+    def test_fecha_pasada_da_error(self):
+        ayer = (timezone.localdate() - timedelta(days=1)).isoformat()
+        respuesta = self.client.post(reverse('citas:agendar'), self.datos(fecha=ayer))
+        self.assertIn('fecha', respuesta.context['form'].errors)
+
+    def test_turno_ocupado_muestra_el_mensaje_del_core(self):
+        self.client.post(reverse('citas:agendar'), self.datos())
+        respuesta = self.client.post(reverse('citas:agendar'), self.datos())
+        self.assertContains(respuesta, TURNO_OCUPADO)
+        self.assertEqual(Cita.objects.count(), 1)
+
+    def test_desde_el_popup_agendar_devuelve_la_confirmacion_en_json(self):
+        respuesta = self.client.post(reverse('citas:agendar'), self.datos(), headers={'X-Requested-With': 'fetch'})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn(self.mascota.nombre, respuesta.json()['titulo'])
+        self.assertEqual(Cita.objects.count(), 1)
+
+    def test_desde_el_popup_con_errores_vuelve_solo_la_reserva(self):
+        ayer = (timezone.localdate() - timedelta(days=1)).isoformat()
+        respuesta = self.client.post(reverse('citas:agendar'), self.datos(fecha=ayer), headers={'X-Requested-With': 'fetch'})
+        self.assertContains(respuesta, 'data-agendar')
+        self.assertNotContains(respuesta, '<html')   # el parcial, no la página entera
+        self.assertFalse(Cita.objects.exists())
+
+    def test_mis_citas_trae_la_reserva_para_el_popup(self):
+        respuesta = self.client.get(reverse('citas:mis_citas'))
+        self.assertContains(respuesta, 'data-dialogo-agendar')
+        self.assertIn('form', respuesta.context)
+
+    def test_turnos_del_dia_agrupados_por_veterinario(self):
+        self.client.post(reverse('citas:agendar'), self.datos())
+        otro = crear_veterinario('mario', first_name='Mario', last_name='Ruiz')
+        self.servicio.veterinarios.add(otro)
+        crear_horario(otro, time(10, 0), time(11, 0), fecha=self.fecha)
+        respuesta = self.client.get(reverse('citas:turnos_del_dia'), {'servicio': self.servicio.pk, 'fecha': self.fecha.isoformat()})
+        turnos = {grupo['veterinario']: grupo['horas'] for grupo in respuesta.json()['turnos']}
+        self.assertEqual(turnos, {self.veterinario.pk: ['09:00', '10:00', '10:30'], otro.pk: ['10:00', '10:30']})
+
+    def test_turnos_con_datos_inventados_devuelve_vacio(self):
+        respuesta = self.client.get(reverse('citas:turnos_del_dia'), {'servicio': 999, 'fecha': 'ayer'})
+        self.assertEqual(respuesta.json(), {'turnos': []})
+
+    def test_mis_citas_muestra_solo_las_propias(self):
+        self.client.post(reverse('citas:agendar'), self.datos())
+        ajena = crear_mascota(crear_usuario('luis'), nombre='Michi')
+        AgendaService.agendar(ajena, self.veterinario, self.servicio,
+                              timezone.make_aware(timezone.datetime.combine(self.fecha, time(10, 0))))
+        respuesta = self.client.get(reverse('citas:mis_citas'))
+        self.assertEqual([c.mascota for c in respuesta.context['proximas']], [self.mascota])
+
+    def test_cancelar_por_post_libera_el_turno(self):
+        self.client.post(reverse('citas:agendar'), self.datos())
+        cita = Cita.objects.get()
+        respuesta = self.client.post(reverse('citas:cancelar', args=[cita.pk]))
+        self.assertRedirects(respuesta, reverse('citas:mis_citas'))
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, EstadoCita.CANCELADA)
+
+    def test_cancelar_la_cita_de_otro_responde_404(self):
+        ajena = crear_mascota(crear_usuario('luis'), nombre='Michi')
+        cita = AgendaService.agendar(ajena, self.veterinario, self.servicio,
+                                     timezone.make_aware(timezone.datetime.combine(self.fecha, time(10, 0))))
+        respuesta = self.client.post(reverse('citas:cancelar', args=[cita.pk]))
+        self.assertEqual(respuesta.status_code, 404)
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, EstadoCita.CONFIRMADA)
+
+
+class CalendarioYAgendaTests(TestCase):
+    """Días con turnos libres (calendario), la agenda del veterinario y el cierre de cada cita."""
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(10, 0), fecha=self.fecha)
+        self.mascota = crear_mascota(crear_usuario('ana'))
+
+    def hora(self, fecha, horas, minutos=0):
+        return timezone.make_aware(timezone.datetime.combine(fecha, time(horas, minutos)))
+
+    def cita_pasada(self):
+        """Una cita confirmada de hace una hora (se crea directo: agendar() no acepta horas pasadas)."""
+        inicio = timezone.now() - timedelta(hours=1)
+        return Cita.objects.create(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                   inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'))
+
+    def test_un_dia_lleno_no_aparece_en_el_calendario(self):
+        mes = (self.fecha.year, self.fecha.month)
+        self.assertEqual(AgendaService.dias_disponibles(self.veterinario, self.servicio, *mes), [self.fecha])
+        AgendaService.agendar(self.mascota, self.veterinario, self.servicio, self.hora(self.fecha, 9))
+        AgendaService.agendar(self.mascota, self.veterinario, self.servicio, self.hora(self.fecha, 9, 30))
+        self.assertEqual(AgendaService.dias_disponibles(self.veterinario, self.servicio, *mes), [])
+
+    def test_dias_disponibles_en_json(self):
+        self.client.force_login(self.mascota.dueno)
+        respuesta = self.client.get(reverse('citas:dias_disponibles'), {
+            'servicio': self.servicio.pk, 'mes': self.fecha.strftime('%Y-%m'),
+        })
+        self.assertEqual(respuesta.json(), {'dias': [self.fecha.isoformat()]})
+        respuesta = self.client.get(reverse('citas:dias_disponibles'), {'mes': 'nada'})
+        self.assertEqual(respuesta.json(), {'dias': []})
+
+    def test_cerrar_una_cita_que_ya_empezo(self):
+        cita = AgendaService.registrar_resultado(self.cita_pasada(), EstadoCita.ATENDIDA)
+        self.assertEqual(cita.estado, EstadoCita.ATENDIDA)
+
+    def test_no_se_cierra_antes_de_su_hora(self):
+        cita = AgendaService.agendar(self.mascota, self.veterinario, self.servicio, self.hora(self.fecha, 9))
+        with self.assertRaisesMessage(ValidationError, 'todavía no empieza'):
+            AgendaService.registrar_resultado(cita, EstadoCita.ATENDIDA)
+
+    def test_no_se_cierra_dos_veces_ni_con_un_estado_inventado(self):
+        cita = AgendaService.registrar_resultado(self.cita_pasada(), EstadoCita.NO_ASISTIO)
+        with self.assertRaisesMessage(ValidationError, 'ya fue cerrada'):
+            AgendaService.registrar_resultado(cita, EstadoCita.ATENDIDA)
+        with self.assertRaisesMessage(ValidationError, 'no es válido'):
+            AgendaService.registrar_resultado(cita, 'perdida')
+
+    def test_la_agenda_es_solo_del_veterinario(self):
+        self.client.force_login(self.mascota.dueno)
+        self.assertEqual(self.client.get(reverse('citas:agenda')).status_code, 403)
+
+    def test_la_agenda_muestra_las_citas_del_dia(self):
+        AgendaService.agendar(self.mascota, self.veterinario, self.servicio, self.hora(self.fecha, 9))
+        self.client.force_login(self.veterinario)
+        respuesta = self.client.get(reverse('citas:agenda'), {'fecha': self.fecha.isoformat()})
+        self.assertEqual(len(respuesta.context['citas']), 1)
+        self.assertContains(respuesta, 'Por atender')
+
+    def test_marcar_atendida_desde_la_agenda(self):
+        cita = self.cita_pasada()
+        self.client.force_login(self.veterinario)
+        self.client.post(reverse('citas:resultado', args=[cita.pk]), {'estado': EstadoCita.ATENDIDA})
+        cita.refresh_from_db()
+        self.assertEqual(cita.estado, EstadoCita.ATENDIDA)
+
+    def test_otro_veterinario_no_cierra_la_cita(self):
+        cita = self.cita_pasada()
+        self.client.force_login(crear_veterinario('mario'))
+        respuesta = self.client.post(reverse('citas:resultado', args=[cita.pk]), {'estado': EstadoCita.ATENDIDA})
+        self.assertEqual(respuesta.status_code, 404)
+
+
+class EstadisticasVeterinarioTests(TestCase):
+    """El inicio del veterinario cuenta sus citas reales del período (las canceladas no cuentan)."""
+
+    def test_cifras_del_periodo(self):
+        veterinario = crear_veterinario()
+        servicio = crear_servicio()
+        mascota = crear_mascota(crear_usuario('ana'))
+        ayer = timezone.now() - timedelta(days=1)
+        for estado in (EstadoCita.ATENDIDA, EstadoCita.ATENDIDA, EstadoCita.NO_ASISTIO, EstadoCita.CANCELADA):
+            ayer += timedelta(minutes=30)
+            Cita.objects.create(mascota=mascota, veterinario=veterinario, servicio=servicio, inicio=ayer,
+                                fin=ayer + timedelta(minutes=30), precio=Decimal('25.00'), estado=estado)
+
+        self.client.force_login(veterinario)
+        estadisticas = self.client.get(reverse('cuentas:inicio_veterinario')).context['estadisticas']
+        self.assertEqual(estadisticas['citas'], 3)
+        self.assertEqual(estadisticas['atendidas'], 2)
+        self.assertEqual(estadisticas['no_asistio'], 1)
+        self.assertEqual(estadisticas['ganancias'], Decimal('50.00'))
+
+
+class PacientesTests(TestCase):
+    """El veterinario busca mascotas y a sus dueños; un cliente no entra (403)."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.ana = crear_usuario('ana', first_name='Ana', last_name='Pérez')
+        self.firulais = crear_mascota(self.ana, nombre='Firulais')
+        crear_mascota(crear_usuario('luis', first_name='Luis'), nombre='Michi')
+        self.client.force_login(self.veterinario)
+
+    def test_un_cliente_no_entra(self):
+        self.client.force_login(self.ana)
+        self.assertEqual(self.client.get(reverse('citas:pacientes')).status_code, 403)
+
+    def test_busca_por_nombre_de_la_mascota(self):
+        respuesta = self.client.get(reverse('citas:pacientes'), {'q': 'firu'})
+        self.assertEqual(list(respuesta.context['mascotas']), [self.firulais])
+
+    def test_busca_por_cedula_del_dueno(self):
+        respuesta = self.client.get(reverse('citas:pacientes'), {'q': self.ana.cedula})
+        self.assertEqual(list(respuesta.context['mascotas']), [self.firulais])
+
+    def test_solo_mis_pacientes(self):
+        inicio = timezone.now() - timedelta(days=1)
+        Cita.objects.create(mascota=self.firulais, veterinario=self.veterinario, servicio=crear_servicio(),
+                            inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'))
+        respuesta = self.client.get(reverse('citas:pacientes'), {'mios': '1'})
+        self.assertEqual(list(respuesta.context['mascotas']), [self.firulais])
+        self.assertEqual(respuesta.context['mascotas'][0].citas_conmigo, 1)
+
+    def test_el_veterinario_ve_la_foto_de_un_paciente(self):
+        self.firulais.foto = b'imagen'
+        self.firulais.save()
+        self.assertEqual(self.client.get(reverse('mascotas:foto', args=[self.firulais.pk])).status_code, 200)

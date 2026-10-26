@@ -264,3 +264,1591 @@ fieldset.formulario-panel__campo {
     gap: 0.5rem;
   }
 }
+
+/* =========================================================
+   Agendar una cita y Mis citas (cliente)
+   ========================================================= */
+/* Lista de citas (la usa la agenda del veterinario) */
+.citas-lista {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+
+
+
+
+
+
+.cita-fila__datos {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.cita-fila__titulo {
+  font-weight: 700;
+}
+
+.cita-fila__detalle,
+.cita-fila__motivo {
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+}
+
+
+@media (max-width: 640px) {
+}
+
+/* =========================================================
+   Agenda del veterinario
+   ========================================================= */
+.agenda-dias {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.agenda-dias__fecha {
+  margin: 0;
+}
+
+.agenda-dias__fecha .control-panel {
+  height: 2.5rem;
+}
+
+.agenda {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.cita-agenda {
+  display: grid;
+  grid-template-columns: 3.5rem 3rem minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 14px;
+}
+
+/* Las canceladas y las ya cerradas se ven más apagadas: la atención va a las que faltan */
+.cita-agenda--cancelada,
+.cita-agenda--atendida,
+.cita-agenda--no_asistio {
+  background: var(--p-fondo);
+}
+
+.cita-agenda--cancelada .cita-fila__titulo {
+  text-decoration: line-through;
+  color: var(--p-texto-2);
+}
+
+.cita-agenda__hora {
+  display: grid;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.cita-agenda__hora strong {
+  font-size: 1.05rem;
+}
+
+.cita-agenda__hora span {
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+}
+
+.cita-agenda__foto {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  overflow: hidden;
+  font-size: 1.2rem;
+  border-radius: 50%;
+}
+
+.cita-agenda__foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cita-agenda__especie {
+  color: var(--p-texto-2);
+  font-weight: 500;
+}
+
+.cita-agenda__acciones {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.cita-agenda__acciones form {
+  margin: 0;
+}
+
+.agenda__lado {
+  padding: 1rem 1.1rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 14px;
+}
+
+.agenda__bloques {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.agenda__bloques .bi {
+  margin-right: 0.4rem;
+  color: var(--p-acento-texto);
+}
+
+@media (max-width: 900px) {
+  .agenda {
+    grid-template-columns: 1fr;
+  }
+
+  .cita-agenda {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  .cita-agenda__foto {
+    display: none;
+  }
+
+  .cita-agenda__acciones,
+  .cita-agenda .estado {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* =========================================================
+   Agendar: reserva en tres columnas (lado | calendario | horas)
+   ========================================================= */
+/* Una sola tarjeta que llena el alto de la pantalla, sin líneas entre columnas: todo integrado */
+.reserva {
+  display: grid;
+  grid-template-columns: 19rem minmax(0, 1fr) 17rem;
+  min-height: calc(100dvh - 9.5rem);
+  overflow: hidden;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+}
+
+.reserva__lado {
+  display: grid;
+  align-content: start;
+  gap: 1.75rem;
+  padding: 2rem 1.75rem;
+}
+
+.reserva__titulo {
+  margin: 0;
+  color: var(--woof-marron);
+  font-size: 1.6rem;
+}
+
+.reserva__grupo {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.reserva__paso {
+  margin: 0 0 0.15rem;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.reserva__detalle,
+.reserva__para {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Detalle del servicio elegido: descripción en un recuadro suave, y duración y precio debajo */
+.reserva__servicio {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem 0.95rem;
+  background: var(--p-acento-tinte);
+  border-radius: 12px;
+}
+
+.reserva__servicio[hidden] {
+  display: none;
+}
+
+.reserva__descripcion {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.reserva__detalle .bi-cash-coin {
+  margin-left: 0.5rem;
+}
+
+.reserva__para .bi {
+  color: var(--p-acento);
+}
+
+.reserva__para strong {
+  color: var(--woof-marron);
+}
+
+/* Mascotas: fotos grandes y redondas; la elegida lleva un anillo naranja */
+.opciones-mascota {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.opcion-mascota {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  width: 5.5rem;
+  cursor: pointer;
+}
+
+.opcion-mascota input,
+.horas__opcion input {
+  position: absolute;
+  opacity: 0;
+}
+
+.opcion-mascota__foto {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 5rem;
+  height: 5rem;
+  overflow: hidden;
+  font-size: 1.8rem;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--p-borde);
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.opcion-mascota__foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.opcion-mascota__nombre {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.opcion-mascota:hover .opcion-mascota__foto {
+  transform: translateY(-2px);
+}
+
+.opcion-mascota input:checked + .opcion-mascota__foto {
+  border-color: var(--p-acento);
+  box-shadow: 0 0 0 4px var(--p-acento-tinte);
+}
+
+.opcion-mascota input:checked ~ .opcion-mascota__nombre {
+  color: var(--woof-marron);
+}
+
+.opcion-mascota input:focus-visible + .opcion-mascota__foto {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+/* Calendario del mes (columna central) */
+.reserva__calendario {
+  padding: 1.75rem 1.75rem 1.5rem;
+}
+
+.reserva__subtitulo {
+  margin: 0 0 1.25rem;
+  color: var(--p-texto);
+  font-size: 1.15rem;
+}
+
+.calendario__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.calendario__mes {
+  min-width: 9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.reserva__dia::first-letter,
+.calendario__mes::first-letter {
+  text-transform: uppercase;
+}
+
+.calendario__flecha {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
+  border: 0;
+  border-radius: 50%;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.calendario__flecha:hover {
+  background: #fbe2c3;
+}
+
+.calendario__flecha:active {
+  transform: scale(0.94);
+}
+
+.calendario__flecha:disabled {
+  color: var(--p-control);
+  background: transparent;
+}
+
+.calendario__semana,
+.calendario__dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  justify-items: center;
+}
+
+.calendario__semana {
+  margin-bottom: 0.5rem;
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.calendario__dias {
+  transition: opacity 150ms ease;
+}
+
+.calendario__dias.esta-cargando {
+  opacity: 0.5;
+}
+
+.calendario__dia {
+  position: relative;
+  width: min(100%, 2.9rem);
+  aspect-ratio: 1;
+  color: var(--p-texto-2);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+}
+
+/* Días con horas libres: tinte naranja y texto fuerte; el elegido, relleno */
+.calendario__dia.es-libre {
+  color: var(--p-acento-texto);
+  font-weight: 700;
+  background: var(--p-acento-tinte);
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.calendario__dia.es-libre:hover {
+  background: #fbe2c3;
+}
+
+.calendario__dia.es-libre:active {
+  transform: scale(0.94);
+}
+
+.calendario__dia.es-elegido {
+  color: #fff;
+  background: var(--p-acento);
+}
+
+.calendario__dia.es-hoy::after {
+  content: '';
+  position: absolute;
+  bottom: 0.3rem;
+  left: 50%;
+  width: 0.25rem;
+  height: 0.25rem;
+  background: currentColor;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.calendario__dia:focus-visible {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+.reserva__zona {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.25rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+}
+
+/* Horas del día elegido, agrupadas por doctor (columna derecha) */
+.reserva__horas {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: 1.75rem 1.5rem 1.5rem 0;
+}
+
+.reserva__dia {
+  margin: 2.75rem 0 0;          /* queda a la altura del nombre del mes */
+  font-weight: 600;
+}
+
+.horas--columna {
+  display: grid;
+  gap: 1rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  transition: opacity 150ms ease;
+}
+
+.horas--columna.esta-cargando {
+  opacity: 0.5;
+}
+
+.horas__aviso {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.92rem;
+}
+
+.turnos-vet {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.turnos-vet + .turnos-vet {
+  padding-top: 1rem;
+  border-top: 1px solid var(--p-borde);
+}
+
+.turnos-vet__nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+.turnos-vet__horas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.horas__opcion {
+  position: relative;
+  cursor: pointer;
+}
+
+.horas__opcion span {
+  display: block;
+  padding: 0.65rem;
+  color: var(--p-acento-texto);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: center;
+  background: var(--p-superficie);
+  border: 1px solid var(--woof-naranja-300);
+  border-radius: 10px;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 120ms ease;
+}
+
+.horas__opcion .bi-arrow-right {
+  display: none;
+}
+
+.horas__opcion:hover span {
+  background: var(--p-acento-tinte);
+}
+
+.horas__opcion:active span {
+  transform: scale(0.97);
+}
+
+.horas__opcion input:checked + span {
+  color: #fff;
+  background: var(--p-acento);
+  border-color: var(--p-acento);
+}
+
+.horas__opcion input:focus-visible + span {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+/* Confirmar: motivo y botón, cuando ya hay una hora elegida */
+.reserva__confirmar {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--p-borde);
+  animation: aparece 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.reserva__confirmar[hidden] {
+  display: none;
+}
+
+.reserva__boton {
+  width: 100%;
+  height: 2.9rem;
+}
+
+@keyframes aparece {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (max-width: 1100px) {
+  .reserva {
+    grid-template-columns: 17rem minmax(0, 1fr);
+  }
+
+  .reserva__horas {
+    grid-column: 2;
+    padding: 0 1.75rem 1.75rem;
+  }
+
+  .reserva__dia {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .reserva {
+    grid-template-columns: 1fr;
+  }
+
+  .reserva__horas {
+    grid-column: 1;
+    padding: 0 1.25rem 1.5rem;
+  }
+
+  .reserva__calendario {
+    padding: 1.5rem 1.25rem 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reserva__confirmar {
+    animation: none;
+  }
+}
+
+/* =========================================================
+   Mis citas (cliente): pestañas, tarjetas por cita y una columna lateral con el resumen
+   ========================================================= */
+.mis-citas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: 2rem;
+  align-items: start;
+}
+
+.mis-citas__principal {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* Pestañas: subrayado naranja en la activa */
+.pestanas-citas {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--p-borde);
+}
+
+.pestanas-citas__opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: -1px;
+  padding: 0.85rem 1.1rem;
+  color: var(--p-texto-2);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.pestanas-citas__opcion:hover {
+  color: var(--p-texto);
+}
+
+.pestanas-citas__opcion.es-activo {
+  color: var(--p-acento-texto);
+  border-bottom-color: var(--p-acento);
+}
+
+.mis-citas__dia {
+  margin: 0.75rem 0 0;
+  color: var(--p-texto-2);
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.mis-citas__dia::first-letter {
+  text-transform: uppercase;
+}
+
+/* Tarjeta de una cita: fecha a la izquierda, separada por una línea; datos y acciones a la derecha */
+.tarjeta-cita {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+}
+
+.tarjeta-cita__fecha {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 1rem 0.5rem;
+  line-height: 1.2;
+  text-align: center;
+  background: linear-gradient(180deg, var(--p-acento-tinte) 0%, rgba(253, 241, 227, 0) 100%);
+  border-right: 1px solid var(--p-borde);
+  border-radius: 12px 0 0 12px;
+}
+
+.tarjeta-cita__fecha strong {
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tarjeta-cita__fecha span {
+  font-size: 0.88rem;
+}
+
+.tarjeta-cita__fecha span::first-letter {
+  text-transform: uppercase;
+}
+
+.tarjeta-cita__horas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1.1rem;
+  color: var(--p-texto-2);
+  font-size: 0.82rem !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.tarjeta-cita__cuerpo {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.tarjeta-cita__fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tarjeta-cita__mascota,
+.tarjeta-cita__servicio {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.tarjeta-cita__mascota > span:last-child,
+.tarjeta-cita__servicio > span:last-child {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.tarjeta-cita__foto,
+.lado-cita__foto {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3.75rem;
+  height: 3.75rem;
+  overflow: hidden;
+  font-size: 1.3rem;
+  border-radius: 50%;
+}
+
+.tarjeta-cita__foto img,
+.lado-cita__foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tarjeta-cita__nombre {
+  font-size: 1.15rem;
+}
+
+.tarjeta-cita__servicio strong {
+  font-size: 1.1rem;
+}
+
+.tarjeta-cita__detalle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+}
+
+.tarjeta-cita__icono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: 0.5rem;
+  color: var(--p-acento);
+  font-size: 1.2rem;
+  background: var(--p-acento-tinte);
+  border-radius: 50%;
+}
+
+/* Estado: verde confirmada, gris cerrada, rojo cancelada */
+.estado-cita {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.estado-cita--confirmada { color: #1e7b45; background: #e7f5ec; }
+.estado-cita--atendida { color: var(--p-texto-2); background: var(--p-fondo); }
+.estado-cita--no_asistio { color: #9a5b00; background: #fdf1e3; }
+.estado-cita--cancelada { color: #b4232a; background: #fdecee; }
+
+.tarjeta-cita__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.tarjeta-cita__acciones form {
+  margin: 0;
+}
+
+.boton-cita {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.6rem;
+  padding: 0 1rem;
+  color: var(--p-texto);
+  font-size: 0.9rem;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-control);
+  border-radius: 10px;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.boton-cita::-webkit-details-marker {
+  display: none;
+}
+
+.boton-cita:hover {
+  background: var(--p-fondo);
+}
+
+.boton-cita:active {
+  transform: scale(0.97);
+}
+
+.boton-cita--peligro {
+  color: #c0392b;
+  border-color: #e9a3a3;
+}
+
+.boton-cita--peligro:hover {
+  background: #fdecee;
+}
+
+.boton-cita:focus-visible {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+/* Ver detalles: al abrirse, los datos aparecen debajo de la tarjeta, a todo el ancho */
+.tarjeta-cita__mas[open] {
+  flex-basis: 100%;
+  order: 2;
+}
+
+.tarjeta-cita__mas[open] .boton-cita {
+  margin-left: auto;
+  background: var(--p-fondo);
+}
+
+.tarjeta-cita__datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1.5rem;
+  margin: 0.85rem 0 0;
+  padding: 1rem;
+  background: var(--p-fondo);
+  border-radius: 12px;
+}
+
+.tarjeta-cita__datos dt {
+  color: var(--p-texto-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tarjeta-cita__datos dd {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+/* Pestaña vacía: bloque grande con tinte naranja; la mascota se asoma desde abajo a la derecha */
+.sin-citas {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: calc(100dvh - 19rem);
+  padding: clamp(1.75rem, 4vw, 3rem);
+  overflow: hidden;
+  background: var(--p-acento-tinte);
+  border-radius: 24px;
+}
+
+.sin-citas__texto {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: start;
+  gap: 0.85rem;
+  max-width: min(24rem, 46%);          /* el texto nunca se monta sobre la foto */
+}
+
+.sin-citas__titulo {
+  margin: 0;
+  color: var(--woof-marron);
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.sin-citas__bajada {
+  margin: 0;
+  color: #6b5a50;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.sin-citas__boton {
+  height: 2.9rem;
+  margin-top: 0.5rem;
+  padding: 0 1.4rem;
+}
+
+.sin-citas--canceladas .sin-citas__foto {
+  height: 70%;                         /* el gato de Canceladas es más ancho que alto */
+}
+
+.sin-citas__foto {
+  position: absolute;
+  right: clamp(0.5rem, 4vw, 3rem);
+  bottom: 0;
+  width: auto;
+  height: 88%;
+  max-width: 50%;
+  object-fit: contain;
+  object-position: right bottom;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .sin-citas {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  .sin-citas__texto {
+    max-width: none;
+  }
+
+  .sin-citas__foto {
+    position: static;
+    align-self: flex-end;
+    height: 16rem;
+    max-width: none;
+    margin-top: 1rem;
+  }
+}
+
+/* Columna lateral: próxima cita (tinte naranja), última cita y mascotas.
+   Queda fija a la altura de la pantalla (sticky) y la tarjeta de Mascotas ocupa lo que sobra:
+   así no queda gris vacío debajo, aunque la lista de citas sea larga o esté vacía */
+.mis-citas__lado {
+  position: sticky;
+  top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: calc(100dvh - 13rem);
+  min-height: 30rem;
+}
+
+.lado-cita--lista {
+  flex: 1;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.lado-cita {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  color: var(--p-texto);
+  text-decoration: none;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  transition: border-color 150ms ease;
+}
+
+a.lado-cita:hover {
+  color: var(--p-texto);
+  border-color: var(--woof-naranja-300);
+}
+
+.lado-cita--proxima {
+  background: var(--p-acento-tinte);
+  border-color: #f8dfbf;
+}
+
+.lado-cita__cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.lado-cita__cabecera > .bi:first-child {
+  color: var(--p-acento);
+  font-size: 1.25rem;
+}
+
+.lado-cita__cabecera > span {
+  display: grid;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.lado-cita__titulo {
+  font-weight: 600;
+}
+
+.lado-cita__flecha {
+  align-self: center;
+  color: var(--p-texto-2);
+}
+
+.lado-cita__mascota {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.lado-cita__mascota > span:last-child {
+  display: grid;
+  gap: 0.1rem;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+}
+
+.lado-cita__mascota strong {
+  color: var(--p-texto);
+  font-size: 1rem;
+}
+
+.lado-cita__mascota .bi {
+  margin-right: 0.3rem;
+}
+
+.lado-cita .lado-cita__foto {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+.lado-mascotas {
+  display: grid;
+  align-content: space-evenly;          /* con pocas mascotas, se reparten en el alto disponible */
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;                     /* con muchas, la lista hace su propio scroll */
+  padding: 0;
+  list-style: none;
+}
+
+.lado-mascotas li + li {
+  border-top: 1px solid var(--p-borde);
+}
+
+.lado-mascotas a {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  color: var(--p-texto);
+  text-decoration: none;
+}
+
+.lado-mascotas a > span:nth-child(2) {
+  display: grid;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.lado-mascotas a > span:nth-child(2) span {
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+.lado-mascotas .lado-cita__foto {
+  width: 4.75rem;
+  height: 4.75rem;
+  font-size: 1.6rem;
+}
+
+.lado-mascotas strong {
+  font-size: 1.05rem;
+}
+
+.lado-mascotas a:hover strong {
+  color: var(--p-acento-texto);
+}
+
+@media (max-width: 1100px) {
+  .mis-citas {
+    grid-template-columns: 1fr;
+  }
+
+  .mis-citas__lado {
+    position: static;
+    height: auto;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .tarjeta-cita {
+    grid-template-columns: 1fr;
+  }
+
+  .tarjeta-cita__fecha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    border-right: 0;
+    border-radius: 12px;
+  }
+
+  .tarjeta-cita__horas {
+    margin-top: 0;
+  }
+
+  .tarjeta-cita__fila {
+    flex-direction: column;
+  }
+
+  .tarjeta-cita__acciones {
+    justify-content: flex-start;
+  }
+}
+
+/* =========================================================
+   Pacientes (veterinario): tarjetas tipo foto, una por mascota.
+   La foto llena la tarjeta (marco blanco y esquinas grandes); abajo, una franja oscura
+   con el dueño y una barra clara de vidrio con los datos de la mascota y "Llamar".
+   ========================================================= */
+.filtros__mios {
+  align-self: center;
+  white-space: nowrap;
+}
+
+.pacientes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paciente {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  font-size: 5rem;                    /* la inicial grande, si la mascota no tiene foto */
+  border: 6px solid #fff;
+  border-radius: 28px;
+  box-shadow: 0 1px 2px rgba(29, 29, 31, 0.06), 0 12px 28px -18px rgba(29, 29, 31, 0.35);
+}
+
+.paciente > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+/* Arriba: especie a la izquierda y, si ya la atendió, cuántas citas a la derecha */
+.paciente__especie,
+.paciente__citas {
+  position: absolute;
+  top: 0.85rem;
+  z-index: 1;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.paciente__especie {
+  left: 0.85rem;
+  color: var(--woof-marron);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.paciente__citas {
+  right: 0.85rem;
+  color: #fff;
+  background: rgba(194, 106, 18, 0.88);
+}
+
+.paciente__pie {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  z-index: 1;
+  display: grid;
+  font-size: 1rem;
+}
+
+/* Franja oscura: el dueño asociado */
+.paciente__dueno {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+  margin: 0 0.5rem;
+  padding: 0.45rem 0.75rem 0.85rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  background: rgba(29, 24, 20, 0.82);
+  border-radius: 14px 14px 0 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.paciente__dueno strong {
+  overflow: hidden;
+  color: #fff;
+  text-overflow: ellipsis;
+}
+
+.paciente__dueno .bi {
+  color: var(--woof-naranja-300);
+}
+
+/* Barra clara de vidrio: nombre, raza, edad y peso; y el botón oscuro para llamar al dueño */
+.paciente__barra {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: -0.45rem;
+  padding: 0.65rem 0.65rem 0.65rem 0.9rem;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.paciente__datos {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.paciente__datos strong {
+  color: var(--p-texto);
+  font-size: 1rem;
+}
+
+.paciente__datos span {
+  overflow: hidden;
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.paciente__llamar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.85rem;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: #2b2522;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.6);
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.paciente__llamar:hover {
+  color: #fff;
+  background: var(--woof-marron);
+}
+
+.paciente__llamar:active {
+  transform: scale(0.96);
+}
+
+.paciente__llamar:focus-visible {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   Pop-up para confirmar la cancelación de una cita
+   Entra creciendo desde 0.96 y sale más rápido de lo que entra.
+   ========================================================= */
+.cancelar-cita {
+  width: min(26rem, calc(100% - 2rem));
+  padding: 1.75rem 1.75rem 1.5rem;
+  color: var(--p-texto);
+  text-align: center;
+  background: var(--p-superficie);
+  border: 0;
+  border-radius: 22px;
+  box-shadow: 0 24px 60px -24px rgba(29, 24, 20, 0.45);
+}
+
+.cancelar-cita[open] {
+  animation: cancelar-entra 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cancelar-cita::backdrop {
+  background: rgba(29, 24, 20, 0.4);
+  backdrop-filter: blur(3px);
+  animation: velo-entra 260ms ease-out;
+}
+
+.cancelar-cita.es-cerrando {
+  animation: cancelar-sale 160ms ease-in forwards;
+}
+
+.cancelar-cita.es-cerrando::backdrop {
+  animation: velo-sale 160ms ease-in forwards;
+}
+
+@keyframes cancelar-entra {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+}
+
+@keyframes cancelar-sale {
+  to { opacity: 0; transform: scale(0.97); }
+}
+
+.cancelar-cita__icono {
+  display: inline-grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.9rem;
+  color: #c0392b;
+  font-size: 1.5rem;
+  background: #fdecee;
+  border-radius: 50%;
+}
+
+.cancelar-cita__titulo {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.cancelar-cita__detalle {
+  margin: 0.4rem 0 0;
+  color: var(--woof-marron);
+  font-weight: 600;
+}
+
+.cancelar-cita__detalle::first-letter {
+  text-transform: uppercase;
+}
+
+.cancelar-cita__texto {
+  margin: 0.75rem 0 1.5rem;
+  color: var(--p-texto-2);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.cancelar-cita__acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.cancelar-cita__acciones .boton-cita {
+  justify-content: center;
+}
+
+.boton-cita--rojo {
+  color: #fff;
+  background: #c0392b;
+  border-color: #c0392b;
+}
+
+.boton-cita--rojo:hover {
+  background: #a93226;
+}
+
+.boton-cita--rojo:disabled {
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cancelar-cita[open],
+  .cancelar-cita::backdrop {
+    animation: none;
+  }
+}
+
+/* =========================================================
+   Pop-up "Agendar cita" (sobre Mis citas): la reserva de tres columnas dentro de un diálogo ancho
+   ========================================================= */
+.agendar-popup {
+  width: min(76rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  overflow: auto;
+  background: var(--p-superficie);
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 30px 80px -30px rgba(29, 24, 20, 0.5);
+  overscroll-behavior: contain;
+}
+
+.agendar-popup[open] {
+  outline: none;
+  animation: cancelar-entra 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.agendar-popup__cerrar:focus-visible {
+  outline: 3px solid var(--woof-naranja-300);
+  outline-offset: 2px;
+}
+
+.agendar-popup::backdrop {
+  background: rgba(29, 24, 20, 0.4);
+  backdrop-filter: blur(3px);
+  animation: velo-entra 300ms ease-out;
+}
+
+.agendar-popup.es-cerrando,
+.confirmacion-cita.es-cerrando {
+  animation: cancelar-sale 170ms ease-in forwards;
+}
+
+.agendar-popup.es-cerrando::backdrop,
+.confirmacion-cita.es-cerrando::backdrop {
+  animation: velo-sale 170ms ease-in forwards;
+}
+
+/* Dentro del pop-up la reserva no lleva su propio marco ni el alto de pantalla completa */
+.agendar-popup .reserva {
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.agendar-popup__cerrar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--p-texto-2);
+  background: var(--p-fondo);
+  border: 0;
+  border-radius: 50%;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.agendar-popup__cerrar:hover {
+  color: var(--p-texto);
+  background: var(--p-borde);
+}
+
+.agendar-popup__cerrar:active {
+  transform: scale(0.94);
+}
+
+/* =========================================================
+   Pop-up de confirmación: el visto se dibuja y debajo van los datos de la cita
+   ========================================================= */
+.confirmacion-cita {
+  width: min(24rem, calc(100% - 2rem));
+  padding: 2rem 1.75rem 1.5rem;
+  color: var(--p-texto);
+  text-align: center;
+  background: var(--p-superficie);
+  border: 0;
+  border-radius: 22px;
+  box-shadow: 0 24px 60px -24px rgba(29, 24, 20, 0.45);
+}
+
+.confirmacion-cita[open] {
+  animation: cancelar-entra 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.confirmacion-cita::backdrop {
+  background: rgba(29, 24, 20, 0.4);
+  backdrop-filter: blur(3px);
+  animation: velo-entra 280ms ease-out;
+}
+
+.confirmacion-cita .registro__visto {
+  margin: 0 auto 1rem;
+}
+
+.confirmacion-cita__titulo {
+  margin: 0;
+  color: var(--woof-marron);
+  font-size: 1.35rem;
+  animation: listo-sube 360ms 380ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.confirmacion-cita__texto {
+  margin: 0.5rem 0 1.5rem;
+  color: var(--p-texto-2);
+  line-height: 1.55;
+  animation: listo-sube 360ms 460ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.confirmacion-cita__texto strong {
+  color: var(--p-texto);
+}
+
+.confirmacion-cita__texto strong::first-letter {
+  text-transform: uppercase;
+}
+
+.confirmacion-cita__boton {
+  width: 100%;
+  height: 2.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agendar-popup[open],
+  .agendar-popup::backdrop,
+  .confirmacion-cita[open],
+  .confirmacion-cita::backdrop,
+  .confirmacion-cita__titulo,
+  .confirmacion-cita__texto {
+    animation: none;
+  }
+}

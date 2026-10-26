@@ -1,0 +1,87 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Agenda · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_titulo %}Agenda{% endblock %}
+{% block panel_subtitulo %}{{ fecha|date:'l j \d\e F' }} · {% if activas %}{{ activas }} cita{{ activas|pluralize }}{% else %}sin citas{% endif %}{% endblock %}
+{% block panel_acciones %}
+  {# Cambiar de día: enlaces con ?fecha= (funcionan sin JavaScript) #}
+  <nav class="agenda-dias" aria-label="Cambiar de día">
+    <a class="boton-panel boton-panel--secundario boton-panel--icono" href="?fecha={{ anterior|date:'Y-m-d' }}" aria-label="Día anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+    {% if fecha != hoy %}<a class="boton-panel boton-panel--secundario" href="?fecha={{ hoy|date:'Y-m-d' }}">Hoy</a>{% endif %}
+    <form method="get" class="agenda-dias__fecha">
+      <label class="visually-hidden" for="agenda-fecha">Ir a una fecha</label>
+      <input class="control-panel" type="date" id="agenda-fecha" name="fecha" value="{{ fecha|date:'Y-m-d' }}" onchange="this.form.submit()">
+    </form>
+    <a class="boton-panel boton-panel--secundario boton-panel--icono" href="?fecha={{ siguiente|date:'Y-m-d' }}" aria-label="Día siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+  </nav>
+{% endblock %}
+
+{% block panel_contenido %}
+  <div class="agenda">
+    <section class="agenda__citas" aria-label="Citas del día">
+      {% if citas %}
+        <ol class="citas-lista">
+          {% for cita in citas %}
+            <li class="cita-agenda cita-agenda--{{ cita.estado }}">
+              <span class="cita-agenda__hora">
+                <strong>{{ cita.inicio|date:'H:i' }}</strong>
+                <span>{{ cita.fin|date:'H:i' }}</span>
+              </span>
+
+              <span class="cita-agenda__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}" aria-hidden="true">
+                {% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}
+              </span>
+
+              <span class="cita-fila__datos">
+                <span class="cita-fila__titulo">{{ cita.mascota }} <span class="cita-agenda__especie">· {{ cita.mascota.get_especie_display }}{% if cita.mascota.raza %}, {{ cita.mascota.raza }}{% endif %}</span></span>
+                <span class="cita-fila__detalle">{{ cita.servicio }} · {{ cita.mascota.dueno.get_full_name|default:cita.mascota.dueno.username }}{% if cita.mascota.dueno.telefono %} · {{ cita.mascota.dueno.telefono }}{% endif %}</span>
+                {% if cita.motivo %}<span class="cita-fila__motivo">«{{ cita.motivo }}»</span>{% endif %}
+              </span>
+
+              {# Confirmada y ya empezó: el veterinario la cierra. Antes de su hora, solo se ve "Por atender" #}
+              {% if cita.estado == 'confirmada' and cita.inicio <= ahora %}
+                <span class="cita-agenda__acciones">
+                  <form method="post" action="{% url 'citas:resultado' cita.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" name="estado" value="atendida" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>Atendida</button>
+                  </form>
+                  <form method="post" action="{% url 'citas:resultado' cita.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" name="estado" value="no_asistio" class="boton-panel boton-panel--secundario">No asistió</button>
+                  </form>
+                </span>
+              {% elif cita.estado == 'confirmada' %}
+                <span class="estado estado--acento">Por atender</span>
+              {% else %}
+                <span class="estado">{{ cita.get_estado_display }}</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="bloque-panel__vacio">No tienes citas este día. Cuando un cliente agende dentro de tu horario, aparecerá aquí ya confirmada.</p>
+      {% endif %}
+    </section>
+
+    <aside class="agenda__lado" aria-label="Tu horario de ese día">
+      <h2 class="bloque-panel__titulo">Tu horario</h2>
+      {% if bloques %}
+        <ul class="agenda__bloques">
+          {% for bloque in bloques %}
+            <li><i class="bi bi-clock" aria-hidden="true"></i>{{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="horas__aviso">No publicaste horario este día.</p>
+      {% endif %}
+      <a class="bloque-panel__enlace" href="{% url 'citas:horario' %}">Editar mi horario</a>
+    </aside>
+  </div>
+{% endblock %}

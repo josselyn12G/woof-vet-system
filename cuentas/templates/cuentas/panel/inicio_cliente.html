@@ -10,6 +10,62 @@
 {% block panel_titulo %}<span class="saludo-cliente">Hola, {{ user.first_name|default:user.username }}</span>{% if mascotas %}Tienes {{ mascotas|length }} mascota{{ mascotas|length|pluralize }} en Woof{% else %}Registra a tu primera mascota{% endif %}{% endblock %}
 
 {% block panel_contenido %}
+  {# Accesos rápidos: tarjetas grandes con una mascota asomándose; la de "Mis citas" va en naranja #}
+  <nav class="accesos entra entra--1" aria-label="Accesos rápidos">
+    <a class="acceso acceso--agendar" href="{% url 'citas:mis_citas' %}?agendar">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Agendar una cita</span>
+          <span class="acceso__dato">Servicio, día y hora con su doctor</span>
+          <span class="acceso__dato">{{ servicios_disponibles }} servicio{{ servicios_disponibles|pluralize }} disponible{{ servicios_disponibles|pluralize }}</span>
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/caniche.webp' %}" alt="" width="640" height="624" loading="lazy">
+    </a>
+
+    <a class="acceso acceso--citas" href="{% url 'citas:mis_citas' %}">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Mis citas</span>
+          {% if proxima_cita %}
+            <span class="acceso__dato">Próxima: {{ proxima_cita.inicio|date:'D j' }}, {{ proxima_cita.inicio|date:'H:i' }}</span>
+            <span class="acceso__dato">{{ proxima_cita.servicio }} · {{ proxima_cita.mascota }}</span>
+          {% else %}
+            <span class="acceso__dato">No tienes citas próximas</span>
+            <span class="acceso__dato">Aquí verás y cancelarás las tuyas</span>
+          {% endif %}
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/perro-estetoscopio.webp' %}" alt="" width="273" height="432" loading="lazy">
+    </a>
+
+    <a class="acceso acceso--mascotas" href="{% url 'mascotas:lista' %}">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Mis mascotas</span>
+          <span class="acceso__dato">{{ mascotas|length }} registrada{{ mascotas|length|pluralize }}</span>
+          <span class="acceso__dato">Ficha, foto y carnet de vacunas</span>
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/perro-mojado.webp' %}" alt="" width="494" height="595" loading="lazy">
+    </a>
+
+    <a class="acceso acceso--nuevo" href="{% url 'mascotas:crear' %}">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Registrar una mascota</span>
+          <span class="acceso__dato">Su ficha queda lista en un minuto</span>
+          <span class="acceso__dato">Nombre, especie, edad y peso</span>
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/gato.webp' %}" alt="" width="434" height="742" loading="lazy">
+    </a>
+  </nav>
+
   <div class="cliente">
     {# ================= Columna principal: mis mascotas ================= #}
     <div class="cliente__principal entra entra--1">
@@ -87,7 +143,7 @@
           <span class="agendar-tarjeta__titulo">Agendar una cita</span>
           <span class="agendar-tarjeta__texto">Elige el servicio, el veterinario y una hora libre.</span>
         </span>
-        <span class="agendar-tarjeta__boton" aria-disabled="true" title="Muy pronto"><i class="bi bi-calendar-plus" aria-hidden="true"></i><span class="visually-hidden">Agendar (muy pronto)</span></span>
+        <a class="agendar-tarjeta__boton" href="{% url 'citas:mis_citas' %}?agendar" title="Agendar una cita"><i class="bi bi-calendar-plus" aria-hidden="true"></i><span class="visually-hidden">Agendar una cita</span></a>
       </div>
 
       <section class="hoy-cliente" aria-labelledby="hoy-titulo">
@@ -112,12 +168,18 @@
         {# Próximas citas en una línea de tiempo #}
         <ol class="linea-citas">
           {% for cita in proximas_citas %}
-            <li class="linea-citas__item">{{ cita }}</li>
+            <li class="linea-citas__item">
+              <span class="linea-citas__punto" aria-hidden="true"></span>
+              <a class="linea-citas__tarjeta" href="{% url 'citas:mis_citas' %}">
+                <p class="linea-citas__titulo">{{ cita.servicio }} · {{ cita.mascota }}</p>
+                <p class="linea-citas__texto">{{ cita.inicio|date:'l j \d\e F' }}, {{ cita.inicio|date:'H:i' }} · {{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</p>
+              </a>
+            </li>
           {% empty %}
             <li class="linea-citas__item">
               <span class="linea-citas__punto" aria-hidden="true"></span>
               <div class="linea-citas__tarjeta">
-                <p class="linea-citas__titulo">Sin citas esta semana</p>
+                <p class="linea-citas__titulo">Sin citas próximas</p>
                 <p class="linea-citas__texto">Cuando agendes una cita, aquí verás el día, la hora, el veterinario y el servicio.</p>
               </div>
             </li>

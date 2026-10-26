@@ -17,4 +17,14 @@ urlpatterns = [
     path('horario/<int:pk>/eliminar/', views.HorarioEliminarView.as_view(), name='horario_eliminar'),
     path('horario/copiar-semana/', views.CopiarSemanaView.as_view(), name='horario_copiar'),
     path('horario/servicios/', views.MisServiciosView.as_view(), name='mis_servicios'),
+    # Core: el cliente agenda y ve sus citas (403 para los demás roles)
+    path('agendar/', views.AgendarCitaView.as_view(), name='agendar'),
+    path('agendar/turnos/', views.TurnosDelDiaView.as_view(), name='turnos_del_dia'),
+    path('agendar/dias/', views.DiasDisponiblesView.as_view(), name='dias_disponibles'),
+    path('mis-citas/', views.MisCitasView.as_view(), name='mis_citas'),
+    path('mis-citas/<int:pk>/cancelar/', views.CancelarCitaView.as_view(), name='cancelar'),
+    # Core: la agenda del veterinario (solo sus citas)
+    path('agenda/', views.AgendaVeterinarioView.as_view(), name='agenda'),
+    path('agenda/<int:pk>/resultado/', views.ResultadoCitaView.as_view(), name='resultado'),
+    path('pacientes/', views.PacientesView.as_view(), name='pacientes'),
 ]
