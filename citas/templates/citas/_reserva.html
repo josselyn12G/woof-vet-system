@@ -1,0 +1,108 @@
+{% load static %}
+{% comment %}
+  La reserva (mascota, servicio, calendario y horas). La usan la página de agendar y el pop-up de Mis citas.
+  Con fetch, si el formulario vuelve con errores, AgendarCitaView devuelve solo este parcial y el pop-up lo reemplaza.
+{% endcomment %}
+{% if not form.fields.mascota.queryset.exists %}
+  <p class="bloque-panel__vacio">Para agendar, primero <a class="bloque-panel__enlace" href="{% url 'mascotas:lista' %}">registra a tu mascota</a>.</p>
+{% else %}
+{% comment %}
+  Reserva en tres columnas (como un calendario de citas): a la izquierda mascota y servicio;
+  al centro el mes con los días en que algún veterinario del servicio tiene horas libres;
+  a la derecha las horas de ese día agrupadas por veterinario. Al elegir una hora se llenan
+  los campos ocultos veterinario y hora: el servidor valida todo igual.
+{% endcomment %}
+<form class="reserva" method="post" action="{% url 'citas:agendar' %}" novalidate
+      data-agendar
+      data-turnos-url="{% url 'citas:turnos_del_dia' %}"
+      data-dias-url="{% url 'citas:dias_disponibles' %}">
+  {% csrf_token %}
+
+  {# ================= Izquierda: mascota y servicio ================= #}
+  <aside class="reserva__lado">
+    <h1 class="reserva__titulo">Agendar una cita</h1>
+
+    {% for error in form.non_field_errors %}
+      <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+    {% endfor %}
+
+    <fieldset class="reserva__grupo">
+      <legend class="reserva__paso">Tu mascota</legend>
+      <div class="opciones-mascota">
+        {% for mascota in form.fields.mascota.queryset %}
+          <label class="opcion-mascota">
+            <input type="radio" name="{{ form.mascota.html_name }}" value="{{ mascota.pk }}" data-mascota="{{ mascota.nombre }}"{% if mascota.pk|stringformat:'s' == form.mascota.value|stringformat:'s' or form.fields.mascota.queryset.count == 1 %} checked{% endif %} required>
+            <span class="opcion-mascota__foto foto-mascota foto-mascota--{{ mascota.especie }}">{% include 'mascotas/_avatar.html' %}</span>
+            <span class="opcion-mascota__nombre">{{ mascota.nombre }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      {# Al elegir una mascota: "Cita para Jasper" (lo actualiza agendar.js) #}
+      <p class="reserva__para" data-cita-para hidden><i class="bi bi-heart-fill" aria-hidden="true"></i>Cita para <strong></strong></p>
+      {% for error in form.mascota.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+    </fieldset>
+
+    {# Desplegable (FK) con los servicios activos #}
+    <div class="reserva__grupo">
+      <label class="reserva__paso" for="{{ form.servicio.id_for_label }}">Servicio</label>
+      <select class="control-panel" name="{{ form.servicio.html_name }}" id="{{ form.servicio.id_for_label }}" required data-servicio>
+        <option value="">Elige un servicio</option>
+        {% for servicio in form.fields.servicio.queryset %}
+          <option value="{{ servicio.pk }}" data-duracion="{{ servicio.duracion_min }}" data-precio="{{ servicio.precio }}" data-descripcion="{{ servicio.descripcion }}"{% if servicio.pk|stringformat:'s' == form.servicio.value|stringformat:'s' %} selected{% endif %}>{{ servicio.nombre }}</option>
+        {% endfor %}
+      </select>
+      {# Al elegir un servicio: qué incluye, cuánto dura y cuánto cuesta (lo llena agendar.js) #}
+      <div class="reserva__servicio" data-servicio-detalle hidden>
+        <p class="reserva__descripcion" data-servicio-descripcion></p>
+        <p class="reserva__detalle"><i class="bi bi-clock" aria-hidden="true"></i><span data-servicio-duracion></span><i class="bi bi-cash-coin" aria-hidden="true"></i><span data-servicio-precio></span></p>
+      </div>
+      {% for error in form.servicio.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+    </div>
+  </aside>
+
+  {# ================= Centro: el mes ================= #}
+  <section class="reserva__calendario" aria-labelledby="calendario-titulo">
+    <h2 class="reserva__subtitulo" id="calendario-titulo">Elige la fecha y la hora</h2>
+    <div class="calendario" data-calendario>
+      <div class="calendario__cabecera">
+        <button type="button" class="calendario__flecha" data-mes-anterior aria-label="Mes anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <span class="calendario__mes" data-mes-texto aria-live="polite"></span>
+        <button type="button" class="calendario__flecha" data-mes-siguiente aria-label="Mes siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      </div>
+      <div class="calendario__semana" aria-hidden="true">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div class="calendario__dias" data-dias></div>
+    </div>
+    <p class="reserva__zona"><i class="bi bi-globe-americas" aria-hidden="true"></i>Hora de Ecuador (America/Guayaquil)</p>
+    <input type="hidden" name="{{ form.fecha.html_name }}" value="{{ form.fecha.value|default:''|stringformat:'s' }}" data-fecha>
+    <input type="hidden" name="{{ form.veterinario.html_name }}" value="{{ form.veterinario.value|default:''|stringformat:'s' }}" data-veterinario>
+    <input type="hidden" name="{{ form.hora.html_name }}" value="{{ form.hora.value|default:''|stringformat:'s'|slice:':5' }}" data-hora>
+    <noscript>
+      <input class="control-panel" type="date" name="{{ form.fecha.html_name }}" min="{% now 'Y-m-d' %}">
+      <input class="control-panel" type="time" name="{{ form.hora.html_name }}" step="900">
+      <select class="control-panel" name="{{ form.veterinario.html_name }}">
+        {% for valor, nombre in form.fields.veterinario.choices %}<option value="{{ valor }}">{{ nombre }}</option>{% endfor %}
+      </select>
+    </noscript>
+    {% for error in form.fecha.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </section>
+
+  {# ================= Derecha: las horas del día (por doctor) y confirmar ================= #}
+  <section class="reserva__horas" aria-labelledby="dia-elegido">
+    <p class="reserva__dia" id="dia-elegido" data-dia-texto>Elige un día</p>
+    <div class="horas horas--columna" data-horas aria-live="polite">
+      <p class="horas__aviso">Elige un servicio para ver los días con horas libres.</p>
+    </div>
+    {% for error in form.hora.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+    {% for error in form.veterinario.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+
+    <div class="reserva__confirmar" data-confirmar hidden>
+      <label class="formulario-panel__etiqueta" for="{{ form.motivo.id_for_label }}">Motivo <span class="formulario-panel__ayuda">(opcional)</span></label>
+      <input class="control-panel" type="text" name="{{ form.motivo.html_name }}" id="{{ form.motivo.id_for_label }}"
+             value="{{ form.motivo.value|default:'' }}" maxlength="200" placeholder="Cojea de la pata trasera">
+      <button type="submit" class="boton-panel reserva__boton"><i class="bi bi-calendar-check" aria-hidden="true"></i>Agendar cita</button>
+    </div>
+  </section>
+</form>
+{% endif %}

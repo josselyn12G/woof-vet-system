@@ -1,0 +1,216 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Mis citas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-calendar-check{% endblock %}
+{% block panel_seccion %}Mis citas{% endblock %}
+{% block panel_titulo %}Mis citas{% endblock %}
+{% block panel_subtitulo %}Gestiona tus próximas visitas y revisa tu historial.{% endblock %}
+{% block panel_acciones %}
+  {# Abre la reserva en un pop-up (mis-citas.js); sin JavaScript, el enlace lleva a la página de agendar #}
+  <a class="boton-panel" href="{% url 'citas:agendar' %}" data-abrir-agendar><i class="bi bi-plus-lg" aria-hidden="true"></i>Agendar cita</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  <div class="mis-citas">
+    {# ================= Columna principal: pestañas y citas por día ================= #}
+    <div class="mis-citas__principal">
+      {# Pestañas con ?vista= (enlaces normales: funcionan sin JavaScript y se pueden recargar) #}
+      <nav class="pestanas-citas" aria-label="Qué citas ver">
+        {% for valor, nombre, cantidad in pestanas %}
+          <a class="pestanas-citas__opcion{% if valor == vista %} es-activo{% endif %}" href="?vista={{ valor }}"{% if valor == vista %} aria-current="page"{% endif %}>
+            {% if valor == 'proximas' %}<i class="bi bi-calendar-check" aria-hidden="true"></i>{% endif %}{{ nombre }}{% if valor == 'proximas' %} ({{ cantidad }}){% endif %}
+          </a>
+        {% endfor %}
+      </nav>
+
+      {% for fecha, citas_del_dia in por_dia %}
+        <h2 class="mis-citas__dia">{% if fecha == hoy %}Hoy{% else %}{{ fecha|date:'l j \d\e F' }}{% endif %}</h2>
+        {% for cita in citas_del_dia %}
+          <article class="tarjeta-cita">
+            {# Bloque de fecha: día de la semana, número, mes y el rango de horas #}
+            <div class="tarjeta-cita__fecha">
+              <span>{{ cita.inicio|date:'D' }}</span>
+              <strong>{{ cita.inicio|date:'j' }}</strong>
+              <span>{{ cita.inicio|date:'M' }}</span>
+              <span class="tarjeta-cita__horas"><i class="bi bi-clock" aria-hidden="true"></i>{{ cita.inicio|date:'H:i' }} – {{ cita.fin|date:'H:i' }}</span>
+            </div>
+
+            <div class="tarjeta-cita__cuerpo">
+              <div class="tarjeta-cita__fila">
+                <span class="tarjeta-cita__mascota">
+                  <span class="tarjeta-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}">{% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
+                  <span>
+                    <strong class="tarjeta-cita__nombre">{{ cita.mascota }}</strong>
+                    <span class="tarjeta-cita__detalle"><i class="bi bi-heart" aria-hidden="true"></i>{{ cita.mascota.raza|default:cita.mascota.get_especie_display }}</span>
+                  </span>
+                </span>
+                <span class="estado-cita estado-cita--{{ cita.estado }}">
+                  {% if cita.estado == 'confirmada' %}<i class="bi bi-check2" aria-hidden="true"></i>{% elif cita.estado == 'cancelada' %}<i class="bi bi-x" aria-hidden="true"></i>{% endif %}{{ cita.get_estado_display }}
+                </span>
+              </div>
+
+              <div class="tarjeta-cita__servicio">
+                <span class="tarjeta-cita__icono" aria-hidden="true"><i class="bi {{ cita.servicio.icono }}"></i></span>
+                <span>
+                  <strong>{{ cita.servicio }}</strong>
+                  <span class="tarjeta-cita__detalle"><i class="bi bi-person" aria-hidden="true"></i>{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</span>
+                </span>
+              </div>
+
+              <div class="tarjeta-cita__acciones">
+                {# Ver detalles: se despliega aquí mismo (details), sin cambiar de página #}
+                <details class="tarjeta-cita__mas">
+                  <summary class="boton-cita"><i class="bi bi-eye" aria-hidden="true"></i>Ver detalles</summary>
+                  <dl class="tarjeta-cita__datos">
+                    <div><dt>Motivo</dt><dd>{{ cita.motivo|default:'Sin motivo indicado' }}</dd></div>
+                    <div><dt>Duración</dt><dd>{{ cita.servicio.duracion_min }} min</dd></div>
+                    <div><dt>Precio</dt><dd>${{ cita.precio }}</dd></div>
+                    <div><dt>Agendada el</dt><dd>{{ cita.creado|date:'j \d\e F, H:i' }}</dd></div>
+                  </dl>
+                </details>
+                {% if cita.estado == 'confirmada' and cita.inicio > ahora %}
+                  {# Cancelar es POST con CSRF: un enlace (GET) nunca cambia datos #}
+                  <form method="post" action="{% url 'citas:cancelar' cita.pk %}" data-cancelar-cita
+                        data-mascota="{{ cita.mascota }}" data-servicio="{{ cita.servicio }}"
+                        data-cuando="{{ cita.inicio|date:'l j \d\e F' }}, {{ cita.inicio|date:'H:i' }}">
+                    {% csrf_token %}
+                    <button type="submit" class="boton-cita boton-cita--peligro"><i class="bi bi-trash" aria-hidden="true"></i>Cancelar cita</button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      {% empty %}
+        {# Pestaña vacía: un bloque grande con su mascota asomándose a la derecha (una por pestaña) #}
+        <div class="sin-citas sin-citas--{{ vista }}">
+          <div class="sin-citas__texto">
+            {% if vista == 'proximas' %}
+              <h2 class="sin-citas__titulo">No tienes citas próximas</h2>
+              <p class="sin-citas__bajada">Elige el servicio, el día y una hora libre con su doctor. Tu cita queda confirmada al instante.</p>
+              <a class="boton-panel sin-citas__boton" href="{% url 'citas:agendar' %}" data-abrir-agendar><i class="bi bi-calendar-plus" aria-hidden="true"></i>Agendar una cita</a>
+            {% elif vista == 'pasadas' %}
+              <h2 class="sin-citas__titulo">Todavía no hay citas pasadas</h2>
+              <p class="sin-citas__bajada">Cuando tus mascotas vayan a sus citas, aquí verás cada visita con su servicio y su doctor.</p>
+            {% else %}
+              <h2 class="sin-citas__titulo">No has cancelado ninguna cita</h2>
+              <p class="sin-citas__bajada">Si alguna vez cancelas una, quedará aquí para que sepas qué día y con quién era.</p>
+            {% endif %}
+          </div>
+          {% if vista == 'proximas' %}
+            <img class="sin-citas__foto" src="{% static 'img/perro-sin-citas.webp' %}" alt="" width="536" height="900">
+          {% elif vista == 'pasadas' %}
+            <img class="sin-citas__foto" src="{% static 'img/gato-pasadas.webp' %}" alt="" width="634" height="900">
+          {% else %}
+            <img class="sin-citas__foto" src="{% static 'img/gato-canceladas.webp' %}" alt="" width="637" height="605">
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {# ================= Columna lateral ================= #}
+    <aside class="mis-citas__lado" aria-label="Resumen">
+      {% if proxima %}
+        <a class="lado-cita lado-cita--proxima" href="?vista=proximas">
+          <span class="lado-cita__cabecera">
+            <i class="bi bi-calendar-check" aria-hidden="true"></i>
+            <span><span class="lado-cita__titulo">Tu próxima cita</span><strong>{{ proxima.inicio|date:'j M' }} · {{ proxima.inicio|date:'H:i' }}</strong></span>
+            <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
+          </span>
+          <span class="lado-cita__mascota">
+            <span class="lado-cita__foto foto-mascota foto-mascota--{{ proxima.mascota.especie }}">{% with mascota=proxima.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
+            <span>
+              <strong>{{ proxima.mascota }}</strong>
+              <span>{{ proxima.servicio }}</span>
+              <span><i class="bi bi-person" aria-hidden="true"></i>{{ proxima.veterinario.get_full_name|default:proxima.veterinario.username }}</span>
+            </span>
+          </span>
+        </a>
+      {% endif %}
+
+      {% if ultima %}
+        <a class="lado-cita" href="?vista=pasadas">
+          <span class="lado-cita__cabecera">
+            <i class="bi bi-clock-history" aria-hidden="true"></i>
+            <span><span class="lado-cita__titulo">Última cita</span><strong>{{ ultima.inicio|date:'j M' }} · {{ ultima.inicio|date:'H:i' }}</strong></span>
+            <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
+          </span>
+          <span class="lado-cita__mascota">
+            <span class="lado-cita__foto foto-mascota foto-mascota--{{ ultima.mascota.especie }}">{% with mascota=ultima.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
+            <span><strong>{{ ultima.mascota }}</strong><span>{{ ultima.servicio }} · {{ ultima.get_estado_display }}</span></span>
+          </span>
+        </a>
+      {% endif %}
+
+      <section class="lado-cita lado-cita--lista" aria-labelledby="lado-mascotas">
+        <h2 class="lado-cita__cabecera" id="lado-mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="lado-cita__titulo">Mascotas</span></h2>
+        <ul class="lado-mascotas">
+          {% for mascota in mascotas %}
+            <li>
+              <a href="{% url 'mascotas:detalle' mascota.pk %}">
+                <span class="lado-cita__foto foto-mascota foto-mascota--{{ mascota.especie }}">{% include 'mascotas/_avatar.html' %}</span>
+                <span><strong>{{ mascota.nombre }}</strong><span>{{ mascota.raza|default:mascota.get_especie_display }}</span></span>
+                <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
+              </a>
+            </li>
+          {% empty %}
+            <li class="lado-mascotas__vacio"><a href="{% url 'mascotas:crear' %}">Registra a tu primera mascota</a></li>
+          {% endfor %}
+        </ul>
+      </section>
+    </aside>
+  </div>
+
+  {# Pop-up "Agendar cita": la misma reserva de la página de agendar, enviada con fetch (mis-citas.js) #}
+  <dialog class="agendar-popup" tabindex="-1" aria-label="Agendar una cita" data-dialogo-agendar{% if abrir_agendar %} data-abrir-al-cargar{% endif %}>
+    <button type="button" class="agendar-popup__cerrar" aria-label="Cerrar" data-cerrar-agendar><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    <div data-agendar-cuerpo>{% include 'citas/_reserva.html' %}</div>
+  </dialog>
+
+  {# Pop-up de confirmación: lo llena mis-citas.js al agendar; sin JavaScript, sale del mensaje de Django #}
+  <dialog class="confirmacion-cita" aria-labelledby="confirmacion-titulo" data-dialogo-confirmacion
+          {% for mensaje in messages %}{% if 'agendada' in mensaje.tags %} data-abrir-al-cargar{% endif %}{% endfor %}>
+    <svg class="registro__visto" viewBox="0 0 52 52" aria-hidden="true">
+      <circle cx="26" cy="26" r="24"></circle>
+      <path d="M15 27 l7.5 7.5 L37.5 19"></path>
+    </svg>
+    <h2 class="confirmacion-cita__titulo" id="confirmacion-titulo" data-confirmacion-titulo>¡Cita agendada!</h2>
+    <p class="confirmacion-cita__texto" data-confirmacion-texto>{% for mensaje in messages %}{% if 'agendada' in mensaje.tags %}{{ mensaje }}{% endif %}{% endfor %}</p>
+    <button type="button" class="boton-panel confirmacion-cita__boton" data-cerrar-confirmacion>Listo</button>
+  </dialog>
+
+  {# Pop-up para confirmar la cancelación (mis-citas.js). Sin JavaScript, el formulario se envía directo #}
+  <dialog class="cancelar-cita" aria-labelledby="cancelar-titulo" aria-describedby="cancelar-texto" data-dialogo-cancelar>
+    <span class="cancelar-cita__icono" aria-hidden="true"><i class="bi bi-calendar-x"></i></span>
+    <h2 class="cancelar-cita__titulo" id="cancelar-titulo">¿Cancelar la cita de <span data-cancelar-mascota></span>?</h2>
+    <p class="cancelar-cita__detalle" data-cancelar-detalle></p>
+    <p class="cancelar-cita__texto" id="cancelar-texto">El horario quedará libre para otra persona. Si cambias de idea, tendrás que agendar de nuevo.</p>
+    <div class="cancelar-cita__acciones">
+      <button type="button" class="boton-cita" data-mantener>Mantener cita</button>
+      <button type="button" class="boton-cita boton-cita--rojo" data-confirmar-cancelar><i class="bi bi-trash" aria-hidden="true"></i>Sí, cancelar</button>
+    </div>
+  </dialog>
+{% endblock %}
+
+{# Avisos normales (cancelar, errores); el de "cita agendada" va en el pop-up de confirmación #}
+{% block panel_avisos %}
+  {% if messages %}
+    <div class="panel-avisos" role="status">
+      {% for mensaje in messages %}
+        {% if 'agendada' not in mensaje.tags %}<p class="panel-aviso panel-aviso--{{ mensaje.level_tag|default:'info' }}">{{ mensaje }}</p>{% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'citas/js/agendar.js' %}" defer></script>
+  <script src="{% static 'citas/js/mis-citas.js' %}" defer></script>
+{% endblock %}

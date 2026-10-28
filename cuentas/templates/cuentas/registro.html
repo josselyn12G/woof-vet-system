@@ -54,6 +54,7 @@
           <p class="paso__ayuda">Con este usuario vas a iniciar sesión. El código de acceso te llegará al correo.</p>
           <div class="registro__campos">
             {% include 'cuentas/_campo.html' with campo=form.username icono='bi-person' %}
+            {% include 'cuentas/_campo.html' with campo=form.cedula icono='bi-credit-card-2-front' %}
             {% include 'cuentas/_campo.html' with campo=form.telefono icono='bi-phone' %}
           </div>
         </fieldset>

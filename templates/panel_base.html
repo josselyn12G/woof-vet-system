@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% comment %}
+  Plantilla del panel (después del login).
+  - Cliente y administrador: sidebar desplegable (abierto con grupos y textos; cerrado, una barra de íconos).
+  - Veterinario: navegación arriba en píldoras.
+  Cada pantalla rellena: panel_seccion, panel_icono, panel_titulo, panel_subtitulo, panel_acciones y panel_contenido.
+  La opción activa se marca sola con request.resolver_match.view_name.
+{% endcomment %}
+
+{% block menu %}{% endblock %}
+{% block pie %}{% endblock %}
+{% block main_clase %}{% endblock %}
+
+{% block estilos %}
+  {# Antes de pintar: si el sidebar quedó cerrado la última vez, se abre cerrado (sin parpadeo) #}
+  <script>try { if (localStorage.getItem('woof-menu') === 'compacto') document.documentElement.classList.add('menu-compacto'); } catch (e) {}</script>
+  <link href="{% static 'css/panel.css' %}" rel="stylesheet">
+  {% block panel_estilos %}{% endblock %}
+{% endblock %}
+
+{% block contenido %}
+  {% with ruta=request.resolver_match.view_name %}
+  <div class="panel{% if user.es_veterinario %} panel--arriba{% endif %}" data-panel>
+
+    {% if not user.es_veterinario %}
+    {# ---------- Sidebar desplegable ---------- #}
+    <aside class="panel-menu" id="panel-menu" aria-label="Menú del panel">
+      <a class="panel-menu__marca" href="{% url 'cuentas:panel' %}">
+        <img class="panel-menu__logo" src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel">
+        <img class="panel-menu__isotipo" src="{% static 'img/favicon.png' %}" alt="" aria-hidden="true">
+      </a>
+
+      <nav class="panel-menu__nav">
+        <p class="panel-menu__grupo">Plataforma</p>
+        <ul class="panel-menu__lista">
+          {% if user.es_administrador %}
+            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_administrador' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_administrador' %}" title="Inicio"{% if ruta == 'cuentas:inicio_administrador' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
+            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:usuarios' or ruta == 'cuentas:usuario_editar' %} es-activo{% endif %}" href="{% url 'cuentas:usuarios' %}" title="Usuarios"{% if ruta == 'cuentas:usuarios' %} aria-current="page"{% endif %}><i class="bi bi-people" aria-hidden="true"></i><span class="panel-menu__texto">Usuarios</span></a></li>
+            <li><a class="panel-menu__enlace{% if 'citas:servicio' in ruta %} es-activo{% endif %}" href="{% url 'citas:servicios' %}" title="Servicios"{% if ruta == 'citas:servicios' %} aria-current="page"{% endif %}><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i><span class="panel-menu__texto">Servicios</span></a></li>
+            <li><span class="panel-menu__enlace es-pronto" aria-disabled="true" title="Citas (pronto)"><i class="bi bi-calendar-week" aria-hidden="true"></i><span class="panel-menu__texto">Citas</span><span class="panel-menu__pronto">Pronto</span></span></li>
+          {% else %}
+            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_cliente' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_cliente' %}" title="Inicio"{% if ruta == 'cuentas:inicio_cliente' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
+            <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
+            {# Agendar vive dentro de Mis citas (botón que abre un pop-up), así que el menú solo lleva Mis citas #}
+            <li><a class="panel-menu__enlace{% if ruta == 'citas:mis_citas' or ruta == 'citas:agendar' %} es-activo{% endif %}" href="{% url 'citas:mis_citas' %}" title="Mis citas"{% if ruta == 'citas:mis_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="panel-menu__texto">Mis citas</span></a></li>
+          {% endif %}
+        </ul>
+
+        <p class="panel-menu__grupo">Sistema</p>
+        <ul class="panel-menu__lista">
+          <li><a class="panel-menu__enlace" href="{% url 'cuentas:inicio' %}" title="Ver la portada"><i class="bi bi-house" aria-hidden="true"></i><span class="panel-menu__texto">Ver la portada</span></a></li>
+        </ul>
+      </nav>
+
+      {# Usuario al pie: iniciales, nombre, rol y cerrar sesión (POST con CSRF, como pide Django 5) #}
+      <div class="panel-menu__usuario">
+        <span class="panel-menu__avatar" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
+        <span class="panel-menu__persona">
+          <span class="panel-menu__nombre">{{ user.get_full_name|default:user.username }}</span>
+          <span class="panel-menu__rol">{{ user.get_rol_display }}</span>
+        </span>
+        <form method="post" action="{% url 'cuentas:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="panel-menu__salir" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
+        </form>
+      </div>
+    </aside>
+
+    {# Fondo para cerrar el menú en el celular #}
+    <div class="panel__velo" data-panel-cerrar hidden></div>
+    {% endif %}
+
+    {# ---------- Zona de trabajo ---------- #}
+    <div class="panel__zona">
+      {% if user.es_veterinario %}
+      {# Veterinario: navegación arriba, como una píldora con la opción activa rellena #}
+      <header class="nav-arriba">
+        <a class="nav-arriba__marca" href="{% url 'cuentas:panel' %}"><img src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel"></a>
+        <nav class="nav-arriba__opciones" aria-label="Menú del panel">
+          <a class="nav-arriba__opcion{% if ruta == 'cuentas:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_veterinario' %}"{% if ruta == 'cuentas:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
+          <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda</a>
+          <a class="nav-arriba__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"{% if ruta == 'citas:horario' %} aria-current="page"{% endif %}>Mi horario</a>
+          <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
+        </nav>
+        <div class="nav-arriba__lado">
+          <span class="panel-barra__boton" aria-label="Notificaciones (pronto)" title="Notificaciones: pronto"><i class="bi bi-bell" aria-hidden="true"></i></span>
+          <span class="panel-menu__avatar nav-arriba__avatar" title="{{ user.get_full_name|default:user.username }}" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
+          <form method="post" action="{% url 'cuentas:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="panel-barra__boton" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
+          </form>
+        </div>
+      </header>
+      {% else %}
+      <header class="panel-barra">
+        {# En la computadora abre y cierra el sidebar; en el celular lo muestra encima del contenido #}
+        <button type="button" class="panel-barra__boton" data-panel-abrir aria-controls="panel-menu" aria-expanded="true" aria-label="Abrir o cerrar el menú" title="Menú">
+          <i class="bi bi-layout-sidebar" aria-hidden="true"></i>
+        </button>
+        <span class="panel-barra__separador" aria-hidden="true"></span>
+        <span class="panel-barra__seccion"><i class="bi {% block panel_icono %}bi-grid{% endblock %}" aria-hidden="true"></i>{% block panel_seccion %}Inicio{% endblock %}</span>
+
+        {% if user.es_administrador %}
+          {# Buscador de usuarios: ⌘K (o Ctrl+K) lo enfoca desde cualquier pantalla #}
+          <form class="panel-buscar" method="get" action="{% url 'cuentas:usuarios' %}" role="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <label class="visually-hidden" for="panel-buscar">Buscar usuarios</label>
+            <input type="search" id="panel-buscar" name="q" placeholder="Buscar usuarios" data-buscar-atajo>
+            <kbd class="panel-buscar__atajo" aria-hidden="true">⌘ K</kbd>
+          </form>
+        {% endif %}
+
+        <span class="panel-barra__boton" aria-label="Notificaciones (pronto)" title="Notificaciones: pronto"><i class="bi bi-bell" aria-hidden="true"></i></span>
+        <span class="panel-menu__avatar panel-barra__avatar" title="{{ user.get_full_name|default:user.username }}" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
+      </header>
+      {% endif %}
+
+      <div class="panel__pagina">
+        {# panel_cabecera y panel_avisos: una pantalla con su propio encabezado o avisos (mascotas) los deja vacíos #}
+        {% block panel_cabecera %}
+        <div class="panel-titulo">
+          <div>
+            <h1 class="panel-titulo__texto">{% block panel_titulo %}{% endblock %}</h1>
+            <p class="panel-titulo__bajada">{% block panel_subtitulo %}{% endblock %}</p>
+          </div>
+          <div class="panel-titulo__acciones">{% block panel_acciones %}{% endblock %}</div>
+        </div>
+        {% endblock %}
+
+        {% block panel_avisos %}
+        {% if messages %}
+          <div class="panel-avisos" role="status">
+            {% for mensaje in messages %}<p class="panel-aviso panel-aviso--{{ mensaje.tags|default:'info' }}">{{ mensaje }}</p>{% endfor %}
+          </div>
+        {% endif %}
+        {% endblock %}
+
+        <div class="panel__contenido">
+          {% block panel_contenido %}{% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/panel.js' %}" defer></script>
+  {% block panel_scripts %}{% endblock %}
+{% endblock %}

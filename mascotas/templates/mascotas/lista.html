@@ -1,35 +1,20 @@
-{% extends 'base.html' %}
+{% extends 'panel_base.html' %}
 {% load static %}
+
+{# Dentro del panel (sidebar o navegación de arriba). Las pantallas de mascotas traen su propio encabezado y sus avisos #}
+{% block panel_icono %}bi-heart{% endblock %}
+{% block panel_seccion %}Mis mascotas{% endblock %}
+{% block panel_cabecera %}{% endblock %}
+{% block panel_avisos %}{% endblock %}
 
 {% block titulo %}Mis mascotas · Woof{% endblock %}
 
-{% block estilos %}
+{% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
 {% endblock %}
 
-{% block contenido %}
+{% block panel_contenido %}
   {% include 'mascotas/_mensajes.html' %}
-
-  {# Portada de la sección: saludo, cuántas mascotas hay y botón para registrar #}
-  <section class="portada-mascotas">
-    <div class="portada-mascotas__texto">
-      <p class="sobretitulo mb-2">Hola, {{ user.first_name|default:user.username }} 👋</p>
-      <h1 class="portada-mascotas__titulo">Mis mascotas</h1>
-      <p class="portada-mascotas__resumen">
-        {% if mascotas %}
-          Tienes <strong>{{ mascotas|length }} mascota{{ mascotas|length|pluralize }}</strong> registrada{{ mascotas|length|pluralize }}. Desde cada tarjeta puedes ver su ficha, su carnet, editarla o eliminarla.
-        {% else %}
-          Aquí vas a tener los datos de tu familia peluda siempre a mano.
-        {% endif %}
-      </p>
-      {% if mascotas %}
-        <a class="btn btn-primary rounded-pill px-4" href="{% url 'mascotas:crear' %}">
-          <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Registrar mascota
-        </a>
-      {% endif %}
-    </div>
-    <img class="portada-mascotas__imagen" src="{% static 'img/perro-doctor.png' %}" alt="" width="612" height="612">
-  </section>
 
   {% if mascotas %}
     <div class="galeria-mascotas">
@@ -65,7 +50,7 @@
               Ver ficha completa <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
             </a>
             <div class="tarjeta-mascota__botones">
-              <a class="accion-mascota" href="{% url 'mascotas:carnet' mascota.pk %}" title="Carnet de vacunación de {{ mascota.nombre }}">
+              <a class="accion-mascota" href="{% url 'mascotas:carnet' mascota.pk %}" data-abrir-carnet title="Carnet de vacunación de {{ mascota.nombre }}">
                 <i class="bi bi-journal-medical" aria-hidden="true"></i>Carnet
               </a>
               <a class="accion-mascota" href="{% url 'mascotas:editar' mascota.pk %}" title="Editar a {{ mascota.nombre }}">
@@ -79,21 +64,46 @@
         </article>
       {% endfor %}
 
-      {# Última tarjeta: atajo para registrar otra mascota #}
-      <a class="tarjeta-nueva" href="{% url 'mascotas:crear' %}">
-        <span class="tarjeta-nueva__icono"><i class="bi bi-plus-lg" aria-hidden="true"></i></span>
-        <span class="tarjeta-nueva__texto">Registrar otra mascota</span>
+      {# Última tarjeta: blanca, con un perro que se asoma desde abajo e invita a sumar otro amigo #}
+      <a class="tarjeta-nueva" href="{% url 'mascotas:crear' %}" data-abrir-registro>
+        <span class="portada-mascotas__mas" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
+        <span class="tarjeta-nueva__texto">Agrega a un nuevo amigo</span>
+        <span class="tarjeta-nueva__ayuda">Registra a tu nuevo compañero</span>
+        <img class="tarjeta-nueva__perrito" src="{% static 'img/perro-asomado-blanco.webp' %}" alt="" width="640" height="560" loading="lazy">
       </a>
     </div>
   {% else %}
-    {# Sin mascotas: mensaje y botón para registrar la primera (HU-07) #}
-    <div class="mascotas-vacio">
-      <span class="mascotas-vacio__icono" aria-hidden="true">🐾</span>
-      <h2 class="mascotas-vacio__titulo">Aún no tienes mascotas registradas</h2>
-      <p class="mascotas-vacio__texto">Registra a tu primera mascota para tener su ficha, su edad y su peso siempre a mano.</p>
-      <a class="btn btn-primary btn-lg rounded-pill px-4" href="{% url 'mascotas:crear' %}">
-        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Registrar mi primera mascota
+    {# Sin mascotas (HU-07): un solo bloque blanco; el gato se asoma por la derecha y al centro va el "+" #}
+    <section class="mascotas-vacio" aria-labelledby="vacio-titulo">
+      <img class="mascotas-vacio__gato" src="{% static 'img/gato-asomado.webp' %}" alt="" width="350" height="920">
+      <a class="mascotas-vacio__mas" href="{% url 'mascotas:crear' %}" data-abrir-registro aria-label="Registrar mi primera mascota">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
       </a>
-    </div>
+      <h1 class="mascotas-vacio__titulo" id="vacio-titulo">Agrega a tu primer amigo</h1>
+      <p class="mascotas-vacio__texto">Aún no tienes mascotas registradas. Con el botón + registras a la primera: tendrás su ficha, su edad y su peso siempre a mano.</p>
+    </section>
   {% endif %}
+
+  {% comment %}
+    Pop-up para registrar sin salir de la lista. Se llena con el formulario de mascotas:crear (registro-mascota.js);
+    sin JavaScript, los enlaces de arriba abren la página del formulario como siempre.
+  {% endcomment %}
+  <dialog class="registro" aria-labelledby="registro-titulo" data-registro>
+    <button type="button" class="registro__cerrar" aria-label="Cerrar" data-cerrar-registro><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    <div class="registro__cuerpo" data-registro-cuerpo></div>
+    {# Lo que se ve al guardar: el círculo crece, el visto se dibuja y aparece el nombre #}
+    <div class="registro__listo" data-registro-listo hidden>
+      <svg class="registro__visto" viewBox="0 0 52 52" aria-hidden="true">
+        <circle cx="26" cy="26" r="24"></circle>
+        <path d="M15 27 l7.5 7.5 L37.5 19"></path>
+      </svg>
+      <p class="registro__listo-titulo" data-registro-nombre></p>
+      <p class="registro__listo-texto">Ya es parte de tu familia en Woof.</p>
+    </div>
+  </dialog>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'js/registro-mascota.js' %}" data-vista-previa="{% static 'mascotas/js/vista-previa-foto.js' %}" defer></script>
+  {% include 'mascotas/_carnet_scripts.html' %}
 {% endblock %}

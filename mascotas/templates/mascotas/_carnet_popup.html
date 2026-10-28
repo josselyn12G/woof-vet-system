@@ -1,0 +1,80 @@
+{% load static %}
+{% comment %}
+  Pop-up del carnet de vacunación (HU-36): un librito en 3D (static/js/carnet-3d.js) y una vista "Plano".
+  Los datos viajan en atributos data-*; el JavaScript los dibuja en la portada y en cada página.
+  Se usa en la página del carnet; la lista y la ficha lo traen con fetch al tocar "Carnet".
+  Las vacunas las registrará el veterinario (HU-35, app historial); mientras tanto el registro va vacío.
+{% endcomment %}
+<dialog class="carnet-popup" tabindex="-1" aria-labelledby="carnet-popup-titulo-{{ mascota.pk }}"
+        data-carnet
+        {% if abrir_al_cargar %}data-abrir-al-cargar{% endif %}
+        data-nombre="{{ mascota.nombre }}"
+        data-especie="{{ mascota.get_especie_display }}"
+        data-raza="{{ mascota.raza|default:'Raza sin registrar' }}"
+        data-edad="{{ mascota.edad|default:'—' }}"
+        data-sexo="{{ mascota.get_sexo_display|default:'—' }}"
+        data-peso="{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}—{% endif %}"
+        data-nacimiento="{{ mascota.fecha_nacimiento|date:'d/m/Y'|default:'—' }}"
+        data-tutor="{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}"
+        data-registro="{{ mascota.creado|date:'d/m/Y' }}"
+        data-codigo="WF-{{ mascota.pk|stringformat:'05d' }}"
+        data-vacunas="0"
+        data-foto="{% if mascota.tiene_foto %}{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}{% endif %}"
+        data-logo="{% static 'img/logo.png' %}"
+        data-logo-blanco="{% static 'img/logo-blanco.png' %}">
+
+  <header class="carnet-popup__barra">
+    <h2 class="carnet-popup__titulo" id="carnet-popup-titulo-{{ mascota.pk }}">Carnet de {{ mascota.nombre }}</h2>
+    <div class="carnet-popup__modos" role="group" aria-label="Cómo ver el carnet">
+      <button type="button" class="carnet-popup__modo es-activo" aria-pressed="true" data-modo="3d"><i class="bi bi-box" aria-hidden="true"></i>3D</button>
+      <button type="button" class="carnet-popup__modo" aria-pressed="false" data-modo="plano"><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Plano</button>
+    </div>
+    <button type="button" class="carnet-popup__boton carnet-popup__cerrar" aria-label="Cerrar el carnet" data-cerrar-carnet><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+  </header>
+
+  {# Vista 3D: el librito. Se gira arrastrando; las páginas se pasan tocándolas o con las flechas #}
+  <div class="carnet-popup__escena" data-carnet-escena tabindex="0" role="img"
+       aria-label="Carnet de {{ mascota.nombre }} en 3D. Flechas izquierda y derecha: pasar páginas. Arrástralo para girarlo.">
+    <span class="carnet-popup__cargando" role="status" data-carnet-cargando><span class="visually-hidden">Cargando el carnet</span></span>
+  </div>
+
+  {# Vista plana: el formato del carnet de frente y de reverso, y el resumen de vacunas en texto #}
+  <div class="carnet-popup__plano" data-carnet-plano hidden>
+    <div class="carnet-plano">
+      <div class="carnet-plano__caras" data-carnet-caras></div>
+      <section class="carnet-plano__vacunas" aria-labelledby="carnet-vacunas-{{ mascota.pk }}">
+        <h3 class="carnet-plano__titulo" id="carnet-vacunas-{{ mascota.pk }}"><i class="bi bi-shield-check" aria-hidden="true"></i>Vacunas aplicadas</h3>
+        <div class="carnet__tabla">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Vacuna</th>
+                <th scope="col">Fecha de aplicación</th>
+                <th scope="col">Lote</th>
+                <th scope="col">Próxima dosis</th>
+                <th scope="col">Veterinario</th>
+              </tr>
+            </thead>
+          </table>
+          <div class="carnet__vacio">
+            <span class="carnet__vacio-icono" aria-hidden="true"><i class="bi bi-journal-medical"></i></span>
+            <strong>Aún no hay vacunas registradas</strong>
+            El veterinario anotará aquí cada vacuna que reciba {{ mascota.nombre }} en sus visitas a la clínica.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="carnet-popup__pie">
+    <div class="carnet-popup__paginas" data-carnet-paginador>
+      <button type="button" class="carnet-popup__boton" aria-label="Página anterior" data-pagina-anterior><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+      <span class="carnet-popup__pagina" aria-live="polite" data-pagina-texto>Portada</span>
+      <button type="button" class="carnet-popup__boton" aria-label="Página siguiente" data-pagina-siguiente><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+    </div>
+    <div class="carnet-popup__acciones">
+      <button type="button" class="carnet-popup__boton carnet-popup__boton--texto" data-carnet-descargar disabled><i class="bi bi-download" aria-hidden="true"></i>Descargar</button>
+      <button type="button" class="carnet-popup__boton" aria-label="Guardar esta vista como imagen" title="Guardar esta vista como imagen" data-carnet-captura disabled><i class="bi bi-camera" aria-hidden="true"></i></button>
+    </div>
+  </footer>
+</dialog>

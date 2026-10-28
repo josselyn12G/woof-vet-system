@@ -1,0 +1,72 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Pacientes · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_titulo %}Pacientes{% endblock %}
+{% block panel_subtitulo %}Cada mascota con su dueño. Busca por la mascota o por el nombre, la cédula o el teléfono del dueño.{% endblock %}
+
+{% block panel_contenido %}
+  {# Búsqueda por GET: queda en la URL y se puede recargar #}
+  <form class="filtros" method="get" role="search">
+    <div class="buscador">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="visually-hidden" for="buscar-paciente">Buscar</label>
+      <input class="control-panel" type="search" id="buscar-paciente" name="q" value="{{ buscar }}"
+             placeholder="Mascota, dueño, cédula o teléfono">
+    </div>
+    <label class="formulario-panel__casilla filtros__mios">
+      <input type="checkbox" name="mios" value="1"{% if solo_mios %} checked{% endif %} onchange="this.form.submit()">
+      <span>Solo mis pacientes</span>
+    </label>
+    <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
+  </form>
+
+  <p class="tabla-panel__total">{{ paginator.count }} mascota{{ paginator.count|pluralize }}{% if buscar or solo_mios %} con estos filtros{% endif %}</p>
+
+  {% if mascotas %}
+    <ul class="pacientes">
+      {% for mascota in mascotas %}
+        {# Tarjeta tipo foto: la mascota llena la tarjeta; abajo, su dueño (franja oscura) y sus datos (barra de vidrio) #}
+        <li class="paciente foto-mascota foto-mascota--{{ mascota.especie }}">
+          {% include 'mascotas/_avatar.html' %}
+
+          <span class="paciente__especie">{{ mascota.get_especie_display }}</span>
+          {% if mascota.citas_conmigo %}<span class="paciente__citas">{{ mascota.citas_conmigo }} cita{{ mascota.citas_conmigo|pluralize }} contigo</span>{% endif %}
+
+          <div class="paciente__pie">
+            <p class="paciente__dueno">
+              <i class="bi bi-person-fill" aria-hidden="true"></i>
+              <strong>{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}</strong>
+              <span>{{ mascota.dueno.telefono }}</span>
+            </p>
+            <div class="paciente__barra">
+              <span class="paciente__datos">
+                <strong>{{ mascota.nombre }}</strong>
+                <span>{{ mascota.raza|default:mascota.get_especie_display }}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}{% if mascota.peso_kg %} · {{ mascota.peso_kg }} kg{% endif %}</span>
+              </span>
+              <a class="paciente__llamar" href="tel:{{ mascota.dueno.telefono }}" title="Llamar a {{ mascota.dueno.get_full_name|default:mascota.dueno.username }}">
+                <i class="bi bi-telephone" aria-hidden="true"></i>Llamar
+              </a>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% if is_paginated %}
+      <nav class="filtros" aria-label="Páginas">
+        {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if solo_mios %}&mios=1{% endif %}">Anterior</a>{% endif %}
+        <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if solo_mios %}&mios=1{% endif %}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="bloque-panel__vacio">Ninguna mascota coincide con la búsqueda. Prueba con otro nombre, la cédula o el teléfono del dueño.</p>
+  {% endif %}
+{% endblock %}

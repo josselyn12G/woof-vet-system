@@ -1,13 +1,19 @@
-{% extends 'base.html' %}
+{% extends 'panel_base.html' %}
 {% load static %}
+
+{# Dentro del panel (sidebar o navegación de arriba). Las pantallas de mascotas traen su propio encabezado y sus avisos #}
+{% block panel_icono %}bi-heart{% endblock %}
+{% block panel_seccion %}Mis mascotas{% endblock %}
+{% block panel_cabecera %}{% endblock %}
+{% block panel_avisos %}{% endblock %}
 
 {% block titulo %}Eliminar a {{ mascota.nombre }} · Woof{% endblock %}
 
-{% block estilos %}
+{% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
 {% endblock %}
 
-{% block contenido %}
+{% block panel_contenido %}
   {# Se borra con un formulario POST, nunca con un enlace (HU-10) #}
   <div class="confirmar">
     <span class="confirmar__foto foto-mascota foto-mascota--{{ mascota.especie }}">

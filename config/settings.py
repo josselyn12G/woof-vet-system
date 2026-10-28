@@ -36,6 +36,14 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = [h for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h]
+# Render pone el dominio del servicio (woof-xxxx.onrender.com) en esta variable
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Sin esto, los formularios enviados por HTTPS fallan con error 403 (CSRF)
+CSRF_TRUSTED_ORIGINS = [f'https://{h}' for h in ALLOWED_HOSTS]
+# Render atiende el HTTPS y le pasa la petición a Django avisando con esta cabecera
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -50,10 +58,12 @@ INSTALLED_APPS = [
     # Aplicaciones registradas
     'cuentas',
     'mascotas',
+    'citas',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',   # sirve el CSS y las imágenes en producción
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -121,7 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Guayaquil'   # hora de Ecuador: saludos, fechas de registro y edades
 
 USE_I18N = True
 
@@ -134,6 +144,18 @@ USE_TZ = True
 STATIC_URL = 'static/'
 # Archivos estáticos comunes a todo el proyecto (CSS, imágenes, JS)
 STATICFILES_DIRS = [BASE_DIR / 'static']
+# collectstatic junta aquí todos los estáticos para producción (no se sube a Git)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# En producción, WhiteNoise los sirve comprimidos y con un hash en el nombre (caché del navegador).
+# En local y en el CI no: ese modo exige haber corrido collectstatic antes.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        if DEBUG
+        else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -145,8 +167,12 @@ AUTH_USER_MODEL = 'cuentas.Usuario'
 
 # Autenticación: a donde redirigir
 LOGIN_URL = 'cuentas:login'
-LOGIN_REDIRECT_URL = 'cuentas:inicio'
+LOGIN_REDIRECT_URL = 'cuentas:panel'   # /panel/ reparte a cada usuario a la portada de su rol
 LOGOUT_REDIRECT_URL = 'cuentas:inicio'
+
+# Doble factor (código al correo) al iniciar sesión. Render (plan gratis) bloquea el SMTP,
+# así que allá se apaga con DJANGO_DOBLE_FACTOR=False; en local queda activo
+DOBLE_FACTOR = os.environ.get('DJANGO_DOBLE_FACTOR', 'True') == 'True'
 
 # Correo: Gmail por SMTP (credenciales en el .env)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

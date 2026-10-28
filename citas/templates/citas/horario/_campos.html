@@ -1,0 +1,25 @@
+{# Campos del bloque (fecha, hora de inicio y de fin): los usan "Nuevo bloque" y "Editar bloque" #}
+{% csrf_token %}
+
+{% for error in form.non_field_errors %}
+  <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+{% endfor %}
+
+<div class="formulario-panel__campo">
+  <label class="formulario-panel__etiqueta" for="{{ form.fecha.id_for_label }}">Fecha</label>
+  {{ form.fecha }}
+  {% for error in form.fecha.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+</div>
+
+<div class="formulario-servicio__par">
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ form.hora_inicio.id_for_label }}">Desde</label>
+    {{ form.hora_inicio }}
+    {% for error in form.hora_inicio.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ form.hora_fin.id_for_label }}">Hasta</label>
+    {{ form.hora_fin }}
+    {% for error in form.hora_fin.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+</div>

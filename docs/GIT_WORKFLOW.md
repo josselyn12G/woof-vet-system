@@ -166,34 +166,63 @@ git branch -D feat/15-mascotas   # -D: tras un squash merge, -d dice "not fully 
 ```
 
 > **Squash and merge**: el título del PR se vuelve el mensaje del commit en `develop`, por eso debe cumplir Conventional Commits (el workflow `commits.yml` lo valida).
+> Antes de confirmar, revisa el título en el cuadro de GitHub: un espacio al final rompe la regla `header-trim` y el error aparece recién en el siguiente release (pasó con el PR #14).
 
 ### 4.2 Release
 
+`develop` está protegida en GitHub: **solo acepta cambios por Pull Request** y con las revisiones en verde. Por eso el último paso (devolver `main` a `develop`) también es un PR; un `git push` directo es rechazado.
+
 ```bash
+# 1. Rama de release desde develop actualizado
 git switch develop && git pull
-git switch -c release/1.2.0
-git commit --allow-empty -m "chore(release): prepare 1.2.0"
-git push
-# PR release/1.2.0 -> main  (merge commit), luego:
+git switch -c release/0.2.0
+git commit --allow-empty -m "chore(release): prepara la versión 0.2.0"
+git push -u origin release/0.2.0
+
+# 2. PR release/0.2.0 -> main, con "Create a merge commit" (NO squash)
+gh pr create --base main --head release/0.2.0 --title "chore(release): versión 0.2.0"
+gh pr merge <número> --merge
+
+# 3. Tag sobre main: dispara .github/workflows/release.yml (crea la Release en GitHub)
 git switch main && git pull
-git tag -a v1.2.0 -m "Release 1.2.0"
-git push origin v1.2.0        # dispara .github/workflows/release.yml
-# Devuelve los cambios a develop
-git switch develop && git merge --no-ff main && git push
+git tag -a v0.2.0 -m "Fase 2: ..."
+git push origin v0.2.0
+
+# 4. Devolver main a develop: por PR, también con merge commit
+git switch develop && git pull
+git switch -c chore/traer-v0.2.0
+git merge --no-ff main -m "chore: trae a develop la versión 0.2.0"
+git push -u origin chore/traer-v0.2.0
+gh pr create --base develop --head chore/traer-v0.2.0 --title "chore: trae a develop la versión 0.2.0"
+gh pr merge <número> --merge
+
+# 5. Limpieza
+git switch develop && git pull
+git branch -D release/0.2.0 chore/traer-v0.2.0
 ```
+
+- **Merge commit, no squash**, en los pasos 2 y 4: así `main` y `develop` comparten historial y el siguiente release no repite commits.
+- Las ramas remotas se borran solas al fusionar el PR; `git push origin --delete ...` no hace falta (da `remote ref does not exist`).
+- Si en la rama de release hay que corregir algo (como pasó con `commitlint.config.mjs` en la `v0.1.0`), se hace en esa misma rama; el paso 4 lo lleva a `develop`.
+
+**Versiones** ([SemVer](https://semver.org/lang/es/)): `0.x` mientras el proyecto está en desarrollo. cada entrega con funciones nuevas sube el número del medio, en el orden en que se terminan: `v0.1.0` = Entrega 1, `v0.2.0` = roles y citas, `v1.0.0` = proyecto final. Un arreglo urgente sube el último número (`v0.1.1`).
 
 ### 4.3 Hotfix (bug urgente en producción)
 
 ```bash
 git switch main && git pull
 git switch -c hotfix/58-caida-login-produccion
-git commit -am "fix(auth): handle null email on login"
-git push
-# PR -> main, merge, luego tag:
+git commit -am "fix(cuentas): evita el error si el correo está vacío"
+git push -u origin hotfix/58-caida-login-produccion
+# PR -> main (merge commit), luego tag:
 git switch main && git pull
-git tag -a v1.2.1 -m "Hotfix 1.2.1" && git push origin v1.2.1
-# PR o merge de main -> develop para no perder el arreglo
-git switch develop && git merge --no-ff main && git push
+git tag -a v0.1.1 -m "Arreglo 0.1.1" && git push origin v0.1.1
+# Llevar el arreglo a develop: por PR, igual que el paso 4 de la release
+git switch develop && git pull
+git switch -c chore/traer-v0.1.1
+git merge --no-ff main -m "chore: trae a develop la versión 0.1.1"
+git push -u origin chore/traer-v0.1.1
+gh pr create --base develop --head chore/traer-v0.1.1 --title "chore: trae a develop la versión 0.1.1"
 ```
 
 ## 5. Comandos de referencia

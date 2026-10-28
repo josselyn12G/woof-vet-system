@@ -92,11 +92,12 @@ class MascotaDeleteView(MascotasDelUsuarioMixin, DeleteView):
 
 class FotoMascotaView(LoginRequiredMixin, View):
     """Entrega la foto guardada en la base como una imagen normal (<img src="/mascotas/1/foto/">).
-    La ve el dueño; los administradores (is_staff) también, para revisarla desde /admin/."""
+    La ve el dueño; los administradores (is_staff) también, para revisarla desde /admin/,
+    y los veterinarios, que la ven en Pacientes y en su agenda."""
 
     def get(self, request, pk):
         mascotas = Mascota.objects.filter(pk=pk, foto__isnull=False)
-        if not request.user.is_staff:
+        if not (request.user.is_staff or request.user.es_veterinario):
             mascotas = mascotas.filter(dueno=request.user)
         foto = mascotas.values_list('foto', flat=True).first()
         if foto is None:

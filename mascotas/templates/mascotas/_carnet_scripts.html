@@ -1,0 +1,8 @@
+{% load static %}
+{# Three.js desde el CDN (versión fija). El mapa deja importar "three" y sus complementos por nombre #}
+<script type="importmap">
+  {"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+{# carnet.js es liviano: Three.js y el librito (carnet-3d.js) se cargan recién al abrir un carnet #}
+<script type="module" src="{% static 'js/carnet.js' %}"></script>

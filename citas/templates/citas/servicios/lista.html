@@ -1,0 +1,121 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Servicios · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-clipboard2-pulse{% endblock %}
+{% block panel_seccion %}Servicios{% endblock %}
+{% block panel_titulo %}Servicios de la clínica{% endblock %}
+{% block panel_subtitulo %}Duración, precio y veterinarios de cada servicio. Los clientes solo ven los activos al agendar.{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel" href="{% url 'citas:servicio_crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo servicio</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  {# Filtros por GET: la búsqueda queda en la URL y se puede recargar o compartir #}
+  <form class="filtros" method="get" role="search">
+    <div class="buscador">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="visually-hidden" for="buscar-servicio">Buscar</label>
+      <input class="control-panel" type="search" id="buscar-servicio" name="q" value="{{ buscar }}"
+             placeholder="Buscar por nombre o descripción">
+    </div>
+    <label class="visually-hidden" for="filtro-estado">Estado</label>
+    <select class="control-panel filtros__rol" id="filtro-estado" name="estado" onchange="this.form.submit()">
+      <option value="">Todos los estados</option>
+      <option value="activos"{% if estado_elegido == 'activos' %} selected{% endif %}>Activos</option>
+      <option value="inactivos"{% if estado_elegido == 'inactivos' %} selected{% endif %}>Inactivos</option>
+    </select>
+    <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
+  </form>
+
+  <p class="tabla-panel__total">{{ paginator.count }} servicio{{ paginator.count|pluralize }}{% if buscar or estado_elegido %} con estos filtros{% endif %}</p>
+
+  {% if servicios %}
+    <div class="tabla-envoltorio">
+      <table class="tabla-panel">
+        <thead>
+          <tr>
+            <th scope="col">Servicio</th>
+            <th scope="col">Duración</th>
+            <th scope="col">Precio</th>
+            <th scope="col" class="tabla-panel__ocultable">Veterinarios</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="tabla-panel__accion"><span class="visually-hidden">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for servicio in servicios %}
+            {% with veterinarios=servicio.veterinarios.all %}
+            <tr>
+              <td>
+                <span class="tabla-panel__persona">
+                  <span class="inicial" aria-hidden="true"><i class="bi bi-clipboard2-pulse"></i></span>
+                  <span>
+                    <span class="tabla-panel__nombre d-block">{{ servicio.nombre }}</span>
+                    {% if servicio.descripcion %}<span class="tabla-panel__secundario">{{ servicio.descripcion|truncatechars:60 }}</span>{% endif %}
+                  </span>
+                </span>
+              </td>
+              <td class="tabla-panel__num">{{ servicio.duracion_min }} min</td>
+              <td class="tabla-panel__num">${{ servicio.precio|floatformat:2 }}</td>
+              <td class="tabla-panel__ocultable">
+                {% if veterinarios %}
+                  {# Iniciales apiladas: las tres primeras y "+n" con el resto; el nombre completo va en title #}
+                  <span class="iniciales" title="{{ veterinarios|join:', ' }}">
+                    {% for veterinario in veterinarios|slice:':3' %}
+                      <span class="inicial iniciales__una" aria-hidden="true">{{ veterinario.first_name|default:veterinario.username|slice:':1'|upper }}{{ veterinario.last_name|slice:':1'|upper }}</span>
+                    {% endfor %}
+                    {% if veterinarios|length > 3 %}<span class="inicial iniciales__una iniciales__mas" aria-hidden="true">+{{ veterinarios|length|add:'-3' }}</span>{% endif %}
+                    <span class="visually-hidden">{{ veterinarios|join:', ' }}</span>
+                  </span>
+                {% else %}
+                  <span class="tabla-panel__secundario">Sin asignar</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if servicio.activo %}
+                  <span class="estado estado--listo">Activo</span>
+                {% else %}
+                  <span class="estado">Inactivo</span>
+                {% endif %}
+              </td>
+              <td class="tabla-panel__accion">
+                <span class="acciones-fila">
+                  <a class="boton-fila" href="{% url 'citas:servicio_editar' servicio.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar {{ servicio.nombre }}</span></a>
+                  {# Desactivar en vez de borrar: un formulario POST, nunca un enlace #}
+                  <form method="post" action="{% url 'citas:servicio_estado' servicio.pk %}">
+                    {% csrf_token %}
+                    {% if servicio.activo %}
+                      <button type="submit" class="boton-fila" title="Desactivar"><i class="bi bi-pause-circle" aria-hidden="true"></i><span class="visually-hidden">Desactivar {{ servicio.nombre }}</span></button>
+                    {% else %}
+                      <button type="submit" class="boton-fila" title="Activar"><i class="bi bi-play-circle" aria-hidden="true"></i><span class="visually-hidden">Activar {{ servicio.nombre }}</span></button>
+                    {% endif %}
+                  </form>
+                  <a class="boton-fila boton-fila--peligro" href="{% url 'citas:servicio_eliminar' servicio.pk %}" title="Eliminar"><i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Eliminar {{ servicio.nombre }}</span></a>
+                </span>
+              </td>
+            </tr>
+            {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="filtros" aria-label="Páginas">
+        {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if estado_elegido %}&estado={{ estado_elegido }}{% endif %}">Anterior</a>{% endif %}
+        <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if estado_elegido %}&estado={{ estado_elegido }}{% endif %}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% elif buscar or estado_elegido %}
+    <p class="bloque-panel__vacio">Ningún servicio coincide con la búsqueda. Prueba con otro nombre o quita el filtro de estado.</p>
+  {% else %}
+    <p class="bloque-panel__vacio">Todavía no hay servicios. Crea el primero (consulta general, vacunación...) para que los clientes puedan agendar.</p>
+  {% endif %}
+{% endblock %}

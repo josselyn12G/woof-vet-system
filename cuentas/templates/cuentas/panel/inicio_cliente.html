@@ -1,0 +1,195 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Mi panel · Woof{% endblock %}
+
+{% block panel_icono %}bi-grid{% endblock %}
+{% block panel_seccion %}Inicio{% endblock %}
+
+{# Saludo chico y, debajo, el resumen en grande (como la referencia) #}
+{% block panel_titulo %}<span class="saludo-cliente">Hola, {{ user.first_name|default:user.username }}</span>{% if mascotas %}Tienes {{ mascotas|length }} mascota{{ mascotas|length|pluralize }} en Woof{% else %}Registra a tu primera mascota{% endif %}{% endblock %}
+
+{% block panel_contenido %}
+  {# Accesos rápidos: tarjetas grandes con una mascota asomándose; la de "Mis citas" va en naranja #}
+  <nav class="accesos entra entra--1" aria-label="Accesos rápidos">
+    <a class="acceso acceso--agendar" href="{% url 'citas:mis_citas' %}?agendar">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Agendar una cita</span>
+          <span class="acceso__dato">Servicio, día y hora con su doctor</span>
+          <span class="acceso__dato">{{ servicios_disponibles }} servicio{{ servicios_disponibles|pluralize }} disponible{{ servicios_disponibles|pluralize }}</span>
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/caniche.webp' %}" alt="" width="640" height="624" loading="lazy">
+    </a>
+
+    <a class="acceso acceso--citas" href="{% url 'citas:mis_citas' %}">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Mis citas</span>
+          {% if proxima_cita %}
+            <span class="acceso__dato">Próxima: {{ proxima_cita.inicio|date:'D j' }}, {{ proxima_cita.inicio|date:'H:i' }}</span>
+            <span class="acceso__dato">{{ proxima_cita.servicio }} · {{ proxima_cita.mascota }}</span>
+          {% else %}
+            <span class="acceso__dato">No tienes citas próximas</span>
+            <span class="acceso__dato">Aquí verás y cancelarás las tuyas</span>
+          {% endif %}
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/perro-estetoscopio.webp' %}" alt="" width="273" height="432" loading="lazy">
+    </a>
+
+    <a class="acceso acceso--mascotas" href="{% url 'mascotas:lista' %}">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Mis mascotas</span>
+          <span class="acceso__dato">{{ mascotas|length }} registrada{{ mascotas|length|pluralize }}</span>
+          <span class="acceso__dato">Ficha, foto y carnet de vacunas</span>
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/perro-mojado.webp' %}" alt="" width="494" height="595" loading="lazy">
+    </a>
+
+    <a class="acceso acceso--nuevo" href="{% url 'mascotas:crear' %}">
+      <span class="acceso__cabecera">
+        <span class="acceso__texto">
+          <span class="acceso__titulo">Registrar una mascota</span>
+          <span class="acceso__dato">Su ficha queda lista en un minuto</span>
+          <span class="acceso__dato">Nombre, especie, edad y peso</span>
+        </span>
+        <span class="acceso__flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+      </span>
+      <img class="acceso__foto" src="{% static 'img/accesos/gato.webp' %}" alt="" width="434" height="742" loading="lazy">
+    </a>
+  </nav>
+
+  <div class="cliente">
+    {# ================= Columna principal: mis mascotas ================= #}
+    <div class="cliente__principal entra entra--1">
+      <div class="buscador buscador--suave">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="visually-hidden" for="buscar-mascota">Buscar entre tus mascotas</label>
+        <input class="control-panel" type="search" id="buscar-mascota" placeholder="Busca a tu mascota por nombre o raza" data-buscar-mascota>
+      </div>
+
+      <section aria-labelledby="mis-mascotas-titulo">
+        <header class="cliente__cabecera">
+          <h2 class="cliente__titulo" id="mis-mascotas-titulo">Mis mascotas</h2>
+          <a class="paneles__enlace" href="{% url 'mascotas:lista' %}">Ver todas <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </header>
+
+        {% if mascotas %}
+          {# Pestañas por especie: filtran las tarjetas en el navegador (panel-cliente.js) #}
+          <div class="pestanas" role="tablist" aria-label="Filtrar por especie" data-pestanas>
+            <button type="button" class="pestanas__opcion es-activo" role="tab" aria-selected="true" data-especie="">Todas</button>
+            {% for valor, nombre in especies %}
+              <button type="button" class="pestanas__opcion" role="tab" aria-selected="false" data-especie="{{ valor }}">{{ nombre }}s</button>
+            {% endfor %}
+          </div>
+
+          <ul class="fichas" data-fichas>
+            {% for mascota in mascotas %}
+              <li class="ficha-mini{% if forloop.first %} ficha-mini--destacada{% endif %}" data-especie="{{ mascota.especie }}" data-buscar="{{ mascota.nombre|lower }} {{ mascota.raza|lower }}">
+                <a class="ficha-mini__enlace" href="{% url 'mascotas:detalle' mascota.pk %}">
+                  <span class="ficha-mini__cabeza">
+                    <span class="ficha-mini__foto">{% include 'mascotas/_avatar.html' %}</span>
+                    <span class="ficha-mini__identidad">
+                      <span class="ficha-mini__nombre">{{ mascota.nombre }}</span>
+                      <span class="ficha-mini__raza">{{ mascota.raza|default:mascota.get_especie_display }}</span>
+                    </span>
+                    <i class="bi bi-three-dots-vertical ficha-mini__mas" aria-hidden="true"></i>
+                  </span>
+                  <span class="ficha-mini__datos">
+                    {% if mascota.edad %}<span class="ficha-mini__dato"><i class="bi bi-cake2" aria-hidden="true"></i>{{ mascota.edad }}</span>{% endif %}
+                    {% if mascota.peso_kg %}<span class="ficha-mini__dato"><i class="bi bi-speedometer2" aria-hidden="true"></i>{{ mascota.peso_kg }} kg</span>{% endif %}
+                  </span>
+                  <span class="ficha-mini__progreso">
+                    <span class="ficha-mini__progreso-texto"><span>Ficha completa</span><strong>{{ mascota.completa }}%</strong></span>
+                    <span class="ficha-mini__pista"><span class="ficha-mini__barra" style="width: {{ mascota.completa }}%"></span></span>
+                  </span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+          <p class="bloque-panel__vacio" data-sin-resultados hidden>Ninguna mascota coincide con la búsqueda.</p>
+        {% else %}
+          <a class="ficha-nueva" href="{% url 'mascotas:crear' %}">
+            <span class="ficha-nueva__icono" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
+            <span>
+              <span class="ficha-nueva__titulo">Registra a tu primera mascota</span>
+              <span class="ficha-nueva__texto">Con su ficha vas a tener su edad, su peso y su carnet de vacunas siempre a mano.</span>
+            </span>
+          </a>
+        {% endif %}
+      </section>
+    </div>
+
+    {# ================= Columna lateral: perfil, agendar y hoy ================= #}
+    <aside class="cliente__lateral entra entra--2" aria-label="Tu día">
+      <div class="perfil-mini">
+        <span class="panel-menu__avatar" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
+        <span>
+          <span class="perfil-mini__nombre">{{ user.get_full_name|default:user.username }}</span>
+          <span class="perfil-mini__rol">{{ user.get_rol_display }}</span>
+        </span>
+      </div>
+
+      {# La acción principal del cliente (se habilita con el Core de citas) #}
+      <div class="agendar-tarjeta">
+        <span>
+          <span class="agendar-tarjeta__titulo">Agendar una cita</span>
+          <span class="agendar-tarjeta__texto">Elige el servicio, el veterinario y una hora libre.</span>
+        </span>
+        <a class="agendar-tarjeta__boton" href="{% url 'citas:mis_citas' %}?agendar" title="Agendar una cita"><i class="bi bi-calendar-plus" aria-hidden="true"></i><span class="visually-hidden">Agendar una cita</span></a>
+      </div>
+
+      <section class="hoy-cliente" aria-labelledby="hoy-titulo">
+        <header class="hoy-cliente__cabecera">
+          <div>
+            <p class="hoy-cliente__fecha">{{ hoy|date:'j \d\e F, Y' }}</p>
+            <h2 class="hoy-cliente__titulo" id="hoy-titulo">Hoy</h2>
+          </div>
+          <a class="boton-panel boton-panel--oscuro" href="{% url 'mascotas:crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar mascota</a>
+        </header>
+
+        {# La semana, con hoy marcado #}
+        <ol class="semana-mini" aria-label="Esta semana">
+          {% for dia in semana %}
+            <li class="semana-mini__dia{% if dia == hoy %} es-hoy{% endif %}"{% if dia == hoy %} aria-current="date"{% endif %}>
+              <span class="semana-mini__nombre">{{ dia|date:'D'|slice:':3' }}</span>
+              <span class="semana-mini__numero">{{ dia|date:'j' }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+
+        {# Próximas citas en una línea de tiempo #}
+        <ol class="linea-citas">
+          {% for cita in proximas_citas %}
+            <li class="linea-citas__item">
+              <span class="linea-citas__punto" aria-hidden="true"></span>
+              <a class="linea-citas__tarjeta" href="{% url 'citas:mis_citas' %}">
+                <p class="linea-citas__titulo">{{ cita.servicio }} · {{ cita.mascota }}</p>
+                <p class="linea-citas__texto">{{ cita.inicio|date:'l j \d\e F' }}, {{ cita.inicio|date:'H:i' }} · {{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</p>
+              </a>
+            </li>
+          {% empty %}
+            <li class="linea-citas__item">
+              <span class="linea-citas__punto" aria-hidden="true"></span>
+              <div class="linea-citas__tarjeta">
+                <p class="linea-citas__titulo">Sin citas próximas</p>
+                <p class="linea-citas__texto">Cuando agendes una cita, aquí verás el día, la hora, el veterinario y el servicio.</p>
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    </aside>
+  </div>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'js/panel-cliente.js' %}" defer></script>
+{% endblock %}

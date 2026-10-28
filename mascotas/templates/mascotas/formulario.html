@@ -1,21 +1,23 @@
-{% extends 'base.html' %}
+{% extends 'panel_base.html' %}
 {% load static %}
+
+{# Dentro del panel (sidebar o navegación de arriba). Las pantallas de mascotas traen su propio encabezado y sus avisos #}
+{% block panel_icono %}bi-heart{% endblock %}
+{% block panel_seccion %}Mis mascotas{% endblock %}
+{% block panel_cabecera %}{% endblock %}
+{% block panel_avisos %}{% endblock %}
 
 {# Una sola plantilla para crear y editar: al editar, la vista envía "mascota" y "nombre_original" #}
 {% block titulo %}{% if mascota %}Editar a {{ nombre_original }}{% else %}Registrar mascota{% endif %} · Woof{% endblock %}
 
-{% block estilos %}
+{% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
 {% endblock %}
 
-{% block contenido %}
-  <a class="enlace-volver" href="{% if mascota %}{% url 'mascotas:detalle' mascota.pk %}{% else %}{% url 'mascotas:lista' %}{% endif %}">
-    <i class="bi bi-arrow-left" aria-hidden="true"></i>{% if mascota %}{{ nombre_original }}{% else %}Mis mascotas{% endif %}
-  </a>
-
+{% block panel_contenido %}
   <div class="formulario-mascota">
     <header class="formulario-mascota__cabecera">
-      <p class="sobretitulo mb-1">{% if mascota %}Actualiza su ficha{% else %}Nuevo integrante{% endif %}</p>
+      <a class="boton-volver" href="{% if mascota %}{% url 'mascotas:detalle' mascota.pk %}{% else %}{% url 'mascotas:lista' %}{% endif %}" aria-label="Volver" title="Volver"><i class="bi bi-arrow-left" aria-hidden="true"></i></a>
       <h1 class="formulario-mascota__titulo">{% if mascota %}Editar a {{ nombre_original }}{% else %}Registrar mascota{% endif %}</h1>
       <p class="formulario-mascota__ayuda">Los campos con <span class="campo-mascota__obligatorio">*</span> son obligatorios.</p>
     </header>
@@ -95,6 +97,6 @@
   </div>
 {% endblock %}
 
-{% block scripts %}
+{% block panel_scripts %}
   <script src="{% static 'mascotas/js/vista-previa-foto.js' %}" defer></script>
 {% endblock %}
