@@ -71,7 +71,7 @@ El proyecto se despliega en **Render** como *Web Service* (la base sigue en Neon
 | Build Command | `./build.sh` (instala, junta los estáticos y corre las migraciones) |
 | Start Command | `gunicorn config.wsgi:application` |
 
-Variables de entorno: `DATABASE_URL`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` y `PYTHON_VERSION=3.12.10`. El dominio `*.onrender.com` se agrega solo a `ALLOWED_HOSTS` (variable `RENDER_EXTERNAL_HOSTNAME`).
+Variables de entorno: `DATABASE_URL`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DJANGO_DOBLE_FACTOR=False` (el plan gratuito bloquea el SMTP, así que el código de acceso no llegaría) y `PYTHON_VERSION=3.12.10`. El dominio `*.onrender.com` se agrega solo a `ALLOWED_HOSTS` (variable `RENDER_EXTERNAL_HOSTNAME`).
 
 Si el repo se conectó como *Public Git Repository*, Render no despliega solo: hay que entrar y pulsar **Manual Deploy → Deploy latest commit**.
 
