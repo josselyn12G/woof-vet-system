@@ -205,7 +205,7 @@ git branch -D release/0.2.0 chore/traer-v0.2.0
 - Las ramas remotas se borran solas al fusionar el PR; `git push origin --delete ...` no hace falta (da `remote ref does not exist`).
 - Si en la rama de release hay que corregir algo (como pasó con `commitlint.config.mjs` en la `v0.1.0`), se hace en esa misma rama; el paso 4 lo lleva a `develop`.
 
-**Versiones** ([SemVer](https://semver.org/lang/es/)): `0.x` mientras el proyecto está en desarrollo. `v0.1.0` = Entrega 1, `v0.2.0` = Fase 2, `v0.3.0` = Fase 3, `v1.0.0` = proyecto final. Un arreglo urgente sube el último número (`v0.1.1`).
+**Versiones** ([SemVer](https://semver.org/lang/es/)): `0.x` mientras el proyecto está en desarrollo. cada entrega con funciones nuevas sube el número del medio, en el orden en que se terminan: `v0.1.0` = Entrega 1, `v0.2.0` = roles y citas, `v1.0.0` = proyecto final. Un arreglo urgente sube el último número (`v0.1.1`).
 
 ### 4.3 Hotfix (bug urgente en producción)
 
