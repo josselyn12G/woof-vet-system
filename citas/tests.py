@@ -14,7 +14,7 @@ from cuentas.models import Roles
 from mascotas.tests import crear_mascota, crear_usuario
 
 from .models import Cita, EstadoCita, HorarioVeterinario, Servicio
-from .services import TURNO_OCUPADO, AgendaService
+from .services import TURNO_OCUPADO, AgendaService, EstadisticasService, HorarioService
 
 
 def crear_veterinario(username='sofia', **datos):
@@ -780,3 +780,54 @@ class PacientesTests(TestCase):
         self.firulais.foto = b'imagen'
         self.firulais.save()
         self.assertEqual(self.client.get(reverse('mascotas:foto', args=[self.firulais.pk])).status_code, 200)
+
+
+# ---------------------------------------------------------------------------
+# Servicios del horario y de las estadísticas (fuera de las vistas)
+# ---------------------------------------------------------------------------
+class HorarioServiceTests(TestCase):
+    """Copiar la semana y guardar los servicios que atiende, probados sin pasar por la vista."""
+
+    def setUp(self):
+        self.sofia = crear_veterinario()
+        hoy = timezone.localdate()
+        self.siguiente = hoy - timedelta(days=hoy.weekday()) + timedelta(days=7)   # el lunes que viene
+        self.anterior = self.siguiente - timedelta(days=7)
+
+    def test_copiar_semana_devuelve_copiados_y_omitidos(self):
+        crear_horario(self.sofia, time(9), time(12), fecha=self.anterior + timedelta(days=4))
+        crear_horario(self.sofia, time(14), time(18), fecha=self.anterior + timedelta(days=2))
+        # ya hay un bloque que se cruza con el de las 14:00: ese se omite
+        crear_horario(self.sofia, time(15), time(16), fecha=self.siguiente + timedelta(days=2))
+        self.assertEqual(HorarioService.copiar_semana(self.sofia, self.siguiente), (1, 1))
+
+    def test_copiar_sin_bloques_en_la_semana_anterior(self):
+        with self.assertRaisesMessage(ValidationError, 'La semana anterior no tiene bloques para copiar.'):
+            HorarioService.copiar_semana(self.sofia, self.siguiente)
+
+    def test_guardar_servicios_conserva_los_inactivos(self):
+        consulta = crear_servicio()
+        inactivo = crear_servicio(nombre='Peluquería', activo=False)
+        inactivo.veterinarios.add(self.sofia)
+        HorarioService.guardar_servicios(self.sofia, [consulta])
+        self.assertEqual(set(self.sofia.servicios.all()), {consulta, inactivo})
+
+
+class EstadisticasServiceTests(TestCase):
+    """Las cifras de la portada del veterinario se calculan sin pasar por la vista."""
+
+    def test_cifras_del_periodo_y_del_anterior(self):
+        veterinario = crear_veterinario()
+        servicio = crear_servicio()
+        mascota = crear_mascota(crear_usuario('ana'))
+        hoy = timezone.localdate()
+        for dias_atras, estado in ((1, EstadoCita.ATENDIDA), (2, EstadoCita.CANCELADA), (10, EstadoCita.ATENDIDA)):
+            inicio = timezone.make_aware(timezone.datetime.combine(hoy - timedelta(days=dias_atras), time(10)))
+            Cita.objects.create(mascota=mascota, veterinario=veterinario, servicio=servicio, inicio=inicio,
+                                fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'), estado=estado)
+
+        cifras = EstadisticasService.del_veterinario(veterinario, hoy - timedelta(days=6), hoy)
+        self.assertEqual(len(cifras['fechas']), 7)
+        self.assertEqual(cifras['actual']['citas'], 1)        # la cancelada no cuenta
+        self.assertEqual(cifras['actual']['ganancias'], Decimal('25.00'))
+        self.assertEqual(cifras['anterior']['atendidas'], 1)   # la de hace 10 días es del período anterior

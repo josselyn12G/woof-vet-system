@@ -1,12 +1,12 @@
 import csv
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import BooleanField, ExpressionWrapper, Q, Sum
+from django.db.models import BooleanField, ExpressionWrapper, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -14,7 +14,8 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
 
-from citas.models import Cita, EstadoCita, HorarioVeterinario, Servicio
+from citas.models import Cita, EstadoCita, Servicio
+from citas.services import EstadisticasService
 from cuentas.forms import RegistroForm, UsuarioRolForm, VerificarCodigoForm
 from cuentas.mixins import AdministradorRequeridoMixin, ClienteRequeridoMixin, VeterinarioRequeridoMixin
 from cuentas.models import Roles
@@ -84,45 +85,13 @@ class InicioVeterinarioView(VeterinarioRequeridoMixin, TemplateView):
         contexto['periodos'] = [(valor, nombre) for valor, (nombre, _) in periodos.items()]
         contexto['periodo'] = clave
 
-        # Período actual (los últimos N días, hasta hoy) y el anterior del mismo largo, para comparar
-        desde = hoy - timedelta(days=dias - 1)
-        desde_anterior = desde - timedelta(days=dias)
-        mis_citas = Cita.objects.filter(veterinario=self.request.user).exclude(estado=EstadoCita.CANCELADA)
-        del_periodo = mis_citas.filter(inicio__date__range=(desde, hoy))
-        del_anterior = mis_citas.filter(inicio__date__range=(desde_anterior, desde - timedelta(days=1)))
-
-        # Citas por día para el gráfico (las canceladas no cuentan: no ocuparon tiempo)
-        fechas = [desde + timedelta(days=i) for i in range(dias)]
-        por_dia = {fecha: 0 for fecha in fechas}
-        for inicio in del_periodo.values_list('inicio', flat=True):
-            por_dia[timezone.localtime(inicio).date()] += 1
-        citas_por_dia = [por_dia[fecha] for fecha in fechas]
-
-        # Ocupación: minutos con cita sobre los minutos de horario publicado en el período
-        minutos_citas = sum((fin - inicio).total_seconds() / 60 for inicio, fin in del_periodo.values_list('inicio', 'fin'))
-        minutos_horario = sum(
-            (datetime.combine(hoy, fin) - datetime.combine(hoy, inicio)).total_seconds() / 60
-            for inicio, fin in HorarioVeterinario.objects
-            .filter(veterinario=self.request.user, fecha__range=(desde, hoy))
-            .values_list('hora_inicio', 'hora_fin')
-        )
-
-        def contar(consulta, estado=None):
-            return consulta.filter(estado=estado).count() if estado else consulta.count()
-
-        contexto['estadisticas'] = {
-            'citas': sum(citas_por_dia),
-            'atendidas': contar(del_periodo, EstadoCita.ATENDIDA),
-            'ocupacion': round(minutos_citas * 100 / minutos_horario) if minutos_horario else 0,
-            'no_asistio': contar(del_periodo, EstadoCita.NO_ASISTIO),
-            # suma del precio copiado en las citas atendidas del período
-            'ganancias': del_periodo.filter(estado=EstadoCita.ATENDIDA).aggregate(total=Sum('precio'))['total'] or 0,
-        }
+        # Las cifras de los últimos N días (hasta hoy) y del período anterior las calcula el servicio de citas
+        cifras = EstadisticasService.del_veterinario(self.request.user, hoy - timedelta(days=dias - 1), hoy)
+        contexto['estadisticas'] = cifras['actual']
         # Cambio frente al período anterior (sin datos anteriores no se inventa un porcentaje)
         contexto['variaciones'] = {
-            'citas': variacion(contexto['estadisticas']['citas'], contar(del_anterior)),
-            'atendidas': variacion(contexto['estadisticas']['atendidas'], contar(del_anterior, EstadoCita.ATENDIDA)),
-            'no_asistio': variacion(contexto['estadisticas']['no_asistio'], contar(del_anterior, EstadoCita.NO_ASISTIO)),
+            nombre: variacion(cifras['actual'][nombre], cifras['anterior'][nombre])
+            for nombre in ('citas', 'atendidas', 'no_asistio')
         }
         contexto['servicios_que_atiendo'] = self.request.user.servicios.filter(activo=True).count()
 
@@ -149,7 +118,7 @@ class InicioVeterinarioView(VeterinarioRequeridoMixin, TemplateView):
         ]
         contexto['agenda_inicio'], contexto['agenda_fin'] = inicio_agenda, fin_agenda
         contexto['horas_agenda'] = [f'{hora:02d}:00' for hora in range(inicio_agenda, fin_agenda)]
-        contexto['grafico'] = grafico_de_linea(fechas, citas_por_dia)
+        contexto['grafico'] = grafico_de_linea(cifras['fechas'], cifras['citas_por_dia'])
         return contexto
 
 

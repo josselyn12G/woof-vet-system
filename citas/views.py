@@ -18,7 +18,7 @@ from mascotas.models import Mascota
 
 from .forms import AgendarCitaForm, HorarioForm, MisServiciosForm, ServicioForm
 from .models import Cita, EstadoCita, HorarioVeterinario, Servicio
-from .services import AgendaService
+from .services import AgendaService, HorarioService
 
 # Filtro de estado del catálogo: valor en la URL -> condición
 ESTADOS_SERVICIO = {'activos': True, 'inactivos': False}
@@ -220,24 +220,11 @@ class CopiarSemanaView(VeterinarioRequeridoMixin, View):
 
     def post(self, request):
         lunes = semana_pedida(request.POST.get('semana'))
-        hoy = timezone.localdate()
-        propios = HorarioVeterinario.objects.filter(veterinario=request.user)
-        anteriores = propios.filter(fecha__range=(lunes - timedelta(days=7), lunes - timedelta(days=1)))
-        if not anteriores:
-            messages.error(request, 'La semana anterior no tiene bloques para copiar.')
+        try:
+            copiados, omitidos = HorarioService.copiar_semana(request.user, lunes)
+        except ValidationError as error:
+            messages.error(request, error.messages[0])
             return redirect(url_semana(lunes))
-
-        copiados = omitidos = 0
-        for bloque in anteriores:
-            nuevo = HorarioVeterinario(veterinario=request.user, fecha=bloque.fecha + timedelta(days=7),
-                                       hora_inicio=bloque.hora_inicio, hora_fin=bloque.hora_fin)
-            cruza = propios.filter(fecha=nuevo.fecha, hora_inicio__lt=nuevo.hora_fin,
-                                   hora_fin__gt=nuevo.hora_inicio).exists()
-            if nuevo.fecha < hoy or cruza:
-                omitidos += 1
-                continue
-            nuevo.save()
-            copiados += 1
 
         if copiados:
             texto = f'Se copiaron {copiados} bloque{"s" if copiados != 1 else ""} de la semana anterior.'
@@ -259,9 +246,7 @@ class MisServiciosView(VeterinarioRequeridoMixin, View):
         if not formulario.is_valid():
             messages.error(request, 'Elige servicios de la lista.')
             return redirect(destino)
-        # Los servicios desactivados no se muestran en las casillas, así que se conservan como estaban
-        inactivos = list(request.user.servicios.filter(activo=False))
-        request.user.servicios.set(list(formulario.cleaned_data['servicios']) + inactivos)
+        HorarioService.guardar_servicios(request.user, formulario.cleaned_data['servicios'])
         cantidad = len(formulario.cleaned_data['servicios'])
         messages.success(request, f'Ahora atiendes {cantidad} servicio{"s" if cantidad != 1 else ""}.')
         return redirect(destino)
