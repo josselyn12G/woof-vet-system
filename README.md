@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-196%20pasan-2e7d32" alt="196 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-200%20pasan-2e7d32" alt="200 pruebas pasan">
 </p>
 
 <p align="center">
@@ -172,13 +172,13 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-196 pruebas:
+200 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
 | `cuentas` | 40 | Modelo de usuario, cédula, registro, login, doble factor y acceso por rol |
 | `mascotas` | 59 | CRUD, acceso sin sesión, mascotas de otro dueño y fotos |
-| `citas` | 97 | Servicios, horario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes y acceso por rol |
+| `citas` | 101 | Servicios, horario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes y acceso por rol |
 
 Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 
