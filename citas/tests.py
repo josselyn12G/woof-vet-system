@@ -995,3 +995,58 @@ class MiSemanaTests(TestCase):
     def test_una_semana_inventada_vuelve_a_la_actual(self):
         respuesta = self.client.get(reverse('cuentas:inicio_veterinario'), {'semana': 'nada'})
         self.assertTrue(respuesta.context['semana']['es_semana_actual'])
+
+
+class AgendaDelDiaTests(TestCase):
+    """La agenda del veterinario: foto de la mascota, resumen por estado, la semana y las citas por cerrar."""
+
+    def setUp(self):
+        self.sofia = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.mascota = crear_mascota(crear_usuario('ana'), nombre='Firulais')
+        self.ayer = timezone.localdate() - timedelta(days=1)
+        self.client.force_login(self.sofia)
+
+    def cita(self, hora, **datos):
+        inicio = timezone.make_aware(datetime.combine(self.ayer, hora))
+        return Cita.objects.create(mascota=self.mascota, veterinario=self.sofia, servicio=self.servicio, inicio=inicio,
+                                   fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'), **datos)
+
+    def agenda(self):
+        return self.client.get(reverse('citas:agenda'), {'fecha': self.ayer.isoformat()})
+
+    def test_muestra_la_foto_de_la_mascota(self):
+        self.mascota.foto = b'imagen'
+        self.mascota.save()
+        self.cita(time(9))
+        self.assertContains(self.agenda(), reverse('mascotas:foto', args=[self.mascota.pk]))
+
+    def test_sin_foto_muestra_la_inicial(self):
+        self.cita(time(9))
+        respuesta = self.agenda()
+        self.assertNotContains(respuesta, reverse('mascotas:foto', args=[self.mascota.pk]))
+        self.assertContains(respuesta, 'avatar-inicial')
+
+    def test_resumen_y_avance_del_dia(self):
+        self.cita(time(9), estado=EstadoCita.ATENDIDA)
+        self.cita(time(10), estado=EstadoCita.NO_ASISTIO)
+        self.cita(time(11))
+        self.cita(time(12), estado=EstadoCita.CANCELADA)
+        contexto = self.agenda().context
+        self.assertEqual(contexto['activas'], 3)
+        self.assertEqual(contexto['resumen'], {'por_atender': 1, 'atendidas': 1, 'no_asistio': 1, 'canceladas': 1,
+                                               'avance': 67})
+
+    def test_una_cita_que_ya_empezo_queda_por_cerrar(self):
+        self.cita(time(9))
+        respuesta = self.agenda()
+        self.assertTrue(respuesta.context['citas'][0].puede_cerrarse)
+        self.assertContains(respuesta, 'Por cerrar')
+
+    def test_la_semana_cuenta_las_citas_de_cada_dia(self):
+        self.cita(time(9))
+        self.cita(time(10), estado=EstadoCita.CANCELADA)   # las canceladas no cuentan
+        semana = self.agenda().context['semana_agenda']
+        self.assertEqual(len(semana), 7)
+        elegido = next(dia for dia in semana if dia['es_elegido'])
+        self.assertEqual((elegido['fecha'], elegido['citas']), (self.ayer, 1))
