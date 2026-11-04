@@ -1,0 +1,96 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Horarios · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-clock-history{% endblock %}
+{% block panel_seccion %}Horarios{% endblock %}
+{% block panel_titulo %}Horarios de la clínica{% endblock %}
+{% block panel_subtitulo %}{% if not resumen.veterinarios %}Todavía no hay veterinarios activos.{% elif resumen.con_horario == resumen.veterinarios %}Los {{ resumen.veterinarios }} veterinario{{ resumen.veterinarios|pluralize }} publicaron su horario esta semana.{% else %}{{ resumen.con_horario }} de {{ resumen.veterinarios }} veterinario{{ resumen.veterinarios|pluralize }} publicaron horario esta semana. Cada veterinario carga el suyo en «Mi horario».{% endif %}{% endblock %}
+
+{% block panel_contenido %}
+  <section class="estadisticas entra entra--1" aria-label="Resumen de la semana">
+    <div class="tira-cifras">
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-person-check" aria-hidden="true"></i>Con horario</p>
+        <p class="cifra__fila"><span class="cifra__valor">{{ resumen.con_horario }}<small class="cifra__de"> de {{ resumen.veterinarios }}</small></span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-clock" aria-hidden="true"></i>Horas publicadas</p>
+        <p class="cifra__fila"><span class="cifra__valor">{{ resumen.horas }}</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-calendar-check" aria-hidden="true"></i>Citas de la semana</p>
+        <p class="cifra__fila"><span class="cifra__valor" data-contar="{{ resumen.citas }}">{{ resumen.citas }}</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-speedometer2" aria-hidden="true"></i>Ocupación</p>
+        <p class="cifra__fila"><span class="cifra__valor"><span data-contar="{{ resumen.ocupacion }}">{{ resumen.ocupacion }}</span>%</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque-panel semana-clinica entra entra--2" aria-labelledby="semana-titulo">
+    <header class="semana__cabecera">
+      <a class="boton-fila" href="?semana={{ semana_anterior|date:'Y-m-d' }}" title="Semana anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i><span class="visually-hidden">Semana anterior</span></a>
+      <div class="semana__rango">
+        <h2 class="bloque-panel__titulo" id="semana-titulo">{{ lunes|date:'j M' }} – {{ domingo|date:'j M Y' }}</h2>
+        <p class="bloque-panel__meta">{{ resumen.horas }} de atención{% if not es_semana_actual %} · <a class="bloque-panel__enlace" href="{% url 'citas:gestion_horarios' %}">Ir a esta semana</a>{% endif %}</p>
+      </div>
+      <a class="boton-fila" href="?semana={{ semana_siguiente|date:'Y-m-d' }}" title="Semana siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i><span class="visually-hidden">Semana siguiente</span></a>
+    </header>
+
+    {% if filas %}
+      {# Una fila por veterinario y una columna por día: se lee de izquierda a derecha como un calendario #}
+      <div class="grilla-clinica" role="table" aria-label="Horario de cada veterinario por día">
+        <div class="grilla-clinica__fila grilla-clinica__fila--cabecera" role="row">
+          <span class="grilla-clinica__vet" role="columnheader">Veterinario</span>
+          {% for dia in fechas %}
+            <span class="grilla-clinica__dia{% if dia.es_hoy %} es-hoy{% endif %}{% if dia.ya_paso %} ya-paso{% endif %}" role="columnheader">
+              <span class="grilla-clinica__nombre">{{ dia.fecha|date:'D' }}</span>
+              <span class="grilla-clinica__numero">{{ dia.fecha|date:'j' }}</span>
+            </span>
+          {% endfor %}
+        </div>
+
+        {% for fila in filas %}
+          <div class="grilla-clinica__fila{% if fila.sin_horario %} sin-horario{% endif %}" role="row">
+            <div class="grilla-clinica__vet" role="rowheader">
+              <span class="inicial inicial--veterinario" aria-hidden="true">{{ fila.veterinario.first_name|default:fila.veterinario.username|slice:':1'|upper }}{{ fila.veterinario.last_name|slice:':1'|upper }}</span>
+              <span class="grilla-clinica__persona">
+                <span class="tabla-panel__nombre">{{ fila.veterinario.get_full_name|default:fila.veterinario.username }}</span>
+                {% if fila.sin_horario %}
+                  <span class="estado">Sin horario</span>
+                {% else %}
+                  <span class="tabla-panel__secundario">{{ fila.total }} · {{ fila.citas }} cita{{ fila.citas|pluralize }} · {{ fila.ocupacion }}%</span>
+                {% endif %}
+                {% if fila.servicios %}
+                  <span class="grilla-clinica__servicios" title="{{ fila.servicios|join:', ' }}">{% for servicio in fila.servicios|slice:':2' %}<span>{{ servicio }}</span>{% endfor %}{% if fila.servicios|length > 2 %}<span>+{{ fila.servicios|length|add:'-2' }}</span>{% endif %}</span>
+                {% else %}
+                  <span class="grilla-clinica__aviso"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>Sin servicios asignados</span>
+                {% endif %}
+              </span>
+            </div>
+            {% for dia in fila.dias %}
+              <div class="grilla-clinica__celda{% if dia.es_hoy %} es-hoy{% endif %}{% if dia.ya_paso %} ya-paso{% endif %}" role="cell">
+                <span class="visually-hidden">{{ dia.fecha|date:'l j' }}:</span>
+                {% for bloque in dia.bloques %}
+                  <span class="bloque-clinica" title="{{ bloque.duracion }}">{{ bloque.hora_inicio|time:'H:i' }}<span aria-hidden="true">–</span><span class="visually-hidden"> a </span>{{ bloque.hora_fin|time:'H:i' }}</span>
+                {% empty %}
+                  <span class="grilla-clinica__vacio" aria-label="No atiende">—</span>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="bloque-panel__vacio">Todavía no hay veterinarios activos. {% if user.es_superadmin %}<a class="bloque-panel__enlace" href="{% url 'cuentas:equipo_crear' %}?rol=veterinario">Crea el primero</a>.{% else %}Pídele al superadministrador que cree sus cuentas.{% endif %}</p>
+    {% endif %}
+  </section>
+{% endblock %}
