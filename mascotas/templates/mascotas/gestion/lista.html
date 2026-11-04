@@ -1,0 +1,99 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Mascotas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-heart{% endblock %}
+{% block panel_seccion %}Mascotas{% endblock %}
+{% block panel_titulo %}Mascotas de la clínica{% endblock %}
+{% block panel_subtitulo %}{{ resumen.total }} ficha{{ resumen.total|pluralize }} registrada{{ resumen.total|pluralize }} por sus dueños{% if resumen.nuevas %}, {{ resumen.nuevas }} en los últimos 30 días{% endif %}. Busca por la mascota o por el nombre, la cédula o el teléfono del dueño.{% endblock %}
+
+{% block panel_contenido %}
+  <section class="estadisticas entra entra--1" aria-label="Mascotas por especie">
+    <div class="tira-cifras">
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-heart" aria-hidden="true"></i>Total</p>
+        <p class="cifra__fila">
+          <span class="cifra__valor" data-contar="{{ resumen.total }}">{{ resumen.total }}</span>
+          {% if resumen.nuevas %}<span class="variacion variacion--nuevo" title="Últimos 30 días">+{{ resumen.nuevas }} nuevas</span>{% endif %}
+        </p>
+      </div>
+      {% for valor, nombre, cantidad in resumen.por_especie %}
+        <div class="cifra">
+          <p class="cifra__etiqueta"><span class="punto-especie punto-especie--{{ valor }}" aria-hidden="true"></span>{% if valor == 'otro' %}Otras especies{% else %}{{ nombre }}s{% endif %}</p>
+          <p class="cifra__fila"><span class="cifra__valor" data-contar="{{ cantidad }}">{{ cantidad }}</span></p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# Búsqueda por GET: queda en la URL y se puede recargar #}
+  <form class="filtros entra entra--2" method="get" role="search">
+    <div class="buscador">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="visually-hidden" for="buscar-mascota">Buscar</label>
+      <input class="control-panel" type="search" id="buscar-mascota" name="q" value="{{ buscar }}"
+             placeholder="Mascota, dueño, cédula o teléfono">
+    </div>
+    {# Especie en chips: una sola elegida, como radios #}
+    <fieldset class="chips-filtro">
+      <legend class="visually-hidden">Especie</legend>
+      <label class="chip-filtro"><input type="radio" name="especie" value=""{% if not especie_elegida %} checked{% endif %} onchange="this.form.submit()"><span>Todas</span></label>
+      {% for valor, nombre, cantidad in resumen.por_especie %}
+        <label class="chip-filtro"><input type="radio" name="especie" value="{{ valor }}"{% if valor == especie_elegida %} checked{% endif %} onchange="this.form.submit()"><span>{{ nombre }}</span></label>
+      {% endfor %}
+    </fieldset>
+    <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
+  </form>
+
+  <p class="tabla-panel__total">{{ paginator.count }} mascota{{ paginator.count|pluralize }}{% if buscar or especie_elegida %} con estos filtros{% endif %}</p>
+
+  {% if mascotas %}
+    <ul class="pacientes entra entra--3">
+      {% for mascota in mascotas %}
+        {# La misma tarjeta tipo foto de Pacientes; toda la tarjeta abre la ficha #}
+        <li class="paciente paciente--enlace foto-mascota foto-mascota--{{ mascota.especie }}">
+          {% include 'mascotas/_avatar.html' %}
+
+          <span class="paciente__especie">{{ mascota.get_especie_display }}</span>
+          {% if mascota.total_citas %}<span class="paciente__citas">{{ mascota.total_citas }} cita{{ mascota.total_citas|pluralize }}</span>{% endif %}
+
+          <div class="paciente__pie">
+            <p class="paciente__dueno">
+              <i class="bi bi-person-fill" aria-hidden="true"></i>
+              <strong>{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}</strong>
+              <span>{{ mascota.dueno.telefono }}</span>
+            </p>
+            <div class="paciente__barra">
+              <span class="paciente__datos">
+                <strong>{{ mascota.nombre }}</strong>
+                <span>{{ mascota.raza|default:mascota.get_especie_display }}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}{% if mascota.peso_kg %} · {{ mascota.peso_kg }} kg{% endif %}</span>
+              </span>
+              <a class="paciente__llamar paciente__ver" href="{% url 'mascotas:gestion_detalle' mascota.pk %}">
+                Ver ficha<i class="bi bi-arrow-right" aria-hidden="true"></i><span class="visually-hidden"> de {{ mascota.nombre }}</span>
+              </a>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% if is_paginated %}
+      <nav class="filtros" aria-label="Páginas">
+        {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if especie_elegida %}&especie={{ especie_elegida }}{% endif %}">Anterior</a>{% endif %}
+        <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if especie_elegida %}&especie={{ especie_elegida }}{% endif %}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% elif buscar or especie_elegida %}
+    <p class="bloque-panel__vacio">Ninguna mascota coincide con la búsqueda. Prueba con otro nombre, la cédula o el teléfono del dueño.</p>
+  {% else %}
+    <p class="bloque-panel__vacio">Todavía no hay mascotas registradas. Aparecen aquí cuando los clientes las registran desde su panel.</p>
+  {% endif %}
+{% endblock %}

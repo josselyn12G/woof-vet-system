@@ -456,3 +456,42 @@ class FotoMascotaTests(TestCase):
         self.client.post(reverse('mascotas:crear'), datos_validos())
         michi = Mascota.objects.get(nombre='Michi')
         self.assertEqual(self.client.get(reverse('mascotas:foto', args=[michi.pk])).status_code, 404)
+
+
+class GestionMascotasTests(TestCase):
+    """El administrador ve todas las mascotas con su dueño; un cliente o un veterinario no entran (403)."""
+
+    def setUp(self):
+        self.administrador = crear_usuario('laura', rol='administrador')
+        self.ana = crear_usuario('ana', first_name='Ana')
+        self.firulais = crear_mascota(self.ana, nombre='Firulais')
+        self.michi = crear_mascota(crear_usuario('luis'), nombre='Michi', especie=Especies.GATO)
+        self.client.force_login(self.administrador)
+
+    def test_solo_entra_quien_gestiona_la_clinica(self):
+        for usuario in (self.ana, crear_usuario('sofia', rol='veterinario')):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('mascotas:gestion')).status_code, 403)
+                self.assertEqual(self.client.get(reverse('mascotas:gestion_detalle', args=[self.firulais.pk])).status_code, 403)
+
+    def test_ve_las_mascotas_de_todos_los_duenos(self):
+        respuesta = self.client.get(reverse('mascotas:gestion'))
+        self.assertEqual(list(respuesta.context['mascotas']), [self.firulais, self.michi])
+        self.assertEqual(respuesta.context['resumen']['total'], 2)
+
+    def test_busca_por_el_dueno_y_filtra_por_especie(self):
+        url = reverse('mascotas:gestion')
+        self.assertEqual(list(self.client.get(url, {'q': self.ana.cedula}).context['mascotas']), [self.firulais])
+        self.assertEqual(list(self.client.get(url, {'especie': 'gato'}).context['mascotas']), [self.michi])
+        self.assertEqual(len(self.client.get(url, {'especie': 'dragon'}).context['mascotas']), 2)
+
+    def test_la_ficha_de_cualquier_mascota(self):
+        respuesta = self.client.get(reverse('mascotas:gestion_detalle', args=[self.michi.pk]))
+        self.assertContains(respuesta, 'Michi')
+        self.assertEqual(self.client.get(reverse('mascotas:gestion_detalle', args=[999])).status_code, 404)
+
+    def test_el_administrador_ve_la_foto(self):
+        self.firulais.foto = b'imagen'
+        self.firulais.save()
+        self.assertEqual(self.client.get(reverse('mascotas:foto', args=[self.firulais.pk])).status_code, 200)

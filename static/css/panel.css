@@ -712,6 +712,10 @@ button.panel-barra__boton:hover {
   background: var(--woof-marron);
 }
 
+.reparto__parte--superadmin {
+  background: #2b2522;
+}
+
 .reparto__leyenda {
   display: flex;
   flex-wrap: wrap;

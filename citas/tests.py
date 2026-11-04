@@ -1,4 +1,4 @@
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -355,7 +355,7 @@ class MiHorarioTests(TestCase):
         bloques = [bloque for dia in respuesta.context['dias'] for bloque in dia['bloques']]
         self.assertEqual([bloque.veterinario for bloque in bloques], [self.sofia])
         self.assertEqual(respuesta.context['total_semana'], '3 h')
-        self.assertNotContains(respuesta, '15:00')
+        self.assertNotContains(respuesta, '15:00 – 18:00')   # el bloque de Mateo no aparece
 
     def test_la_semana_elegida_por_la_url(self):
         siguiente = self.lunes + timedelta(days=7)
@@ -831,3 +831,167 @@ class EstadisticasServiceTests(TestCase):
         self.assertEqual(cifras['actual']['citas'], 1)        # la cancelada no cuenta
         self.assertEqual(cifras['actual']['ganancias'], Decimal('25.00'))
         self.assertEqual(cifras['anterior']['atendidas'], 1)   # la de hace 10 días es del período anterior
+
+# ---------------------------------------------------------------------------
+# Mi horario en columnas y gestión de la clínica (administrador y superadministrador)
+# ---------------------------------------------------------------------------
+class SemanaEnColumnasTests(TestCase):
+    """La grilla de Mi horario: cada bloque trae su posición, su duración y cuántas citas tiene."""
+
+    def setUp(self):
+        self.sofia = crear_veterinario()
+        self.client.force_login(self.sofia)
+        self.manana = timezone.localdate() + timedelta(days=1)
+
+    def test_cada_bloque_trae_su_posicion_en_la_grilla(self):
+        # La grilla va de 07:00 a 19:00 (12 h): un bloque de 13:00 a 16:00 empieza a la mitad y ocupa un cuarto
+        crear_horario(self.sofia, time(13), time(16), fecha=self.manana)
+        respuesta = self.client.get(reverse('citas:horario'), {'semana': self.manana.isoformat()})
+        bloque = next(b for dia in respuesta.context['dias'] for b in dia['bloques'])
+        self.assertEqual((bloque.arriba, bloque.alto, bloque.duracion), (50, 25, '3 h'))
+        self.assertEqual(respuesta.context['horas_grilla'][0], '07:00')
+
+    def test_la_grilla_se_estira_si_un_bloque_empieza_temprano(self):
+        crear_horario(self.sofia, time(6), time(8), fecha=self.manana)
+        respuesta = self.client.get(reverse('citas:horario'), {'semana': self.manana.isoformat()})
+        self.assertEqual(respuesta.context['horas_grilla'][0], '06:00')
+
+    def test_el_bloque_cuenta_sus_citas(self):
+        crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        servicio = crear_servicio()
+        servicio.veterinarios.add(self.sofia)
+        inicio = timezone.make_aware(datetime.combine(self.manana, time(10)))
+        AgendaService.agendar(crear_mascota(crear_usuario('ana')), self.sofia, servicio, inicio)
+        respuesta = self.client.get(reverse('citas:horario'), {'semana': self.manana.isoformat()})
+        bloque = next(b for dia in respuesta.context['dias'] for b in dia['bloques'])
+        self.assertEqual(bloque.citas, 1)
+
+    def test_el_mas_de_un_dia_de_la_grilla_llena_la_fecha_del_formulario(self):
+        respuesta = self.client.get(reverse('citas:horario'), {'fecha': self.manana.isoformat()})
+        self.assertEqual(respuesta.context['form'].initial['fecha'], self.manana)
+        # un día que ya pasó no se sugiere
+        ayer = timezone.localdate() - timedelta(days=1)
+        respuesta = self.client.get(reverse('citas:horario'), {'fecha': ayer.isoformat()})
+        self.assertNotEqual(respuesta.context['form'].initial['fecha'], ayer)
+
+
+class GestionCitasTests(TestCase):
+    def setUp(self):
+        self.administrador = crear_usuario('laura', rol=Roles.ADMINISTRADOR)
+        self.sofia = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.mascota = crear_mascota(crear_usuario('ana', first_name='Ana'))
+        ahora = timezone.now()
+        self.proxima = Cita.objects.create(mascota=self.mascota, veterinario=self.sofia, servicio=self.servicio,
+                                           inicio=ahora + timedelta(days=2), fin=ahora + timedelta(days=2, minutes=30),
+                                           precio=Decimal('25.00'))
+        self.pasada = Cita.objects.create(mascota=self.mascota, veterinario=self.sofia, servicio=self.servicio,
+                                          inicio=ahora - timedelta(days=2), fin=ahora - timedelta(days=2) + timedelta(minutes=30),
+                                          precio=Decimal('25.00'), estado=EstadoCita.ATENDIDA)
+        self.client.force_login(self.administrador)
+
+    def test_solo_entran_el_administrador_y_el_superadministrador(self):
+        for usuario, codigo in [(self.sofia, 403), (self.mascota.dueno, 403),
+                                (crear_usuario('sara', rol=Roles.SUPERADMIN), 200)]:
+            self.client.force_login(usuario)
+            for nombre in ('citas:gestion_citas', 'citas:gestion_horarios'):
+                with self.subTest(rol=usuario.rol, pantalla=nombre):
+                    self.assertEqual(self.client.get(reverse(nombre)).status_code, codigo)
+
+    def test_pestanas_proximas_pasadas_y_todas(self):
+        url = reverse('citas:gestion_citas')
+        self.assertEqual(list(self.client.get(url).context['citas']), [self.proxima])
+        self.assertEqual(list(self.client.get(url, {'vista': 'pasadas'}).context['citas']), [self.pasada])
+        self.assertEqual(len(self.client.get(url, {'vista': 'todas'}).context['citas']), 2)
+        # una pestaña inventada vuelve a Próximas
+        self.assertEqual(self.client.get(url, {'vista': 'nada'}).context['vista'], 'proximas')
+
+    def test_filtros_por_estado_veterinario_y_busqueda(self):
+        url = reverse('citas:gestion_citas')
+        self.assertEqual(list(self.client.get(url, {'vista': 'todas', 'estado': 'atendida'}).context['citas']), [self.pasada])
+        self.assertEqual(len(self.client.get(url, {'vista': 'todas', 'veterinario': crear_veterinario('mateo').pk})
+                             .context['citas']), 0)
+        self.assertEqual(len(self.client.get(url, {'vista': 'todas', 'q': 'firu'}).context['citas']), 2)
+        # valores inventados en la URL se ignoran: no rompen la página
+        self.assertEqual(len(self.client.get(url, {'vista': 'todas', 'estado': 'perdida', 'veterinario': 'x'})
+                             .context['citas']), 2)
+
+    def test_resumen_de_la_clinica(self):
+        resumen = self.client.get(reverse('citas:gestion_citas')).context['resumen']
+        self.assertEqual((resumen['semana'], resumen['atendidas'], resumen['ingresos']), (1, 1, Decimal('25.00')))
+
+    def test_el_administrador_cancela_una_cita(self):
+        respuesta = self.client.post(reverse('citas:gestion_cancelar', args=[self.proxima.pk]),
+                                     {'volver': 'https://otro-sitio.com/'})
+        self.assertRedirects(respuesta, reverse('citas:gestion_citas'))   # nunca vuelve a una URL de afuera
+        self.proxima.refresh_from_db()
+        self.assertEqual(self.proxima.estado, EstadoCita.CANCELADA)
+
+    def test_no_cancela_una_cita_que_ya_paso(self):
+        self.client.post(reverse('citas:gestion_cancelar', args=[self.pasada.pk]))
+        self.pasada.refresh_from_db()
+        self.assertEqual(self.pasada.estado, EstadoCita.ATENDIDA)
+
+    def test_horarios_de_la_clinica_por_veterinario(self):
+        crear_veterinario('mateo')
+        manana = timezone.localdate() + timedelta(days=1)
+        crear_horario(self.sofia, time(9), time(13), fecha=manana)
+        contexto = self.client.get(reverse('citas:gestion_horarios'), {'semana': manana.isoformat()}).context
+        filas = {fila['veterinario'].username: fila for fila in contexto['filas']}
+        self.assertEqual(filas['sofia']['total'], '4 h')
+        self.assertTrue(filas['mateo']['sin_horario'])
+        self.assertEqual((contexto['resumen']['con_horario'], contexto['resumen']['veterinarios']), (1, 2))
+
+
+class MiSemanaTests(TestCase):
+    """El inicio del veterinario: los 7 días con su horario de fondo y las citas reservadas encima, con su detalle."""
+
+    def setUp(self):
+        self.sofia = crear_veterinario(first_name='Sofía')
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.sofia)
+        self.ana = crear_usuario('ana', first_name='Ana', telefono='+593991112233')
+        self.mascota = crear_mascota(self.ana, nombre='Firulais')
+        self.manana = timezone.localdate() + timedelta(days=1)
+        crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        self.client.force_login(self.sofia)
+
+    def cita(self, hora, veterinario=None, **datos):
+        inicio = timezone.make_aware(datetime.combine(self.manana, hora))
+        return Cita.objects.create(mascota=self.mascota, veterinario=veterinario or self.sofia, servicio=self.servicio,
+                                   inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'), **datos)
+
+    def semana(self):
+        return self.client.get(reverse('cuentas:inicio_veterinario'), {'semana': self.manana.isoformat()}).context['semana']
+
+    def test_muestra_los_7_dias_con_el_horario(self):
+        semana = self.semana()
+        self.assertEqual(len(semana['dias']), 7)
+        dia = next(d for d in semana['dias'] if d['fecha'] == self.manana)
+        self.assertEqual([(b.hora_inicio, b.hora_fin) for b in dia['bloques']], [(time(9), time(12))])
+
+    def test_las_citas_reservadas_van_en_su_dia_y_su_hora(self):
+        cita = self.cita(time(10, 30), motivo='Tose mucho')
+        dia = next(d for d in self.semana()['dias'] if d['fecha'] == self.manana)
+        self.assertEqual(dia['citas'], [cita])
+        # La grilla va de 07:00 a 19:00 (720 min): las 10:30 están a 210 min, un 29,167 %
+        self.assertEqual((dia['citas'][0].arriba, dia['citas'][0].duracion), (29.167, '30 min'))
+
+    def test_no_muestra_canceladas_ni_citas_de_otro_veterinario(self):
+        self.cita(time(9), estado=EstadoCita.CANCELADA)
+        self.cita(time(11), veterinario=crear_veterinario('mateo'))
+        self.assertEqual(self.semana()['citas_semana'], 0)
+
+    def test_el_detalle_de_la_cita_esta_en_la_pagina(self):
+        cita = self.cita(time(10, 30), motivo='Tose mucho')
+        respuesta = self.client.get(reverse('cuentas:inicio_veterinario'), {'semana': self.manana.isoformat()})
+        # Pop-up nativo: el botón de la cita lo abre sin JavaScript y sin cambiar de página
+        self.assertContains(respuesta, f'popovertarget="detalle-cita-{cita.pk}"')
+        self.assertContains(respuesta, f'id="detalle-cita-{cita.pk}" popover')
+        self.assertContains(respuesta, 'Tose mucho')
+        self.assertContains(respuesta, '10:30 – 11:00')
+        self.assertContains(respuesta, 'tel:+593991112233')
+
+    def test_una_semana_inventada_vuelve_a_la_actual(self):
+        respuesta = self.client.get(reverse('cuentas:inicio_veterinario'), {'semana': 'nada'})
+        self.assertTrue(respuesta.context['semana']['es_semana_actual'])

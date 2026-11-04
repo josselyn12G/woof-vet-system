@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 
-from .models import Roles
+from .models import ROLES_DE_GESTION, Roles
 
 
 class RolRequeridoMixin(LoginRequiredMixin):
@@ -23,4 +23,10 @@ class VeterinarioRequeridoMixin(RolRequeridoMixin):
 
 
 class AdministradorRequeridoMixin(RolRequeridoMixin):
-    roles_permitidos = (Roles.ADMINISTRADOR,)
+    """Pantallas de la clínica: las abre el administrador y también el superadministrador."""
+    roles_permitidos = ROLES_DE_GESTION
+
+
+class SuperadminRequeridoMixin(RolRequeridoMixin):
+    """Gestión del personal (administradores y veterinarios): solo el superadministrador."""
+    roles_permitidos = (Roles.SUPERADMIN,)

@@ -3,60 +3,51 @@
 
 {% block titulo %}Panel del veterinario · Woof{% endblock %}
 
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block panel_seccion %}Inicio{% endblock %}
 {% block panel_titulo %}<span class="saludo-vet">{{ saludo }}, {{ user.first_name|default:user.username }}</span>{% endblock %}
 {% block panel_subtitulo %}{% now 'l j \d\e F' %} · {% if citas_hoy %}{{ citas_hoy }} cita{{ citas_hoy|pluralize }} hoy{% else %}sin citas hoy{% endif %}{% endblock %}
 
 {% block panel_acciones %}
-  {# La acción principal del veterinario: publicar su horario #}
+  {# La agenda del día (cerrar citas) y la acción principal del veterinario: publicar su horario #}
+  <a class="boton-panel boton-panel--secundario" href="{% url 'citas:agenda' %}"><i class="bi bi-calendar-day" aria-hidden="true"></i>Agenda de hoy</a>
   <a class="boton-panel" href="{% url 'citas:horario' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Publicar horario</a>
 {% endblock %}
 
 {% block panel_contenido %}
-  {# Fila principal: la agenda de hoy (lo más grande) y, al costado, las ganancias y el resumen #}
+  {% include 'cuentas/panel/_mi_semana.html' with semana=semana %}
+
+  {# Fila de cifras: citas por día del período (lo más grande) y, al costado, las ganancias y el resumen #}
   <div class="vet-principal">
-    {# ---------- Agenda de hoy: línea de tiempo de 08:00 a 18:00 ---------- #}
-    <section class="agenda-hoy entra entra--1" aria-labelledby="agenda-titulo">
-      <header class="agenda-hoy__cabecera">
-        <div>
-          <h2 class="agenda-hoy__titulo" id="agenda-titulo">Agenda de hoy</h2>
-          <p class="agenda-hoy__fecha">{% now 'l j \d\e F' %}</p>
-        </div>
-        <span class="variacion">{{ citas_hoy }} cita{{ citas_hoy|pluralize }}</span>
+    {# ---------- Citas por día del período ---------- #}
+    <section class="estadisticas entra entra--2" aria-labelledby="grafico-titulo">
+      <header class="estadisticas__cabecera">
+        <h2 class="resumen-vet__titulo" id="grafico-titulo">Citas por día</h2>
+        <span class="variacion">{{ estadisticas.citas }} en el período</span>
       </header>
-
-      <div class="linea-tiempo" data-linea-tiempo data-inicio="{{ agenda_inicio }}" data-fin="{{ agenda_fin }}">
-        {% for hora in horas_agenda %}
-          <div class="linea-tiempo__fila">
-            <span class="linea-tiempo__hora">{{ hora }}</span>
-            <span class="linea-tiempo__carril"></span>
-          </div>
-        {% endfor %}
-
-        {# Línea de "ahora": la coloca y la mueve panel-veterinario.js con la hora del dispositivo #}
-        <div class="linea-tiempo__ahora" data-ahora hidden>
-          <span class="linea-tiempo__ahora-hora" data-ahora-hora></span>
-        </div>
-
-        {# Cada cita de hoy, en su hora: arriba y alto en % del día visible (calculados en la vista) #}
+      <figure class="grafico">
+        {# localize off: en español Django escribe 44,0; el SVG necesita 44.0 #}
         {% localize off %}
-        {% for bloque in citas_de_hoy %}
-          <a class="linea-tiempo__cita linea-tiempo__cita--{{ bloque.cita.estado }}" href="{% url 'citas:agenda' %}"
-             style="top: {{ bloque.arriba }}%; height: {{ bloque.alto }}%">
-            <span class="linea-tiempo__cita-hora">{{ bloque.cita.inicio|time:'H:i' }}</span>
-            <span class="linea-tiempo__cita-texto"><strong>{{ bloque.cita.mascota }}</strong> · {{ bloque.cita.servicio }}</span>
-          </a>
-        {% endfor %}
+        <svg viewBox="0 0 {{ grafico.ancho }} {{ grafico.alto }}" role="img" aria-label="Citas por día en el período: {{ estadisticas.citas }} en total">
+          {% for guia in grafico.guias %}
+            <line class="grafico__guia" x1="{{ grafico.izquierda }}" x2="{{ grafico.derecha }}" y1="{{ guia.y }}" y2="{{ guia.y }}"></line>
+            <text class="grafico__eje" x="{{ grafico.izquierda|add:'-12' }}" y="{{ guia.y }}" text-anchor="end" dominant-baseline="middle">{{ guia.texto }}</text>
+          {% endfor %}
+          <path class="grafico__area" d="{{ grafico.area }}"></path>
+          <path class="grafico__linea" d="{{ grafico.linea }}" pathLength="1"></path>
+          {% for etiqueta in grafico.etiquetas %}
+            <text class="grafico__eje" x="{{ etiqueta.x }}" y="{{ grafico.alto|add:'-8' }}" text-anchor="middle">{{ etiqueta.fecha|date:'j M' }}</text>
+          {% endfor %}
+        </svg>
         {% endlocalize %}
-
-        {% if not citas_de_hoy %}
-          <div class="linea-tiempo__vacia">
-            <i class="bi bi-calendar2-heart" aria-hidden="true"></i>
-            <p class="linea-tiempo__vacia-titulo">Hoy no tienes citas</p>
-            <p class="linea-tiempo__vacia-texto">Cuando un cliente agende dentro de tu horario, su mascota y el servicio aparecerán en su hora, ya confirmados.</p>
-          </div>
+        {% if not estadisticas.citas %}
+          <figcaption class="grafico__nota">Todavía no hay citas en este período. La línea sube a medida que los clientes agenden.</figcaption>
         {% endif %}
-      </div>
+      </figure>
     </section>
 
     {# ---------- Al costado: ganancias y resumen del período ---------- #}
@@ -67,7 +58,7 @@
         <nav class="segmentos" aria-label="Período del resumen" data-segmentos>
           <span class="segmentos__pildora" aria-hidden="true"></span>
           {% for valor, nombre in periodos %}
-            <a class="segmentos__opcion{% if valor == periodo %} es-activo{% endif %}" href="?periodo={{ valor }}"{% if valor == periodo %} aria-current="true"{% endif %}>{{ nombre }}</a>
+            <a class="segmentos__opcion{% if valor == periodo %} es-activo{% endif %}" href="?periodo={{ valor }}{% if not semana.es_semana_actual %}&semana={{ semana.lunes|date:'Y-m-d' }}{% endif %}"{% if valor == periodo %} aria-current="true"{% endif %}>{{ nombre }}</a>
           {% endfor %}
         </nav>
       </header>
@@ -99,33 +90,6 @@
       </div>
     </section>
   </div>
-
-  {# ---------- Citas por día del período ---------- #}
-  <section class="estadisticas entra entra--3" aria-labelledby="grafico-titulo">
-    <header class="estadisticas__cabecera">
-      <h2 class="resumen-vet__titulo" id="grafico-titulo">Citas por día</h2>
-      <span class="variacion">{{ estadisticas.citas }} en el período</span>
-    </header>
-    <figure class="grafico">
-      {# localize off: en español Django escribe 44,0; el SVG necesita 44.0 #}
-      {% localize off %}
-      <svg viewBox="0 0 {{ grafico.ancho }} {{ grafico.alto }}" role="img" aria-label="Citas por día en el período: {{ estadisticas.citas }} en total">
-        {% for guia in grafico.guias %}
-          <line class="grafico__guia" x1="{{ grafico.izquierda }}" x2="{{ grafico.derecha }}" y1="{{ guia.y }}" y2="{{ guia.y }}"></line>
-          <text class="grafico__eje" x="{{ grafico.izquierda|add:'-12' }}" y="{{ guia.y }}" text-anchor="end" dominant-baseline="middle">{{ guia.texto }}</text>
-        {% endfor %}
-        <path class="grafico__area" d="{{ grafico.area }}"></path>
-        <path class="grafico__linea" d="{{ grafico.linea }}" pathLength="1"></path>
-        {% for etiqueta in grafico.etiquetas %}
-          <text class="grafico__eje" x="{{ etiqueta.x }}" y="{{ grafico.alto|add:'-8' }}" text-anchor="middle">{{ etiqueta.fecha|date:'j M' }}</text>
-        {% endfor %}
-      </svg>
-      {% endlocalize %}
-      {% if not estadisticas.citas %}
-        <figcaption class="grafico__nota">Todavía no hay citas en este período. La línea sube a medida que los clientes agenden.</figcaption>
-      {% endif %}
-    </figure>
-  </section>
 
   {# ---------- Servicios y datos del veterinario ---------- #}
   <div class="paneles paneles--dos entra entra--3">

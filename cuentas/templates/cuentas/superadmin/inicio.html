@@ -1,0 +1,143 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Superadmin · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-grid{% endblock %}
+{% block panel_seccion %}Inicio{% endblock %}
+
+{# Título sustantivo y, debajo, lo que más necesita atención del equipo #}
+{% block panel_titulo %}Equipo de la clínica{% endblock %}
+{% block panel_subtitulo %}{% if total_veterinarios_activos == 0 %}Todavía no hay veterinarios activos: crea el primero para abrir la agenda.{% elif pendientes %}{{ pendientes|length }} veterinario{{ pendientes|length|pluralize }} todavía no puede{{ pendientes|length|pluralize:"n" }} recibir citas.{% else %}Los {{ total_veterinarios_activos }} veterinario{{ total_veterinarios_activos|pluralize }} activo{{ total_veterinarios_activos|pluralize }} ya reciben citas.{% endif %}{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:equipo_crear' %}?rol=administrador"><i class="bi bi-shield-plus" aria-hidden="true"></i>Nuevo administrador</a>
+  <a class="boton-panel" href="{% url 'cuentas:equipo_crear' %}?rol=veterinario"><i class="bi bi-person-plus" aria-hidden="true"></i>Nuevo veterinario</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  {# Cifras del equipo en una sola tarjeta #}
+  <section class="estadisticas entra entra--1" aria-label="Cuentas de la clínica">
+    <div class="tira-cifras">
+      {% for cifra in cifras %}
+        <div class="cifra">
+          <p class="cifra__etiqueta"><i class="bi {{ cifra.icono }}" aria-hidden="true"></i>{{ cifra.etiqueta }}</p>
+          <p class="cifra__fila">
+            <span class="cifra__valor" data-contar="{{ cifra.valor }}">{{ cifra.valor }}</span>
+            <span class="variacion" title="Total actual">total</span>
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="paneles entra entra--2">
+    <section class="paneles__panel" aria-labelledby="roles-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="roles-titulo"><i class="bi bi-diagram-3" aria-hidden="true"></i>Cuentas por rol</h2>
+        <a class="paneles__enlace" href="{% url 'cuentas:usuarios' %}">Ver usuarios <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      <p class="paneles__cifra" data-contar="{{ total_usuarios }}">{{ total_usuarios }}</p>
+      <p class="paneles__texto">cuentas en total</p>
+      <div class="reparto" role="img" aria-label="{% for rol in por_rol %}{{ rol.nombre }}: {{ rol.valor }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+        {% for rol in por_rol %}{% if rol.valor %}<span class="reparto__parte reparto__parte--{{ rol.clase }}" style="width: {{ rol.porcentaje }}%"></span>{% endif %}{% endfor %}
+      </div>
+      <ul class="reparto__leyenda">
+        {% for rol in por_rol %}
+          <li><span class="reparto__punto reparto__parte--{{ rol.clase }}" aria-hidden="true"></span>{{ rol.nombre }}<strong>{{ rol.valor }}</strong></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="paneles__panel" aria-labelledby="puesta-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="puesta-titulo"><i class="bi bi-flag" aria-hidden="true"></i>Abrir la agenda</h2>
+        <span class="paneles__meta">{{ pasos_hechos }} de {{ pasos|length }}</span>
+      </header>
+      <p class="paneles__cifra"><span data-contar="{{ avance }}">{{ avance }}</span><span class="cuadro__unidad">%</span></p>
+      <div class="avance" role="progressbar" aria-valuenow="{{ avance }}" aria-valuemin="0" aria-valuemax="100" aria-label="Avance para abrir la agenda">
+        <span class="avance__barra" style="width: {{ avance }}%"></span>
+      </div>
+      <ul class="pasos-mini">
+        {% for paso in pasos %}
+          <li class="{% if paso.hecho %}es-hecho{% endif %}"><i class="bi {% if paso.hecho %}bi-check-circle-fill{% else %}bi-circle{% endif %}" aria-hidden="true"></i>{{ paso.titulo }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="paneles__panel" aria-labelledby="citas-titulo">
+      <header class="paneles__cabecera">
+        <h2 class="paneles__titulo" id="citas-titulo"><i class="bi bi-calendar-week" aria-hidden="true"></i>Citas</h2>
+        <a class="paneles__enlace" href="{% url 'citas:gestion_citas' %}">Ver citas <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      <p class="paneles__cifra" data-contar="{{ citas.semana }}">{{ citas.semana }}</p>
+      <p class="paneles__texto">confirmadas para los próximos 7 días</p>
+      <dl class="mini-datos">
+        <div><dt>Hoy</dt><dd>{{ citas.hoy }}</dd></div>
+        <div><dt>Servicios</dt><dd>{{ servicios_activos }}</dd></div>
+        <div title="Citas atendidas en los últimos 30 días"><dt>Atendidas</dt><dd>{{ citas.atendidas }}</dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <div class="dos-columnas entra entra--3">
+    {# Veterinarios activos a los que les falta algo para que los clientes los puedan agendar #}
+    <section class="tabla-tarjeta" aria-labelledby="pendientes-titulo">
+      <header class="tabla-tarjeta__cabecera">
+        <h2 class="paneles__titulo" id="pendientes-titulo"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>Pendientes del equipo</h2>
+        <span class="paneles__meta">{{ veterinarios_listos }} de {{ total_veterinarios_activos }} listos</span>
+      </header>
+      {% if pendientes %}
+        <ul class="lista-equipo">
+          {% for pendiente in pendientes %}
+            <li class="lista-equipo__fila">
+              <span class="inicial" aria-hidden="true">{{ pendiente.persona.first_name|default:pendiente.persona.username|slice:':1'|upper }}{{ pendiente.persona.last_name|slice:':1'|upper }}</span>
+              <span class="lista-equipo__datos">
+                <span class="tabla-panel__nombre">{{ pendiente.persona }}</span>
+                <span class="tabla-panel__secundario">{{ pendiente.falta|capfirst }}</span>
+              </span>
+              <a class="boton-fila" href="{% url 'cuentas:equipo_editar' pendiente.persona.pk %}" aria-label="Revisar a {{ pendiente.persona }}" title="Revisar"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            </li>
+          {% endfor %}
+        </ul>
+        <p class="lista-equipo__nota">Los servicios se asignan en <a class="bloque-panel__enlace" href="{% url 'citas:servicios' %}">Servicios</a>; el horario lo publica cada veterinario. Revísalo en <a class="bloque-panel__enlace" href="{% url 'citas:gestion_horarios' %}">Horarios</a>.</p>
+      {% else %}
+        <div class="lista-equipo__vacia">
+          <i class="bi bi-check2-circle" aria-hidden="true"></i>
+          <p>{% if total_veterinarios_activos %}Cada veterinario tiene servicios y horario esta semana.{% else %}Cuando crees veterinarios, aquí verás a quién le falta un servicio o el horario.{% endif %}</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {# Las últimas cuentas del personal #}
+    <section class="tabla-tarjeta" aria-labelledby="personal-titulo">
+      <header class="tabla-tarjeta__cabecera">
+        <h2 class="paneles__titulo" id="personal-titulo"><i class="bi bi-person-badge" aria-hidden="true"></i>Personal reciente</h2>
+        <a class="paneles__enlace" href="{% url 'cuentas:equipo' %}">Ver el equipo <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      {% if personal_reciente %}
+        <ul class="lista-equipo">
+          {% for persona in personal_reciente %}
+            <li class="lista-equipo__fila">
+              <span class="inicial inicial--{{ persona.rol }}" aria-hidden="true">{{ persona.first_name|default:persona.username|slice:':1'|upper }}{{ persona.last_name|slice:':1'|upper }}</span>
+              <span class="lista-equipo__datos">
+                <span class="tabla-panel__nombre">{{ persona }}</span>
+                <span class="tabla-panel__secundario">{{ persona.email }}</span>
+              </span>
+              <span class="estado estado--rol-{{ persona.rol }}">{{ persona.get_rol_display }}</span>
+              {% if not persona.is_active %}<span class="estado">Desactivada</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="lista-equipo__vacia">
+          <i class="bi bi-person-plus" aria-hidden="true"></i>
+          <p>Todavía no hay personal. Crea la cuenta de un veterinario o de un administrador.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

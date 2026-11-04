@@ -1,0 +1,151 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Citas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-calendar-week{% endblock %}
+{% block panel_seccion %}Citas{% endblock %}
+{% block panel_titulo %}Citas de la clínica{% endblock %}
+{% block panel_subtitulo %}{% if resumen.hoy %}Hoy hay {{ resumen.hoy }} cita{{ resumen.hoy|pluralize }} en la agenda{% else %}Hoy no hay citas en la agenda{% endif %} y {{ resumen.semana }} confirmada{{ resumen.semana|pluralize }} para los próximos 7 días.{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel boton-panel--secundario" href="{% url 'citas:gestion_horarios' %}"><i class="bi bi-clock-history" aria-hidden="true"></i>Ver horarios</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  {# Cifras: lo de hoy, la semana que viene y lo que pasó en el último mes #}
+  <section class="estadisticas entra entra--1" aria-label="Resumen de citas">
+    <div class="tira-cifras tira-cifras--cinco">
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-calendar-day" aria-hidden="true"></i>Hoy</p>
+        <p class="cifra__fila"><span class="cifra__valor" data-contar="{{ resumen.hoy }}">{{ resumen.hoy }}</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-calendar-week" aria-hidden="true"></i>Próximos 7 días</p>
+        <p class="cifra__fila"><span class="cifra__valor" data-contar="{{ resumen.semana }}">{{ resumen.semana }}</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-check2-circle" aria-hidden="true"></i>Atendidas</p>
+        <p class="cifra__fila"><span class="cifra__valor" data-contar="{{ resumen.atendidas }}">{{ resumen.atendidas }}</span><span class="variacion" title="Últimos 30 días">30 días</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-x-circle" aria-hidden="true"></i>Canceladas · faltas</p>
+        <p class="cifra__fila"><span class="cifra__valor" title="{{ resumen.canceladas }} canceladas y {{ resumen.no_asistio }} no asistieron">{{ resumen.canceladas }} · {{ resumen.no_asistio }}</span><span class="variacion" title="Últimos 30 días">30 días</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-cash-coin" aria-hidden="true"></i>Ingresos</p>
+        <p class="cifra__fila"><span class="cifra__valor">${{ resumen.ingresos|floatformat:2 }}</span><span class="variacion" title="Citas atendidas en los últimos 30 días">30 días</span></p>
+      </div>
+    </div>
+  </section>
+
+  {# Pestañas: conservan los filtros elegidos #}
+  <nav class="pestanas-citas entra entra--2" aria-label="Qué citas ver">
+    {% for valor, nombre in vistas %}
+      <a class="pestanas-citas__opcion{% if valor == vista %} es-activo{% endif %}" href="?vista={{ valor }}{% if consulta_sin_vista %}&{{ consulta_sin_vista }}{% endif %}"{% if valor == vista %} aria-current="page"{% endif %}>{{ nombre }}</a>
+    {% endfor %}
+  </nav>
+
+  {# Filtros por GET: la búsqueda queda en la URL y se puede recargar o compartir #}
+  <form class="filtros filtros--citas entra entra--2" method="get" role="search">
+    <input type="hidden" name="vista" value="{{ vista }}">
+    <div class="buscador">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="visually-hidden" for="{{ filtros.q.id_for_label }}">Buscar</label>
+      <input class="control-panel" type="search" id="{{ filtros.q.id_for_label }}" name="q" value="{{ filtros.q.value|default:'' }}"
+             placeholder="Mascota, dueño, cédula o motivo">
+    </div>
+    <label class="visually-hidden" for="{{ filtros.estado.id_for_label }}">Estado</label>
+    {{ filtros.estado }}
+    <label class="visually-hidden" for="{{ filtros.veterinario.id_for_label }}">Veterinario</label>
+    {{ filtros.veterinario }}
+    <label class="visually-hidden" for="{{ filtros.servicio.id_for_label }}">Servicio</label>
+    {{ filtros.servicio }}
+    <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
+    {% if hay_filtros %}<a class="boton-panel boton-panel--secundario" href="?vista={{ vista }}">Quitar filtros</a>{% endif %}
+  </form>
+
+  <p class="tabla-panel__total">{{ paginator.count }} cita{{ paginator.count|pluralize }}{% if hay_filtros %} con estos filtros{% endif %}</p>
+
+  {% if citas %}
+    <div class="tabla-envoltorio entra entra--3">
+      <table class="tabla-panel tabla-citas">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Mascota y dueño</th>
+            <th scope="col" class="tabla-panel__ocultable">Servicio</th>
+            <th scope="col" class="tabla-panel__ocultable">Veterinario</th>
+            <th scope="col" class="tabla-panel__ocultable">Precio</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="tabla-panel__accion"><span class="visually-hidden">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cita in citas %}
+            <tr>
+              <td class="tabla-panel__num">
+                <span class="fecha-cita">
+                  <span class="fecha-cita__dia">{{ cita.inicio|date:'j' }}<small>{{ cita.inicio|date:'M' }}</small></span>
+                  <span>
+                    <span class="tabla-panel__nombre d-block">{{ cita.inicio|date:'H:i' }} – {{ cita.fin|date:'H:i' }}</span>
+                    <span class="tabla-panel__secundario">{{ cita.inicio|date:'l'|capfirst }}</span>
+                  </span>
+                </span>
+              </td>
+              <td>
+                <a class="tabla-panel__persona tabla-panel__enlace" href="{% url 'mascotas:gestion_detalle' cita.mascota.pk %}">
+                  <span class="inicial" aria-hidden="true">{{ cita.mascota.nombre|slice:':1'|upper }}</span>
+                  <span>
+                    <span class="tabla-panel__nombre d-block">{{ cita.mascota }}</span>
+                    <span class="tabla-panel__secundario">{{ cita.mascota.dueno.get_full_name|default:cita.mascota.dueno.username }}</span>
+                  </span>
+                </a>
+              </td>
+              <td class="tabla-panel__ocultable">
+                <span class="tabla-panel__nombre d-block">{{ cita.servicio }}</span>
+                {% if cita.motivo %}<span class="tabla-panel__secundario">«{{ cita.motivo|truncatechars:40 }}»</span>{% endif %}
+              </td>
+              <td class="tabla-panel__ocultable">{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</td>
+              <td class="tabla-panel__num tabla-panel__ocultable">${{ cita.precio|floatformat:2 }}</td>
+              <td><span class="estado-cita estado-cita--{{ cita.estado }}">{{ cita.get_estado_display }}</span></td>
+              <td class="tabla-panel__accion">
+                {% if cita.estado == 'confirmada' and cita.inicio > ahora %}
+                  {# Cancelar: POST con confirmación del navegador; libera el turno #}
+                  <form method="post" action="{% url 'citas:gestion_cancelar' cita.pk %}" onsubmit="return confirm('¿Cancelar la cita de {{ cita.mascota|escapejs }} del {{ cita.inicio|date:'j M, H:i' }}? El turno quedará libre.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+                    <button type="submit" class="boton-fila boton-fila--peligro" title="Cancelar la cita"><i class="bi bi-x-circle" aria-hidden="true"></i><span class="visually-hidden">Cancelar la cita de {{ cita.mascota }}</span></button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="filtros" aria-label="Páginas">
+        {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}&{{ consulta }}">Anterior</a>{% endif %}
+        <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}&{{ consulta }}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% elif hay_filtros %}
+    <p class="bloque-panel__vacio">Ninguna cita coincide con los filtros. Prueba con otro nombre o quita algún filtro.</p>
+  {% else %}
+    <div class="sin-citas sin-citas--gestion">
+      <div class="sin-citas__texto">
+        <h2 class="sin-citas__titulo">{% if vista == 'hoy' %}Hoy no hay citas{% elif vista == 'pasadas' %}Todavía no hay citas pasadas{% else %}No hay citas por delante{% endif %}</h2>
+        <p class="sin-citas__bajada">Las citas aparecen aquí en cuanto un cliente agenda dentro del horario de un veterinario.</p>
+      </div>
+      <img class="sin-citas__foto" src="{% static 'img/perro-sin-citas.webp' %}" alt="" width="220" height="220" loading="lazy">
+    </div>
+  {% endif %}
+{% endblock %}

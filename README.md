@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-200%20pasan-2e7d32" alt="200 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-238%20pasan-2e7d32" alt="238 pruebas pasan">
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 
 ## Descripción
 
-Woof es una aplicación web para una clínica veterinaria. Los dueños de mascotas registran a sus animales y agendan citas con el veterinario que atiende cada servicio; los veterinarios publican su horario y llevan su agenda del día, y el administrador gestiona usuarios y el catálogo de servicios. En las siguientes fases llegan la historia clínica y el carnet de vacunación.
+Woof es una aplicación web para una clínica veterinaria. Los dueños de mascotas registran a sus animales y agendan citas con el veterinario que atiende cada servicio; los veterinarios publican su horario y llevan su agenda del día, el administrador gestiona la clínica (usuarios, servicios, citas, horarios y mascotas) y el superadministrador gestiona al equipo. En las siguientes fases llegan la historia clínica y el carnet de vacunación.
 
 **Demo:** https://woof-b6yo.onrender.com (plan gratuito de Render: la primera visita puede tardar unos segundos en despertar el servidor).
 
@@ -69,17 +69,28 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 
 ### Roles
 
-- **Cliente, veterinario y administrador**, cada uno con su panel. Una página de otro rol responde 403.
-- **El administrador** busca usuarios, cambia su rol y descarga un reporte en CSV.
+- **Cliente, veterinario, administrador y superadministrador**, cada uno con su panel. Una página de otro rol responde 403.
+- **El administrador** busca usuarios, da el rol de veterinario, desactiva cuentas y descarga un reporte en CSV. No toca a otros administradores.
+  - **Citas de la clínica:** pestañas Próximas, Hoy, Pasadas y Todas; filtros por estado, veterinario y servicio; cifras del mes (atendidas, canceladas, ingresos) y cancelar una cita confirmada.
+  - **Horarios de la clínica:** la semana con un veterinario por fila y un día por columna, sus horas, sus citas, su ocupación y quién no tiene horario o servicios.
+  - **Mascotas de la clínica:** todas las fichas con su dueño, buscador, filtro por especie y la ficha con su historial de citas.
+- **El superadministrador** puede todo lo del administrador y, además, gestiona al equipo:
+  - Crea las cuentas de veterinarios y administradores con una contraseña inicial.
+  - Corrige sus datos, cambia su rol (también a superadministrador), les pone una contraseña nueva y desactiva o reactiva cuentas.
+  - Su portada muestra cuántos hay de cada rol y qué veterinarios todavía no pueden recibir citas (sin servicios o sin horario).
+  - Nadie puede quitarse su propio rol ni desactivar su propia cuenta.
 
 ### Citas
 
 - **Catálogo de servicios (administrador):** nombre, descripción, duración, precio y veterinarios que lo atienden. Un servicio con citas no se borra: se desactiva.
-- **Mi horario (veterinario):** bloques por día, sin cruces ni fechas pasadas; copiar la semana anterior y elegir los servicios que atiende.
+- **Mi horario (veterinario):** la semana como calendario, con un día por columna y cada bloque ubicado según su hora; sin cruces ni fechas pasadas.
+  - Para cargar un bloque: los días de la semana como botones, turnos frecuentes (mañana, tarde, jornada) y un selector de hora en grilla de 15 minutos.
+  - Copiar la semana anterior y elegir los servicios que atiende.
 - **Agendar (cliente):** en un pop-up dentro de Mis citas: mascota, servicio, calendario con los días que tienen horas libres y las horas agrupadas por doctor.
   - Los turnos se calculan cortando el horario del veterinario en bloques del largo del servicio.
   - Dos clientes no pueden ganar el mismo turno: la reserva se guarda en una transacción con la fila del veterinario bloqueada, y la base tiene un índice único como respaldo.
 - **Mis citas (cliente):** próximas, pasadas y canceladas; cancelar con confirmación, lo que libera el turno.
+- **Mi semana (inicio del veterinario):** los 7 días en columnas, con su horario de fondo y las citas reservadas encima; al tocar una cita se abre un pop-up con la mascota, el servicio, la hora, el motivo y el dueño (con botón para llamar).
 - **Agenda (veterinario):** las citas del día y el cierre de cada una como «atendida» o «no asistió».
 - **Pacientes (veterinario):** mascotas con su dueño, buscador por nombre, cédula o teléfono, y filtro «mis pacientes».
 
@@ -129,7 +140,7 @@ pip install -r requirements.txt
 cp .env.example .env               # y completa los valores (ver abajo)
 
 python manage.py migrate
-python manage.py createsuperuser   # opcional: usuario para /admin/
+python manage.py createsuperuser   # crea el superadministrador de Woof (también entra a /admin/)
 python manage.py runserver
 ```
 
@@ -172,13 +183,13 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-200 pruebas:
+238 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 40 | Modelo de usuario, cédula, registro, login, doble factor y acceso por rol |
-| `mascotas` | 59 | CRUD, acceso sin sesión, mascotas de otro dueño y fotos |
-| `citas` | 101 | Servicios, horario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes y acceso por rol |
+| `cuentas` | 57 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol y gestión del equipo (superadministrador) |
+| `mascotas` | 64 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos y gestión de mascotas de la clínica |
+| `citas` | 117 | Servicios, horario en columnas, Mi semana del veterinario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes, gestión de citas y horarios, y acceso por rol |
 
 Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 
@@ -199,10 +210,12 @@ Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 ```
 woof-vet-system/
 ├── config/              configuración del proyecto (settings.py, urls.py)
-├── cuentas/             portada, registro, login, doble factor, roles y panel de cada rol
-├── mascotas/            CRUD de mascotas y carnet
-├── citas/               servicios, horario, agendar, Mis citas, agenda y pacientes
-│   └── services.py      AgendaService: reglas de turnos libres, agendar y cancelar
+├── cuentas/             portada, registro, login, doble factor, roles, panel de cada rol y equipo (superadmin)
+│   └── services/        doble factor, política de cuentas (quién gestiona a quién) y cifras de cada portada
+├── mascotas/            CRUD de mascotas, carnet y mascotas de la clínica
+│   └── services/        fotos y consultas de mascotas
+├── citas/               servicios, horario, agendar, Mis citas, agenda, pacientes y gestión de citas y horarios
+│   └── services/        AgendaService (turnos, agendar, cancelar), catálogo, horarios y consultas de citas
 ├── templates/           plantillas comunes (base.html y panel_base.html)
 ├── static/              CSS, JavaScript e imágenes comunes
 ├── docs/                guías del equipo, historias de usuario y modelo de datos
@@ -221,6 +234,7 @@ woof-vet-system/
 | `Guia_Git_y_CI_CD.docx` · [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Ramas, commits y el trabajo diario paso a paso |
 | `Guia_GitHub_Projects.docx` | Issues, tablero del equipo y cómo se conectan con ramas y PRs |
 | `Arquitectura_del_Proyecto.docx` | Qué es cada archivo y cómo crear un módulo nuevo |
+| Capas de cada app | `views.py` recibe la petición y dibuja la plantilla; `forms.py` valida lo que llega; `services/` hace las consultas y aplica las reglas; `models.py` define las tablas |
 | `Crear_un_Modulo_Mascotas.docx` | Tutorial: módulo de mascotas completo (modelo, vistas, URLs, plantillas y pruebas) |
 | `Entorno_Virtual_Python.docx` | Qué es el `.venv`, para qué sirve y cómo usarlo |
 | `Pruebas_y_CI_CD.docx` · [CI_CD.md](docs/CI_CD.md) | Cómo escribir pruebas y cómo las valida GitHub Actions |

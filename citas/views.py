@@ -1,9 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
-from django.db.models import BooleanField, Count, ExpressionWrapper, ProtectedError, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -13,15 +12,18 @@ from django.views import View
 from django.views.generic import CreateView, DeleteView, FormView, ListView, TemplateView, UpdateView
 
 from cuentas.mixins import AdministradorRequeridoMixin, ClienteRequeridoMixin, VeterinarioRequeridoMixin
-from cuentas.models import Roles
-from mascotas.models import Mascota
+from mascotas.services import MascotaService
 
-from .forms import AgendarCitaForm, HorarioForm, MisServiciosForm, ServicioForm
-from .models import Cita, EstadoCita, HorarioVeterinario, Servicio
-from .services import AgendaService, HorarioService
+from .forms import AgendarCitaForm, FiltroCitasForm, HorarioForm, MisServiciosForm, ServicioForm
+from .models import Cita, HorarioVeterinario, Servicio
+from .services import (
+    VISTAS_CITAS, VISTAS_GESTION, AgendaService, CitaService, HorarioService, ServicioService,
+)
+from .services.horarios import leer_fecha, lunes_de, semana_pedida
 
-# Filtro de estado del catálogo: valor en la URL -> condición
-ESTADOS_SERVICIO = {'activos': True, 'inactivos': False}
+
+def plural(cantidad, palabra):
+    return f'{cantidad} {palabra}{"s" if cantidad != 1 else ""}'
 
 
 class ServicioListView(AdministradorRequeridoMixin, ListView):
@@ -31,14 +33,7 @@ class ServicioListView(AdministradorRequeridoMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        servicios = Servicio.objects.prefetch_related('veterinarios')
-        buscar = self.request.GET.get('q', '').strip()
-        if buscar:
-            servicios = servicios.filter(Q(nombre__icontains=buscar) | Q(descripcion__icontains=buscar))
-        estado = self.request.GET.get('estado', '')
-        if estado in ESTADOS_SERVICIO:  # un estado inventado en la URL se ignora
-            servicios = servicios.filter(activo=ESTADOS_SERVICIO[estado])
-        return servicios
+        return ServicioService.buscar(self.request.GET.get('q', '').strip(), self.request.GET.get('estado', ''))
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
@@ -70,9 +65,7 @@ class ServicioEstadoView(AdministradorRequeridoMixin, View):
 
     def post(self, request, pk):
         servicio = get_object_or_404(Servicio, pk=pk)
-        servicio.activo = not servicio.activo
-        servicio.save(update_fields=['activo'])
-        if servicio.activo:
+        if ServicioService.alternar_estado(servicio):
             messages.success(request, f'{servicio.nombre} vuelve a ofrecerse al agendar.')
         else:
             messages.success(request, f'{servicio.nombre} se desactivó: ya no se ofrece al agendar.')
@@ -88,9 +81,7 @@ class ServicioDeleteView(AdministradorRequeridoMixin, DeleteView):
     success_url = reverse_lazy('citas:servicios')
 
     def form_valid(self, form):
-        try:
-            self.object.delete()
-        except ProtectedError:
+        if not ServicioService.eliminar(self.object):
             messages.error(
                 self.request,
                 f'{self.object.nombre} tiene citas registradas y no se puede eliminar. Desactívalo en su lugar.',
@@ -102,26 +93,8 @@ class ServicioDeleteView(AdministradorRequeridoMixin, DeleteView):
 
 # ---------- Mi horario (veterinario): HU-26, RF-07 a RF-10 ----------
 
-def lunes_de(fecha):
-    return fecha - timedelta(days=fecha.weekday())
-
-
-def semana_pedida(texto):
-    """El lunes de la semana que llega por ?semana=2026-11-04 (cualquier día sirve). Sin fecha o con
-    una fecha inventada, la semana actual."""
-    try:
-        return lunes_de(date.fromisoformat(texto or ''))
-    except ValueError:
-        return lunes_de(timezone.localdate())
-
-
 def url_semana(fecha):
     return f"{reverse('citas:horario')}?semana={lunes_de(fecha).isoformat()}"
-
-
-def minutos(bloque):
-    inicio = datetime.combine(bloque.fecha, bloque.hora_inicio)
-    return (datetime.combine(bloque.fecha, bloque.hora_fin) - inicio).seconds // 60
 
 
 class HorarioDelVeterinarioMixin(VeterinarioRequeridoMixin):
@@ -130,11 +103,11 @@ class HorarioDelVeterinarioMixin(VeterinarioRequeridoMixin):
     model = HorarioVeterinario
 
     def get_queryset(self):
-        return HorarioVeterinario.objects.filter(veterinario=self.request.user)
+        return HorarioService.del_veterinario(self.request.user)
 
 
 class MiHorarioView(HorarioDelVeterinarioMixin, SuccessMessageMixin, CreateView):
-    """La semana con sus bloques, el formulario "Nuevo bloque" y los servicios que atiende."""
+    """La semana en columnas (un día por columna), el formulario "Nuevo bloque" y los servicios que atiende."""
     form_class = HorarioForm
     template_name = 'citas/horario/semana.html'
     success_message = 'Se agregó el bloque del %(fecha)s de %(hora_inicio)s a %(hora_fin)s.'
@@ -146,35 +119,14 @@ class MiHorarioView(HorarioDelVeterinarioMixin, SuccessMessageMixin, CreateView)
         return kwargs
 
     def get_initial(self):
-        # Fecha sugerida: hoy si se mira la semana actual; si no, el lunes de la semana elegida
-        hoy = timezone.localdate()
+        # ?fecha= llega desde el "+" de un día de la grilla; si no, hoy o el lunes de la semana elegida
         lunes = semana_pedida(self.request.GET.get('semana'))
-        return {'fecha': max(lunes, hoy) if lunes + timedelta(days=6) >= hoy else lunes}
+        return {'fecha': HorarioService.fecha_sugerida(lunes, leer_fecha(self.request.GET.get('fecha')))}
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        hoy = timezone.localdate()
         lunes = semana_pedida(self.request.GET.get('semana'))
-        domingo = lunes + timedelta(days=6)
-        bloques = list(self.get_queryset().filter(fecha__range=(lunes, domingo)))
-
-        contexto['dias'] = [
-            {
-                'fecha': dia,
-                'bloques': [bloque for bloque in bloques if bloque.fecha == dia],
-                'es_hoy': dia == hoy,
-                'ya_paso': dia < hoy,
-            }
-            for dia in (lunes + timedelta(days=i) for i in range(7))
-        ]
-        horas, resto = divmod(sum(minutos(bloque) for bloque in bloques), 60)
-        contexto['total_semana'] = f'{horas} h' + (f' {resto} min' if resto else '')
-        contexto['lunes'], contexto['domingo'] = lunes, domingo
-        contexto['semana_anterior'] = lunes - timedelta(days=7)
-        contexto['semana_siguiente'] = lunes + timedelta(days=7)
-        contexto['es_semana_actual'] = lunes == lunes_de(hoy)
-        contexto['se_puede_copiar'] = domingo >= hoy  # no tiene sentido copiar a una semana que ya pasó
-
+        contexto.update(HorarioService.semana_del_veterinario(self.request.user, lunes))
         contexto['servicios_form'] = MisServiciosForm(
             initial={'servicios': self.request.user.servicios.filter(activo=True)},
         )
@@ -227,7 +179,7 @@ class CopiarSemanaView(VeterinarioRequeridoMixin, View):
             return redirect(url_semana(lunes))
 
         if copiados:
-            texto = f'Se copiaron {copiados} bloque{"s" if copiados != 1 else ""} de la semana anterior.'
+            texto = f'Se copiaron {plural(copiados, "bloque")} de la semana anterior.'
             if omitidos:
                 texto += f' {omitidos} no se copiaron porque el día ya pasó o se cruzaban con tu horario.'
             messages.success(request, texto)
@@ -246,9 +198,8 @@ class MisServiciosView(VeterinarioRequeridoMixin, View):
         if not formulario.is_valid():
             messages.error(request, 'Elige servicios de la lista.')
             return redirect(destino)
-        HorarioService.guardar_servicios(request.user, formulario.cleaned_data['servicios'])
-        cantidad = len(formulario.cleaned_data['servicios'])
-        messages.success(request, f'Ahora atiendes {cantidad} servicio{"s" if cantidad != 1 else ""}.')
+        cantidad = HorarioService.guardar_servicios(request.user, formulario.cleaned_data['servicios'])
+        messages.success(request, f'Ahora atiendes {plural(cantidad, "servicio")}.')
         return redirect(destino)
 
 
@@ -318,12 +269,9 @@ def datos_de_confirmacion(cita):
     }
 
 
-def leer_fecha(texto):
-    """"2026-11-03" -> date; None si viene vacía o inventada."""
-    try:
-        return date.fromisoformat(texto or '')
-    except ValueError:
-        return None
+def servicio_pedido(request):
+    """El servicio activo de ?servicio=<id>, o None."""
+    return Servicio.objects.filter(pk=request.GET.get('servicio') or 0, activo=True).first()
 
 
 class TurnosDelDiaView(ClienteRequeridoMixin, View):
@@ -333,7 +281,7 @@ class TurnosDelDiaView(ClienteRequeridoMixin, View):
     """
 
     def get(self, request):
-        servicio = Servicio.objects.filter(pk=request.GET.get('servicio') or 0, activo=True).first()
+        servicio = servicio_pedido(request)
         fecha = leer_fecha(request.GET.get('fecha'))
         if not (servicio and fecha):
             return JsonResponse({'turnos': []})
@@ -353,7 +301,7 @@ class DiasDisponiblesView(ClienteRequeridoMixin, View):
     """Devuelve en JSON los días del mes (?mes=2026-11) en que el servicio tiene turnos libres; el calendario los marca."""
 
     def get(self, request):
-        servicio = Servicio.objects.filter(pk=request.GET.get('servicio') or 0, activo=True).first()
+        servicio = servicio_pedido(request)
         try:
             anio, mes = (int(parte) for parte in request.GET.get('mes', '').split('-'))
             date(anio, mes, 1)
@@ -366,10 +314,6 @@ class DiasDisponiblesView(ClienteRequeridoMixin, View):
         return JsonResponse({'dias': [dia.isoformat() for dia in dias]})
 
 
-# Pestañas de Mis citas: valor en la URL (?vista=) -> nombre que se muestra
-VISTAS_CITAS = {'proximas': 'Próximas', 'pasadas': 'Pasadas', 'canceladas': 'Canceladas'}
-
-
 class MisCitasView(ClienteRequeridoMixin, TemplateView):
     """
     Las citas de las mascotas del cliente en tres pestañas (?vista=proximas|pasadas|canceladas),
@@ -379,49 +323,19 @@ class MisCitasView(ClienteRequeridoMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        ahora = timezone.now()
-        # Cada cliente ve solo las citas de sus mascotas; tiene_foto dice si mostrar la foto de la mascota
-        citas = list(
-            Cita.objects.filter(mascota__dueno=self.request.user)
-            .select_related('mascota', 'servicio', 'veterinario')
-            .defer('mascota__foto')
-            .annotate(foto_mascota=ExpressionWrapper(Q(mascota__foto__isnull=False), output_field=BooleanField()))
-        )
-        for cita in citas:
-            cita.mascota.tiene_foto = cita.foto_mascota
-
-        proximas = [c for c in citas if c.estado == EstadoCita.CONFIRMADA and c.inicio > ahora]
-        canceladas = sorted((c for c in citas if c.estado == EstadoCita.CANCELADA), key=lambda c: c.inicio, reverse=True)
-        pasadas = sorted((c for c in citas if c not in proximas and c not in canceladas), key=lambda c: c.inicio, reverse=True)
-        listas = {'proximas': proximas, 'pasadas': pasadas, 'canceladas': canceladas}
-
         vista = self.request.GET.get('vista', 'proximas')
         if vista not in VISTAS_CITAS:   # una pestaña inventada en la URL vuelve a Próximas
             vista = 'proximas'
 
-        # Las citas de la pestaña, agrupadas por día (fecha local): [(fecha, [citas]), ...]
-        por_dia = {}
-        for cita in listas[vista]:
-            por_dia.setdefault(timezone.localtime(cita.inicio).date(), []).append(cita)
-
-        mascotas = (
-            Mascota.objects.filter(dueno=self.request.user).defer('foto')
-            .annotate(tiene_foto=ExpressionWrapper(Q(foto__isnull=False), output_field=BooleanField()))
-            .order_by('nombre')
-        )
+        contexto.update(CitaService.del_cliente(self.request.user, vista))
         contexto.update({
             # La reserva del pop-up "Agendar cita" (el mismo formulario de AgendarCitaView)
             'form': AgendarCitaForm(cliente=self.request.user),
             'abrir_agendar': 'agendar' in self.request.GET,   # ?agendar abre el pop-up al cargar (desde el inicio)
             'vista': vista,
-            'pestanas': [(valor, nombre, len(listas[valor])) for valor, nombre in VISTAS_CITAS.items()],
-            'por_dia': list(por_dia.items()),
-            'proximas': proximas,
-            'proxima': proximas[0] if proximas else None,
-            'ultima': pasadas[0] if pasadas else None,
-            'mascotas': mascotas,
+            'mascotas': MascotaService.del_dueno(self.request.user).order_by('nombre'),
             'hoy': timezone.localdate(),
-            'ahora': ahora,
+            'ahora': timezone.now(),
         })
         return contexto
 
@@ -452,24 +366,13 @@ class AgendaVeterinarioView(VeterinarioRequeridoMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        try:
-            fecha = date.fromisoformat(self.request.GET.get('fecha', ''))
-        except ValueError:
-            fecha = timezone.localdate()   # una fecha inventada vuelve a hoy
-
-        citas = (
-            Cita.objects.filter(veterinario=self.request.user, inicio__date=fecha)
-            .select_related('mascota', 'mascota__dueno', 'servicio')
-            .defer('mascota__foto')
-        )
+        fecha = leer_fecha(self.request.GET.get('fecha')) or timezone.localdate()   # una fecha inventada vuelve a hoy
+        contexto.update(CitaService.agenda_del_dia(self.request.user, fecha))
         contexto.update({
             'fecha': fecha,
             'hoy': timezone.localdate(),
             'anterior': fecha - timedelta(days=1),
             'siguiente': fecha + timedelta(days=1),
-            'citas': citas,
-            'activas': sum(1 for cita in citas if cita.estado != EstadoCita.CANCELADA),
-            'bloques': HorarioVeterinario.objects.filter(veterinario=self.request.user, fecha=fecha),
             'ahora': timezone.now(),
         })
         return contexto
@@ -501,30 +404,81 @@ class PacientesView(VeterinarioRequeridoMixin, ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        mascotas = (
-            Mascota.objects.filter(dueno__rol=Roles.CLIENTE)
-            .select_related('dueno')
-            .defer('foto')   # tiene_foto basta para mostrar su foto, sin traer los bytes
-            .annotate(
-                tiene_foto=ExpressionWrapper(Q(foto__isnull=False), output_field=BooleanField()),
-                citas_conmigo=Count('citas', filter=Q(citas__veterinario=self.request.user)),
-            )
-            .order_by('nombre')
+        return MascotaService.pacientes(
+            self.request.user, self.request.GET.get('q', '').strip(), bool(self.request.GET.get('mios')),
         )
-        buscar = self.request.GET.get('q', '').strip()
-        if buscar:
-            mascotas = mascotas.filter(
-                Q(nombre__icontains=buscar)
-                | Q(dueno__first_name__icontains=buscar) | Q(dueno__last_name__icontains=buscar)
-                | Q(dueno__username__icontains=buscar) | Q(dueno__email__icontains=buscar)
-                | Q(dueno__cedula__icontains=buscar) | Q(dueno__telefono__icontains=buscar)
-            )
-        if self.request.GET.get('mios'):
-            mascotas = mascotas.filter(citas_conmigo__gt=0)
-        return mascotas
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto['buscar'] = self.request.GET.get('q', '').strip()
         contexto['solo_mios'] = bool(self.request.GET.get('mios'))
+        return contexto
+
+
+# ---------------------------------------------------------------------------
+# Gestión de la clínica (administrador y superadministrador): citas y horarios
+# ---------------------------------------------------------------------------
+class GestionCitasView(AdministradorRequeridoMixin, ListView):
+    """
+    Todas las citas de la clínica en pestañas (?vista=proximas|hoy|pasadas|todas), con buscador
+    y filtros por estado, veterinario y servicio. Desde aquí se cancela una cita confirmada.
+    """
+    template_name = 'citas/gestion/citas.html'
+    context_object_name = 'citas'
+    paginate_by = 20
+
+    def vista(self):
+        vista = self.request.GET.get('vista', 'proximas')
+        return vista if vista in VISTAS_GESTION else 'proximas'
+
+    def get_queryset(self):
+        self.filtros = FiltroCitasForm(self.request.GET, veterinarios=CitaService.veterinarios())
+        return CitaService.de_la_clinica(self.vista(), **self.filtros.filtros())
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # Los filtros sin la página, para que los enlaces de las páginas los conserven
+        consulta = self.request.GET.copy()
+        consulta.pop('page', None)
+        sin_vista = consulta.copy()
+        sin_vista.pop('vista', None)
+        contexto.update({
+            'filtros': self.filtros,
+            'vista': self.vista(),
+            'vistas': VISTAS_GESTION.items(),
+            'resumen': CitaService.resumen_de_la_clinica(),
+            'consulta': consulta.urlencode(),
+            'consulta_sin_vista': sin_vista.urlencode(),
+            'hay_filtros': any(self.filtros.filtros().values()),
+            'ahora': timezone.now(),
+        })
+        return contexto
+
+
+class GestionCancelarCitaView(AdministradorRequeridoMixin, View):
+    """El administrador cancela una cita confirmada que todavía no empieza (POST); el turno vuelve a quedar libre."""
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        cita = get_object_or_404(Cita, pk=pk)
+        try:
+            AgendaService.cancelar(cita)
+        except ValidationError as error:
+            messages.error(request, error.messages[0])
+        else:
+            messages.success(request, f'Se canceló la cita de {cita.mascota}. El horario quedó libre.')
+        destino = request.POST.get('volver', '')
+        # Solo se vuelve a la propia gestión de citas (nunca a una URL de afuera)
+        if not destino.startswith(reverse('citas:gestion_citas')):
+            destino = reverse('citas:gestion_citas')
+        return redirect(destino)
+
+
+class GestionHorariosView(AdministradorRequeridoMixin, TemplateView):
+    """La semana de toda la clínica: una fila por veterinario y una columna por día, con sus bloques."""
+    template_name = 'citas/gestion/horarios.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto.update(HorarioService.semana_de_la_clinica(semana_pedida(self.request.GET.get('semana'))))
         return contexto

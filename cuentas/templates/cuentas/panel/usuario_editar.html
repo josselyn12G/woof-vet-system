@@ -24,7 +24,7 @@
             <option value="{{ valor }}"{% if valor == form.rol.value %} selected{% endif %}>{{ nombre }}</option>
           {% endfor %}
         </select>
-        <p class="formulario-panel__ayuda">Veterinario: puede publicar su horario y ver su agenda. Administrador: gestiona la clínica.</p>
+        <p class="formulario-panel__ayuda">Veterinario: puede publicar su horario y ver su agenda.{% if user.es_superadmin %} Administrador: gestiona la clínica. Superadministrador: además gestiona al equipo.{% endif %}</p>
         {% for error in form.rol.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
       </div>
 
@@ -39,6 +39,7 @@
       <div class="formulario-panel__acciones">
         <button type="submit" class="boton-panel">Guardar cambios</button>
         <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:usuarios' %}">Cancelar</a>
+        {% if user.es_superadmin %}<a class="bloque-panel__enlace align-self-center ms-auto" href="{% url 'cuentas:equipo_editar' persona.pk %}">Editar todos sus datos</a>{% endif %}
       </div>
     </form>
   </section>

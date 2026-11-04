@@ -5,7 +5,10 @@
 {% block panel_icono %}bi-people{% endblock %}
 {% block panel_seccion %}Usuarios{% endblock %}
 {% block panel_titulo %}Usuarios{% endblock %}
-{% block panel_subtitulo %}Cambia el rol de una cuenta para darle acceso como veterinario o administrador, o desactívala.{% endblock %}
+{% block panel_subtitulo %}{% if user.es_superadmin %}Cambia el rol de cualquier cuenta o desactívala. Para crear cuentas del personal, usa Equipo.{% else %}Cambia el rol de una cuenta para darle acceso como veterinario, o desactívala. Los administradores los gestiona el superadministrador.{% endif %}{% endblock %}
+{% block panel_acciones %}
+  {% if user.es_superadmin %}<a class="boton-panel" href="{% url 'cuentas:equipo_crear' %}"><i class="bi bi-person-plus" aria-hidden="true"></i>Nueva cuenta del equipo</a>{% endif %}
+{% endblock %}
 
 {% block panel_contenido %}
   {# Filtros por GET: la búsqueda queda en la URL y se puede recargar o compartir #}
@@ -59,7 +62,12 @@
               <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.cedula|default:'—' }}</td>
               <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.date_joined|date:'j M Y' }}</td>
               <td class="tabla-panel__accion">
-                <a class="bloque-panel__enlace" href="{% url 'cuentas:usuario_editar' persona.pk %}">Editar<span class="visually-hidden"> a {{ persona }}</span></a>
+                {% if persona.gestionable %}
+                  <a class="bloque-panel__enlace" href="{% url 'cuentas:usuario_editar' persona.pk %}">Editar<span class="visually-hidden"> a {{ persona }}</span></a>
+                {% else %}
+                  {# Otro administrador o un superadministrador: lo gestiona el superadministrador #}
+                  <span class="tabla-panel__secundario" title="Solo el superadministrador gestiona esta cuenta"><i class="bi bi-lock" aria-hidden="true"></i><span class="visually-hidden">Solo el superadministrador gestiona esta cuenta</span></span>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

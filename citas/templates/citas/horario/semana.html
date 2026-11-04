@@ -1,5 +1,5 @@
 {% extends 'panel_base.html' %}
-{% load static %}
+{% load static l10n %}
 
 {% block titulo %}Mi horario · Woof{% endblock %}
 
@@ -22,52 +22,71 @@
 
 {% block panel_contenido %}
   <div class="horario">
-    {# ---------- La semana: un renglón por día con sus bloques ---------- #}
+    {# ---------- La semana: una columna por día, con sus bloques ubicados según la hora ---------- #}
     <section class="bloque-panel semana" aria-labelledby="semana-titulo">
       <header class="semana__cabecera">
         <a class="boton-fila" href="?semana={{ semana_anterior|date:'Y-m-d' }}" title="Semana anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i><span class="visually-hidden">Semana anterior</span></a>
         <div class="semana__rango">
           <h2 class="bloque-panel__titulo" id="semana-titulo">{{ lunes|date:'j M' }} – {{ domingo|date:'j M Y' }}</h2>
-          <p class="bloque-panel__meta">{{ total_semana }} de atención{% if not es_semana_actual %} · <a class="bloque-panel__enlace" href="{% url 'citas:horario' %}">Ir a esta semana</a>{% endif %}</p>
+          <p class="bloque-panel__meta">{{ total_semana }} de atención · {{ dias_con_horario }} día{{ dias_con_horario|pluralize }} · {{ citas_semana }} cita{{ citas_semana|pluralize }} agendada{{ citas_semana|pluralize }}{% if not es_semana_actual %} · <a class="bloque-panel__enlace" href="{% url 'citas:horario' %}">Ir a esta semana</a>{% endif %}</p>
         </div>
         <a class="boton-fila" href="?semana={{ semana_siguiente|date:'Y-m-d' }}" title="Semana siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i><span class="visually-hidden">Semana siguiente</span></a>
       </header>
 
-      <ol class="semana__dias">
-        {% for dia in dias %}
-          <li class="dia{% if dia.es_hoy %} dia--hoy{% endif %}{% if dia.ya_paso %} dia--pasado{% endif %}">
-            <div class="dia__fecha">
-              <span class="dia__nombre">{{ dia.fecha|date:'l'|capfirst }}</span>
-              <span class="dia__numero">{{ dia.fecha|date:'j M' }}{% if dia.es_hoy %} <span class="estado estado--acento">Hoy</span>{% endif %}</span>
+      {# localize off: en español Django escribe 12,5; el CSS de top y height necesita 12.5 #}
+      {% localize off %}
+      <div class="cal-semana" style="--horas: {{ horas_grilla|length }}">
+        {# Cabecera: nombre y número de cada día, sus horas y el "+" para agregar un bloque ese día #}
+        <div class="cal-semana__cabecera">
+          <span class="cal-semana__esquina" aria-hidden="true"></span>
+          {% for dia in dias %}
+            <div class="cal-dia{% if dia.es_hoy %} es-hoy{% endif %}{% if dia.ya_paso %} ya-paso{% endif %}">
+              <span class="cal-dia__nombre">{{ dia.fecha|date:'D' }}</span>
+              <span class="cal-dia__numero">{{ dia.fecha|date:'j' }}</span>
+              <span class="cal-dia__total">{% if dia.total %}{{ dia.total }}{% elif dia.ya_paso %}—{% else %}Libre{% endif %}</span>
+              {% if not dia.ya_paso %}
+                <a class="cal-dia__agregar" href="?semana={{ lunes|date:'Y-m-d' }}&fecha={{ dia.fecha|date:'Y-m-d' }}#nuevo-bloque" data-agregar-dia="{{ dia.fecha|date:'Y-m-d' }}" title="Agregar un bloque el {{ dia.fecha|date:'l j' }}"><i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Agregar un bloque el {{ dia.fecha|date:'l j' }}</span></a>
+              {% endif %}
             </div>
-            <div class="dia__bloques">
+          {% endfor %}
+        </div>
+
+        <div class="cal-semana__cuerpo">
+          <ol class="cal-semana__horas" aria-hidden="true">
+            {% for hora in horas_grilla %}<li>{{ hora }}</li>{% endfor %}
+          </ol>
+          {% for dia in dias %}
+            <div class="cal-columna{% if dia.es_hoy %} es-hoy{% endif %}{% if dia.ya_paso %} ya-paso{% endif %}" aria-label="{{ dia.fecha|date:'l j \d\e F'|capfirst }}">
               {% for bloque in dia.bloques %}
-                <span class="bloque-hora">
-                  <i class="bi bi-clock" aria-hidden="true"></i>
-                  <span class="bloque-hora__texto">{{ bloque.hora_inicio|time:'H:i' }} – {{ bloque.hora_fin|time:'H:i' }}</span>
+                <div class="cal-bloque{% if bloque.minutos < 75 %} cal-bloque--corto{% endif %}" style="top: {{ bloque.arriba }}%; height: {{ bloque.alto }}%">
+                  <span class="cal-bloque__hora">{{ bloque.hora_inicio|time:'H:i' }} – {{ bloque.hora_fin|time:'H:i' }}</span>
+                  <span class="cal-bloque__meta">{{ bloque.duracion }}{% if bloque.citas %} · {{ bloque.citas }} cita{{ bloque.citas|pluralize }}{% endif %}</span>
                   {% if not dia.ya_paso %}
-                    <a class="boton-fila boton-fila--chico" href="{% url 'citas:horario_editar' bloque.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></a>
-                    {# Quitar: POST con confirmación del navegador #}
-                    <form method="post" action="{% url 'citas:horario_eliminar' bloque.pk %}" onsubmit="return confirm('¿Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}?');">
-                      {% csrf_token %}
-                      <button type="submit" class="boton-fila boton-fila--chico boton-fila--peligro" title="Quitar"><i class="bi bi-x-lg" aria-hidden="true"></i><span class="visually-hidden">Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></button>
-                    </form>
+                    <span class="cal-bloque__acciones">
+                      <a class="boton-fila boton-fila--chico" href="{% url 'citas:horario_editar' bloque.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></a>
+                      {# Quitar: POST con confirmación del navegador #}
+                      <form method="post" action="{% url 'citas:horario_eliminar' bloque.pk %}" onsubmit="return confirm('¿Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}?{% if bloque.citas %} Tiene {{ bloque.citas }} cita{{ bloque.citas|pluralize }} agendada{{ bloque.citas|pluralize }}.{% endif %}');">
+                        {% csrf_token %}
+                        <button type="submit" class="boton-fila boton-fila--chico boton-fila--peligro" title="Quitar"><i class="bi bi-x-lg" aria-hidden="true"></i><span class="visually-hidden">Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></button>
+                      </form>
+                    </span>
                   {% endif %}
-                </span>
+                </div>
               {% empty %}
-                <span class="dia__vacio">{% if dia.ya_paso %}—{% else %}No atiendes{% endif %}</span>
+                <span class="cal-columna__vacio">{% if dia.ya_paso %}—{% else %}No atiendes{% endif %}</span>
               {% endfor %}
             </div>
-          </li>
-        {% endfor %}
-      </ol>
+          {% endfor %}
+        </div>
+      </div>
+      {% endlocalize %}
     </section>
 
     <div class="horario__lado">
       {# ---------- Nuevo bloque: el veterinario es quien inició sesión, no va en el formulario ---------- #}
       <section class="bloque-panel" id="nuevo-bloque" aria-labelledby="nuevo-titulo">
         <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio" id="nuevo-titulo">Nuevo bloque</h2>
-        <form class="formulario-panel" method="post" action="{% url 'citas:horario' %}?semana={{ lunes|date:'Y-m-d' }}" novalidate>
+        <form class="formulario-panel" method="post" action="{% url 'citas:horario' %}?semana={{ lunes|date:'Y-m-d' }}" novalidate data-formulario-bloque>
           {% include 'citas/horario/_campos.html' %}
           <div class="formulario-panel__acciones">
             <button type="submit" class="boton-panel"><i class="bi bi-plus-lg" aria-hidden="true"></i>Agregar bloque</button>
@@ -104,4 +123,8 @@
       </section>
     </div>
   </div>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'citas/js/selector-hora.js' %}" defer></script>
 {% endblock %}

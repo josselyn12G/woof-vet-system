@@ -12,4 +12,7 @@ urlpatterns = [
     path('<int:pk>/eliminar/', views.MascotaDeleteView.as_view(), name='eliminar'),
     path('<int:pk>/carnet/', views.MascotaCarnetView.as_view(), name='carnet'),
     path('<int:pk>/foto/', views.FotoMascotaView.as_view(), name='foto'),
+    # Gestión de la clínica: administrador y superadministrador (403 para los demás)
+    path('gestion/', views.MascotaGestionListView.as_view(), name='gestion'),
+    path('gestion/<int:pk>/', views.MascotaGestionDetailView.as_view(), name='gestion_detalle'),
 ]

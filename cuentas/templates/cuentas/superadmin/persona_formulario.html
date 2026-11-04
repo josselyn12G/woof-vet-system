@@ -1,0 +1,90 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}{% if persona %}Editar a {{ persona }}{% else %}Nueva cuenta del equipo{% endif %} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-person-badge{% endblock %}
+{% block panel_seccion %}Equipo{% endblock %}
+{% block panel_titulo %}{% if persona %}{{ persona }}{% else %}Nueva cuenta del equipo{% endif %}{% endblock %}
+{% block panel_subtitulo %}{% if persona %}{{ persona.get_rol_display }} · en Woof desde el {{ persona.date_joined|date:'j \d\e F \d\e Y' }}{% else %}La persona entra con su usuario y esta contraseña inicial; pídele que la cambie después.{% endif %}{% endblock %}
+
+{% block panel_contenido %}
+  <div class="formulario-equipo">
+    <form class="bloque-panel formulario-equipo__principal" method="post" novalidate>
+      {% csrf_token %}
+
+      {% for error in form.non_field_errors %}
+        <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+      {% endfor %}
+
+      <fieldset class="formulario-equipo__grupo">
+        <legend class="formulario-equipo__titulo"><i class="bi bi-person" aria-hidden="true"></i>Datos de la persona</legend>
+        <div class="formulario-servicio__par">
+          {% with campo=form.first_name %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+          {% with campo=form.last_name %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        </div>
+        <div class="formulario-servicio__par">
+          {% with campo=form.cedula %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+          {% with campo=form.telefono %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        </div>
+        {% if form.sector %}{% with campo=form.sector %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}{% endif %}
+      </fieldset>
+
+      <fieldset class="formulario-equipo__grupo">
+        <legend class="formulario-equipo__titulo"><i class="bi bi-key" aria-hidden="true"></i>Cuenta y acceso</legend>
+        {% if form.username %}{% with campo=form.username %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}{% endif %}
+        {% with campo=form.email %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+
+        {# El rol se elige con tarjetas: cada una dice qué puede hacer esa persona #}
+        <div class="formulario-panel__campo">
+          <span class="formulario-panel__etiqueta" id="rol-etiqueta">Rol</span>
+          <div class="opciones-rol" role="radiogroup" aria-labelledby="rol-etiqueta">
+            {% for valor, nombre in form.fields.rol.choices %}
+              <label class="opcion-rol">
+                <input type="radio" name="{{ form.rol.html_name }}" value="{{ valor }}"{% if valor == form.rol.value %} checked{% endif %}>
+                <span class="opcion-rol__icono inicial--{{ valor }}" aria-hidden="true"><i class="bi {% if valor == 'veterinario' %}bi-heart-pulse{% elif valor == 'administrador' %}bi-shield-check{% elif valor == 'superadmin' %}bi-stars{% else %}bi-person{% endif %}"></i></span>
+                <span class="opcion-rol__texto">
+                  <strong>{{ nombre }}</strong>
+                  <span>{% if valor == 'veterinario' %}Publica su horario, atiende su agenda y ve a sus pacientes.{% elif valor == 'administrador' %}Gestiona servicios, citas, horarios, mascotas y clientes.{% elif valor == 'superadmin' %}Todo lo del administrador y, además, gestiona al equipo.{% else %}Registra a sus mascotas y agenda citas.{% endif %}</span>
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+          {% for error in form.rol.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+        </div>
+
+        {% if form.password1 %}
+          <div class="formulario-servicio__par">
+            {% with campo=form.password1 %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+            {% with campo=form.password2 %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+          </div>
+        {% endif %}
+        {% if form.is_active %}{% with campo=form.is_active %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}{% endif %}
+      </fieldset>
+
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>{% if persona %}Guardar cambios{% else %}Crear la cuenta{% endif %}</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:equipo' %}">Cancelar</a>
+      </div>
+    </form>
+
+    {% if persona %}
+      <aside class="formulario-equipo__lado">
+        <section class="bloque-panel">
+          <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio">Acceso</h2>
+          <dl class="mini-datos mini-datos--lista">
+            <div><dt>Usuario</dt><dd>{{ persona.username }}</dd></div>
+            <div><dt>Último acceso</dt><dd>{% if persona.last_login %}{{ persona.last_login|date:'j M Y, H:i' }}{% else %}Nunca{% endif %}</dd></div>
+            <div><dt>Estado</dt><dd>{% if persona.is_active %}Activa{% else %}Desactivada{% endif %}</dd></div>
+          </dl>
+          <a class="boton-panel boton-panel--secundario formulario-equipo__boton" href="{% url 'cuentas:equipo_contrasena' persona.pk %}"><i class="bi bi-key" aria-hidden="true"></i>Cambiar la contraseña</a>
+        </section>
+      </aside>
+    {% endif %}
+  </div>
+{% endblock %}

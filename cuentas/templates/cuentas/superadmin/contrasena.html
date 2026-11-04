@@ -1,0 +1,30 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Contraseña de {{ persona }} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-person-badge{% endblock %}
+{% block panel_seccion %}Equipo{% endblock %}
+{% block panel_titulo %}Contraseña nueva{% endblock %}
+{% block panel_subtitulo %}Para {{ persona }} ({{ persona.username }}). Su contraseña anterior deja de servir en cuanto guardes.{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel">
+    <form class="formulario-panel" method="post" novalidate>
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}
+        <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+      {% endfor %}
+      {% with campo=form.new_password1 %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+      {% with campo=form.new_password2 %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel"><i class="bi bi-key" aria-hidden="true"></i>Guardar la contraseña</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:equipo_editar' persona.pk %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

@@ -27,4 +27,8 @@ urlpatterns = [
     path('agenda/', views.AgendaVeterinarioView.as_view(), name='agenda'),
     path('agenda/<int:pk>/resultado/', views.ResultadoCitaView.as_view(), name='resultado'),
     path('pacientes/', views.PacientesView.as_view(), name='pacientes'),
+    # Gestión de la clínica: administrador y superadministrador (403 para los demás)
+    path('gestion/', views.GestionCitasView.as_view(), name='gestion_citas'),
+    path('gestion/<int:pk>/cancelar/', views.GestionCancelarCitaView.as_view(), name='gestion_cancelar'),
+    path('gestion/horarios/', views.GestionHorariosView.as_view(), name='gestion_horarios'),
 ]

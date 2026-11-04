@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from .models import Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
-from .views import variacion
+from .services.estadisticas import variacion
 
 
 def crear_usuario(**datos):
@@ -410,3 +410,146 @@ class LoginSinDobleFactorTests(TestCase):
         crear_usuario()
         self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'otra-clave'})
         self.assertNotIn('_auth_user_id', self.client.session)
+
+
+# ---------------------------------------------------------------------------
+# Superadministrador: gestiona al equipo (administradores y veterinarios)
+# ---------------------------------------------------------------------------
+def datos_de_personal(**cambios):
+    datos = {
+        'first_name': 'Mateo', 'last_name': 'Ruiz', 'username': 'mateo', 'email': 'mateo@woof.ec',
+        'telefono': '+593987654321', 'cedula': cedula_valida(50), 'rol': Roles.VETERINARIO,
+        'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
+    }
+    datos.update(cambios)
+    return datos
+
+
+class SuperadminTests(TestCase):
+    def setUp(self):
+        self.superadmin = usuario_con_rol('sara', Roles.SUPERADMIN, 1)
+        self.administrador = usuario_con_rol('jefa', Roles.ADMINISTRADOR, 2)
+        self.veterinario = usuario_con_rol('dra.paredes', Roles.VETERINARIO, 3)
+        self.cliente = usuario_con_rol('ana', Roles.CLIENTE, 4)
+        self.client.force_login(self.superadmin)
+
+    def test_createsuperuser_crea_un_superadministrador(self):
+        persona = Usuario.objects.create_superuser('raiz', 'raiz@woof.ec', 'Clave-segura-123',
+                                                   telefono='+593987654321', cedula=cedula_valida(60))
+        self.assertTrue(persona.es_superadmin)
+        self.assertTrue(persona.gestiona_clinica)
+
+    def test_el_panel_lo_manda_a_su_portada(self):
+        self.assertRedirects(self.client.get(reverse('cuentas:panel')), reverse('cuentas:inicio_superadmin'))
+
+    def test_tambien_entra_a_las_pantallas_del_administrador(self):
+        for nombre in ('cuentas:inicio_administrador', 'cuentas:usuarios', 'citas:servicios', 'citas:gestion_citas',
+                       'citas:gestion_horarios', 'mascotas:gestion'):
+            with self.subTest(pantalla=nombre):
+                self.assertEqual(self.client.get(reverse(nombre)).status_code, 200)
+
+    def test_solo_el_superadministrador_entra_al_equipo(self):
+        for usuario in (self.administrador, self.veterinario, self.cliente):
+            self.client.force_login(usuario)
+            for nombre in ('cuentas:inicio_superadmin', 'cuentas:equipo', 'cuentas:equipo_crear'):
+                with self.subTest(rol=usuario.rol, pantalla=nombre):
+                    self.assertEqual(self.client.get(reverse(nombre)).status_code, 403)
+
+    def test_el_equipo_no_muestra_clientes(self):
+        respuesta = self.client.get(reverse('cuentas:equipo'))
+        self.assertEqual(set(respuesta.context['personas']), {self.superadmin, self.administrador, self.veterinario})
+
+    def test_crea_la_cuenta_de_un_veterinario(self):
+        respuesta = self.client.post(reverse('cuentas:equipo_crear'), datos_de_personal())
+        self.assertRedirects(respuesta, reverse('cuentas:equipo'))
+        mateo = Usuario.objects.get(username='mateo')
+        self.assertEqual(mateo.rol, Roles.VETERINARIO)
+        self.assertTrue(mateo.check_password('Clave-segura-123'))
+
+    def test_crea_la_cuenta_de_un_administrador(self):
+        self.client.post(reverse('cuentas:equipo_crear'), datos_de_personal(rol=Roles.ADMINISTRADOR))
+        self.assertEqual(Usuario.objects.get(username='mateo').rol, Roles.ADMINISTRADOR)
+
+    def test_una_cuenta_nueva_del_equipo_no_es_de_cliente(self):
+        respuesta = self.client.post(reverse('cuentas:equipo_crear'), datos_de_personal(rol=Roles.CLIENTE))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('rol', respuesta.context['form'].errors)
+        self.assertFalse(Usuario.objects.filter(username='mateo').exists())
+
+    def test_edita_los_datos_y_el_rol_de_un_administrador(self):
+        respuesta = self.client.post(reverse('cuentas:equipo_editar', args=[self.administrador.pk]), {
+            'first_name': 'Laura', 'last_name': 'Jefa', 'email': 'laura@woof.ec', 'telefono': '+593987654321',
+            'cedula': self.administrador.cedula, 'sector': '', 'rol': Roles.VETERINARIO, 'is_active': 'on',
+        })
+        self.assertRedirects(respuesta, reverse('cuentas:equipo'))
+        self.administrador.refresh_from_db()
+        self.assertEqual((self.administrador.first_name, self.administrador.rol), ('Laura', Roles.VETERINARIO))
+
+    def test_no_se_quita_su_propio_rol(self):
+        respuesta = self.client.post(
+            reverse('cuentas:usuario_editar', args=[self.superadmin.pk]), {'rol': Roles.ADMINISTRADOR, 'is_active': 'on'},
+        )
+        self.assertContains(respuesta, 'No puedes quitarte el rol de superadministrador')
+        self.superadmin.refresh_from_db()
+        self.assertEqual(self.superadmin.rol, Roles.SUPERADMIN)
+
+    def test_desactiva_y_reactiva_una_cuenta(self):
+        url = reverse('cuentas:equipo_estado', args=[self.veterinario.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)   # solo POST
+        self.client.post(url)
+        self.veterinario.refresh_from_db()
+        self.assertFalse(self.veterinario.is_active)
+        self.client.post(url)
+        self.veterinario.refresh_from_db()
+        self.assertTrue(self.veterinario.is_active)
+
+    def test_no_se_desactiva_a_si_mismo(self):
+        self.client.post(reverse('cuentas:equipo_estado', args=[self.superadmin.pk]))
+        self.superadmin.refresh_from_db()
+        self.assertTrue(self.superadmin.is_active)
+
+    def test_cambia_la_contrasena_de_una_persona_del_equipo(self):
+        respuesta = self.client.post(reverse('cuentas:equipo_contrasena', args=[self.veterinario.pk]), {
+            'new_password1': 'Otra-clave-456', 'new_password2': 'Otra-clave-456',
+        })
+        self.assertRedirects(respuesta, reverse('cuentas:equipo'))
+        self.veterinario.refresh_from_db()
+        self.assertTrue(self.veterinario.check_password('Otra-clave-456'))
+
+
+class AdministradorYSuperadminTests(TestCase):
+    """El administrador gestiona clientes y veterinarios; a los demás administradores, solo el superadministrador."""
+
+    def setUp(self):
+        self.administrador = usuario_con_rol('jefa', Roles.ADMINISTRADOR, 1)
+        self.otro_administrador = usuario_con_rol('pablo', Roles.ADMINISTRADOR, 2)
+        self.superadmin = usuario_con_rol('sara', Roles.SUPERADMIN, 3)
+        self.cliente = usuario_con_rol('ana', Roles.CLIENTE, 4)
+        self.client.force_login(self.administrador)
+
+    def test_no_edita_a_otro_administrador_ni_al_superadministrador(self):
+        for persona in (self.otro_administrador, self.superadmin):
+            with self.subTest(persona=persona.username):
+                url = reverse('cuentas:usuario_editar', args=[persona.pk])
+                self.assertEqual(self.client.get(url).status_code, 403)
+                self.assertEqual(self.client.post(url, {'rol': Roles.CLIENTE, 'is_active': 'on'}).status_code, 403)
+                persona.refresh_from_db()
+                self.assertNotEqual(persona.rol, Roles.CLIENTE)
+
+    def test_no_puede_crear_administradores(self):
+        respuesta = self.client.post(
+            reverse('cuentas:usuario_editar', args=[self.cliente.pk]), {'rol': Roles.ADMINISTRADOR, 'is_active': 'on'},
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('rol', respuesta.context['form'].errors)
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.rol, Roles.CLIENTE)
+
+    def test_la_lista_solo_ofrece_editar_las_cuentas_que_gestiona(self):
+        usuarios = {persona.username: persona.gestionable
+                    for persona in self.client.get(reverse('cuentas:usuarios')).context['usuarios']}
+        self.assertEqual(usuarios, {'jefa': True, 'pablo': False, 'sara': False, 'ana': True})
+
+    def test_la_portada_del_administrador_revisa_servicios_y_horarios(self):
+        pasos = self.client.get(reverse('cuentas:inicio_administrador')).context['pasos']
+        self.assertEqual([paso['hecho'] for paso in pasos], [False, False, False])
