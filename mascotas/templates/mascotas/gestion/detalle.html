@@ -1,0 +1,97 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}{{ mascota.nombre }} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-heart{% endblock %}
+{% block panel_seccion %}Mascotas{% endblock %}
+{% block panel_titulo %}{{ mascota.nombre }}{% endblock %}
+{% block panel_subtitulo %}{{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %} · ficha creada el {{ mascota.creado|date:'j \d\e F \d\e Y' }}{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:gestion' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Todas las mascotas</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  <div class="ficha-gestion">
+    <aside class="ficha-gestion__lado">
+      <section class="bloque-panel ficha-gestion__tarjeta">
+        <div class="ficha-gestion__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+          {% include 'mascotas/_avatar.html' %}
+        </div>
+        <dl class="mini-datos mini-datos--lista">
+          <div><dt>Especie</dt><dd>{{ mascota.get_especie_display }}</dd></div>
+          <div><dt>Raza</dt><dd>{{ mascota.raza|default:'—' }}</dd></div>
+          <div><dt>Sexo</dt><dd>{{ mascota.get_sexo_display|default:'—' }}</dd></div>
+          <div><dt>Edad</dt><dd>{{ mascota.edad|default:'—' }}</dd></div>
+          <div><dt>Peso</dt><dd>{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}—{% endif %}</dd></div>
+        </dl>
+      </section>
+
+      <section class="bloque-panel">
+        <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio">Dueño</h2>
+        <div class="tabla-panel__persona">
+          <span class="inicial" aria-hidden="true">{{ mascota.dueno.first_name|default:mascota.dueno.username|slice:':1'|upper }}{{ mascota.dueno.last_name|slice:':1'|upper }}</span>
+          <span>
+            <span class="tabla-panel__nombre d-block">{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}</span>
+            <span class="tabla-panel__secundario">{{ mascota.dueno.email }}</span>
+          </span>
+        </div>
+        <dl class="mini-datos mini-datos--lista">
+          <div><dt>Cédula</dt><dd>{{ mascota.dueno.cedula|default:'—' }}</dd></div>
+          <div><dt>Teléfono</dt><dd>{% if mascota.dueno.telefono %}<a class="bloque-panel__enlace" href="tel:{{ mascota.dueno.telefono }}">{{ mascota.dueno.telefono }}</a>{% else %}—{% endif %}</dd></div>
+        </dl>
+        <a class="bloque-panel__enlace" href="{% url 'cuentas:usuarios' %}?q={{ mascota.dueno.cedula|urlencode }}">Ver su cuenta</a>
+      </section>
+    </aside>
+
+    <section class="tabla-tarjeta" aria-labelledby="historial-titulo">
+      <header class="tabla-tarjeta__cabecera">
+        <h2 class="paneles__titulo" id="historial-titulo"><i class="bi bi-clock-history" aria-hidden="true"></i>Historial de citas</h2>
+        <span class="paneles__meta">{{ citas|length }} cita{{ citas|length|pluralize }}</span>
+      </header>
+      {% if citas %}
+        <div class="tabla-envoltorio tabla-envoltorio--plano">
+          <table class="tabla-panel tabla-panel--movimientos">
+            <thead>
+              <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Servicio</th>
+                <th scope="col" class="tabla-panel__ocultable">Veterinario</th>
+                <th scope="col" class="tabla-panel__ocultable">Precio</th>
+                <th scope="col">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cita in citas %}
+                <tr>
+                  <td class="tabla-panel__num">
+                    <span class="tabla-panel__nombre d-block">{{ cita.inicio|date:'j M Y' }}</span>
+                    <span class="tabla-panel__secundario">{{ cita.inicio|date:'H:i' }} – {{ cita.fin|date:'H:i' }}</span>
+                  </td>
+                  <td>
+                    <span class="tabla-panel__nombre d-block">{{ cita.servicio }}</span>
+                    {% if cita.motivo %}<span class="tabla-panel__secundario">«{{ cita.motivo|truncatechars:50 }}»</span>{% endif %}
+                  </td>
+                  <td class="tabla-panel__ocultable">{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</td>
+                  <td class="tabla-panel__num tabla-panel__ocultable">${{ cita.precio|floatformat:2 }}</td>
+                  <td><span class="estado-cita estado-cita--{{ cita.estado }}">{{ cita.get_estado_display }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="lista-equipo__vacia">
+          <i class="bi bi-calendar-x" aria-hidden="true"></i>
+          <p>{{ mascota.nombre }} todavía no tiene citas.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

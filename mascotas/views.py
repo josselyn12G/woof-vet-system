@@ -1,14 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import BooleanField, ExpressionWrapper, Q
 from django.http import Http404, HttpResponse
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
+from cuentas.mixins import AdministradorRequeridoMixin
+
 from .forms import MascotaForm
-from .models import Mascota
+from .models import Especies, Mascota
+from .services import MascotaService, foto_visible
 
 
 class MascotasDelUsuarioMixin(LoginRequiredMixin):
@@ -17,12 +19,7 @@ class MascotasDelUsuarioMixin(LoginRequiredMixin):
     model = Mascota
 
     def get_queryset(self):
-        # defer('foto'): no se traen los bytes de la foto; tiene_foto solo dice si hay una
-        return (
-            Mascota.objects.filter(dueno=self.request.user)
-            .defer('foto')
-            .annotate(tiene_foto=ExpressionWrapper(Q(foto__isnull=False), output_field=BooleanField()))
-        )
+        return MascotaService.del_dueno(self.request.user)
 
 
 class MascotaListView(MascotasDelUsuarioMixin, ListView):
@@ -72,7 +69,7 @@ class MascotaUpdateView(MascotasDelUsuarioMixin, FormularioMascotaMixin, Success
 
     def get_context_data(self, **kwargs):
         # Si el POST tiene errores, self.object ya trae lo que se escribió: el título usa el nombre guardado
-        kwargs['nombre_original'] = Mascota.objects.values_list('nombre', flat=True).get(pk=self.object.pk)
+        kwargs['nombre_original'] = MascotaService.nombre_guardado(self.object.pk)
         return super().get_context_data(**kwargs)
 
     def get_success_url(self):
@@ -92,18 +89,57 @@ class MascotaDeleteView(MascotasDelUsuarioMixin, DeleteView):
 
 class FotoMascotaView(LoginRequiredMixin, View):
     """Entrega la foto guardada en la base como una imagen normal (<img src="/mascotas/1/foto/">).
-    La ve el dueño; los administradores (is_staff) también, para revisarla desde /admin/,
-    y los veterinarios, que la ven en Pacientes y en su agenda."""
+    Quién puede verla lo decide foto_visible()."""
 
     def get(self, request, pk):
-        mascotas = Mascota.objects.filter(pk=pk, foto__isnull=False)
-        if not (request.user.is_staff or request.user.es_veterinario):
-            mascotas = mascotas.filter(dueno=request.user)
-        foto = mascotas.values_list('foto', flat=True).first()
+        foto = foto_visible(pk, request.user)
         if foto is None:
             raise Http404('La mascota no tiene foto.')
 
-        respuesta = HttpResponse(bytes(foto), content_type='image/webp')
+        respuesta = HttpResponse(foto, content_type='image/webp')
         # La URL lleva ?v=<fecha de actualización>: si la foto cambia, cambia la URL, así que se puede guardar en caché
         respuesta['Cache-Control'] = 'private, max-age=31536000'
         return respuesta
+
+
+# ---------------------------------------------------------------------------
+# Gestión de la clínica (administrador y superadministrador): todas las mascotas
+# ---------------------------------------------------------------------------
+class MascotaGestionListView(AdministradorRequeridoMixin, ListView):
+    """Todas las mascotas con su dueño: buscador (mascota, dueño, cédula o teléfono) y filtro por especie."""
+    template_name = 'mascotas/gestion/lista.html'
+    context_object_name = 'mascotas'
+    paginate_by = 12
+
+    def get_queryset(self):
+        return MascotaService.de_la_clinica(self.buscar(), self.request.GET.get('especie', ''))
+
+    def buscar(self):
+        return self.request.GET.get('q', '').strip()
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        especie = self.request.GET.get('especie', '')
+        contexto.update({
+            'buscar': self.buscar(),
+            'especie_elegida': especie if especie in Especies.values else '',
+            'resumen': MascotaService.resumen_de_la_clinica(),
+        })
+        return contexto
+
+
+class MascotaGestionDetailView(AdministradorRequeridoMixin, DetailView):
+    """La ficha de cualquier mascota, con su dueño y su historial de citas."""
+    template_name = 'mascotas/gestion/detalle.html'
+    context_object_name = 'mascota'
+
+    def get_object(self, queryset=None):
+        try:
+            return MascotaService.ficha_de_la_clinica(self.kwargs['pk'])
+        except Mascota.DoesNotExist:
+            raise Http404('No existe esa mascota.')
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['citas'] = MascotaService.citas_de(self.object)
+        return contexto
