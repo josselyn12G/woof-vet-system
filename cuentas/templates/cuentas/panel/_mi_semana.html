@@ -1,0 +1,147 @@
+{% load l10n %}
+{% comment %}
+  Mi semana (inicio del veterinario): los 7 días en columnas. De fondo, los bloques de su horario; encima,
+  las citas reservadas por los clientes. Al tocar una cita se abre su detalle en un pop-up
+  (atributo popover del navegador: funciona sin JavaScript y no cambia de página). Recibe "semana" (HorarioService.semana_del_veterinario).
+{% endcomment %}
+<section class="bloque-panel semana-vet entra entra--1" aria-labelledby="mi-semana-titulo">
+  <header class="semana-vet__cabecera">
+    <div>
+      <h2 class="agenda-hoy__titulo" id="mi-semana-titulo">Mi semana</h2>
+      <p class="semana-vet__rango">{{ semana.lunes|date:'j M' }} – {{ semana.domingo|date:'j M Y' }} · {{ semana.total_semana }} de horario · {{ semana.citas_semana }} cita{{ semana.citas_semana|pluralize }} reservada{{ semana.citas_semana|pluralize }}</p>
+    </div>
+    <ul class="semana-vet__leyenda" aria-label="Qué significa cada color">
+      <li><span class="semana-vet__muestra semana-vet__muestra--horario" aria-hidden="true"></span>Tu horario</li>
+      <li><span class="semana-vet__muestra semana-vet__muestra--cita" aria-hidden="true"></span>Cita reservada</li>
+      <li><span class="semana-vet__muestra semana-vet__muestra--cerrada" aria-hidden="true"></span>Ya atendida</li>
+    </ul>
+    {# Cambiar de semana: enlaces con ?semana= (conservan el período del resumen) #}
+    <nav class="semana-vet__navegar" aria-label="Cambiar de semana">
+      <a class="boton-panel boton-panel--secundario boton-panel--icono" href="?semana={{ semana.semana_anterior|date:'Y-m-d' }}&periodo={{ periodo }}" aria-label="Semana anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+      {% if not semana.es_semana_actual %}<a class="boton-panel boton-panel--secundario" href="?periodo={{ periodo }}">Esta semana</a>{% endif %}
+      <a class="boton-panel boton-panel--secundario boton-panel--icono" href="?semana={{ semana.semana_siguiente|date:'Y-m-d' }}&periodo={{ periodo }}" aria-label="Semana siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+    </nav>
+  </header>
+
+  {# localize off: en español Django escribe 12,5; el CSS de top y height necesita 12.5 #}
+  {% localize off %}
+  <div class="cal-semana cal-semana--vet" style="--horas: {{ semana.horas_grilla|length }}" data-semana-vet data-inicio="{{ semana.hora_inicio_grilla }}" data-fin="{{ semana.hora_fin_grilla }}">
+    <div class="cal-semana__cabecera">
+      <span class="cal-semana__esquina" aria-hidden="true"></span>
+      {% for dia in semana.dias %}
+        <div class="cal-dia{% if dia.es_hoy %} es-hoy{% endif %}{% if dia.ya_paso %} ya-paso{% endif %}">
+          <span class="cal-dia__nombre">{{ dia.fecha|date:'D' }}</span>
+          <span class="cal-dia__numero">{{ dia.fecha|date:'j' }}</span>
+          <span class="cal-dia__total">{% if dia.citas %}{{ dia.citas|length }} cita{{ dia.citas|length|pluralize }}{% elif dia.total %}{{ dia.total }}{% else %}—{% endif %}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="cal-semana__cuerpo">
+      <ol class="cal-semana__horas" aria-hidden="true">
+        {% for hora in semana.horas_grilla %}<li>{{ hora }}</li>{% endfor %}
+      </ol>
+      {% for dia in semana.dias %}
+        <div class="cal-columna{% if dia.es_hoy %} es-hoy{% endif %}{% if dia.ya_paso %} ya-paso{% endif %}" role="group" aria-label="{{ dia.fecha|date:'l j \d\e F'|capfirst }}">
+          {# De fondo: el horario en que atiende #}
+          {% for bloque in dia.bloques %}
+            <div class="cal-turno" style="top: {{ bloque.arriba }}%; height: {{ bloque.alto }}%" title="Atiendes de {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}">
+              <span class="cal-turno__hora{% if bloque.etiqueta_tapada %} visually-hidden{% endif %}">{{ bloque.hora_inicio|time:'H:i' }} – {{ bloque.hora_fin|time:'H:i' }}</span>
+            </div>
+          {% endfor %}
+
+          {# Encima: las citas reservadas, cada una abre su detalle #}
+          {% for cita in dia.citas %}
+            {# popovertarget: el navegador abre el pop-up solo, sin JavaScript y sin cambiar de página #}
+            <button type="button" class="cal-cita cal-cita--{{ cita.estado }}{% if cita.minutos < 45 %} cal-cita--corta{% endif %}"
+                    style="top: {{ cita.arriba }}%; height: {{ cita.alto }}%"
+                    popovertarget="detalle-cita-{{ cita.pk }}" aria-label="Ver la cita de {{ cita.mascota }} a las {{ cita.desde|time:'H:i' }}">
+              <span class="cal-cita__hora">{{ cita.desde|time:'H:i' }}</span>
+              <span class="cal-cita__mascota">{{ cita.mascota }}</span>
+              <span class="cal-cita__servicio">{{ cita.servicio }}</span>
+            </button>
+          {% endfor %}
+
+          {% if dia.es_hoy %}<div class="cal-ahora" data-ahora hidden><span class="visually-hidden">Hora actual</span></div>{% endif %}
+
+          {% if not dia.bloques and not dia.citas %}
+            <span class="cal-columna__vacio">{% if dia.ya_paso %}—{% else %}No atiendes{% endif %}</span>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endlocalize %}
+
+  {% if not semana.dias_con_horario and not semana.citas_semana %}
+    <p class="semana-vet__aviso"><i class="bi bi-calendar2-plus" aria-hidden="true"></i>Esta semana no tienes horario publicado, así que nadie puede agendar contigo. <a class="bloque-panel__enlace" href="{% url 'citas:horario' %}?semana={{ semana.lunes|date:'Y-m-d' }}">Publicar mi horario</a></p>
+  {% endif %}
+
+  {# ---------- El detalle de cada cita (pop-up nativo: se cierra con la X, "Listo", Escape o tocando fuera) ---------- #}
+  {% for dia in semana.dias %}
+    {% for cita in dia.citas %}
+      <div class="detalle-cita" id="detalle-cita-{{ cita.pk }}" popover role="dialog" aria-labelledby="detalle-cita-{{ cita.pk }}-titulo">
+        {# Cabecera con tinte y la foto de la mascota montada sobre el borde #}
+        <div class="detalle-cita__portada detalle-cita__portada--{{ cita.mascota.especie }}">
+          <span class="estado-cita estado-cita--{{ cita.estado }} detalle-cita__estado">{{ cita.get_estado_display }}</span>
+          <button type="button" class="detalle-cita__cerrar" popovertarget="detalle-cita-{{ cita.pk }}" popovertargetaction="hide" aria-label="Cerrar"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </div>
+        <span class="detalle-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}" aria-hidden="true">
+          {% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}
+        </span>
+
+        <div class="detalle-cita__cuerpo">
+          <div class="detalle-cita__identidad">
+            <h3 class="detalle-cita__titulo" id="detalle-cita-{{ cita.pk }}-titulo">{{ cita.mascota }}</h3>
+            <ul class="detalle-cita__rasgos">
+              <li>{{ cita.mascota.get_especie_display }}</li>
+              {% if cita.mascota.raza %}<li>{{ cita.mascota.raza }}</li>{% endif %}
+              {% if cita.mascota.edad %}<li>{{ cita.mascota.edad }}</li>{% endif %}
+              {% if cita.mascota.peso_kg %}<li>{{ cita.mascota.peso_kg }} kg</li>{% endif %}
+            </ul>
+          </div>
+
+          {# Cuándo y qué servicio: lo primero que mira el veterinario #}
+          <div class="detalle-cita__cuando">
+            <span class="detalle-cita__icono" aria-hidden="true"><i class="bi bi-clock"></i></span>
+            <span class="detalle-cita__texto">
+              <strong>{{ cita.desde|time:'H:i' }} – {{ cita.hasta|time:'H:i' }}</strong>
+              <span>{{ cita.desde|date:'l j \d\e F'|capfirst }}</span>
+            </span>
+            <span class="detalle-cita__duracion">{{ cita.duracion }}</span>
+          </div>
+
+          <div class="detalle-cita__servicio">
+            <span class="detalle-cita__icono detalle-cita__icono--suave" aria-hidden="true"><i class="bi {{ cita.servicio.icono }}"></i></span>
+            <span class="detalle-cita__texto">
+              <span class="detalle-cita__etiqueta">Servicio</span>
+              <strong>{{ cita.servicio }}</strong>
+            </span>
+            <span class="detalle-cita__precio">${{ cita.precio|floatformat:2 }}</span>
+          </div>
+
+          {% if cita.motivo %}
+            <blockquote class="detalle-cita__motivo">
+              <span class="detalle-cita__etiqueta">Motivo de la consulta</span>
+              <p>{{ cita.motivo }}</p>
+            </blockquote>
+          {% endif %}
+
+          <div class="detalle-cita__dueno">
+            <span class="inicial" aria-hidden="true">{{ cita.mascota.dueno.first_name|default:cita.mascota.dueno.username|slice:':1'|upper }}{{ cita.mascota.dueno.last_name|slice:':1'|upper }}</span>
+            <span class="detalle-cita__texto">
+              <span class="detalle-cita__etiqueta">Dueño</span>
+              <strong>{{ cita.mascota.dueno.get_full_name|default:cita.mascota.dueno.username }}</strong>
+              {% if cita.mascota.dueno.telefono %}<span>{{ cita.mascota.dueno.telefono }}</span>{% endif %}
+            </span>
+            {% if cita.mascota.dueno.telefono %}
+              <a class="detalle-cita__llamar" href="tel:{{ cita.mascota.dueno.telefono }}" aria-label="Llamar a {{ cita.mascota.dueno.get_full_name|default:cita.mascota.dueno.username }}"><i class="bi bi-telephone-fill" aria-hidden="true"></i></a>
+            {% endif %}
+          </div>
+
+          <button type="button" class="boton-panel detalle-cita__listo" popovertarget="detalle-cita-{{ cita.pk }}" popovertargetaction="hide">Listo</button>
+        </div>
+      </div>
+    {% endfor %}
+  {% endfor %}
+</section>
