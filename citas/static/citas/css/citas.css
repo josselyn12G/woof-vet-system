@@ -136,6 +136,10 @@ fieldset.formulario-panel__campo {
   margin-bottom: 1rem;
 }
 
+.bloque-panel--angosto {
+  max-width: 34rem;
+}
+
 .semana__cabecera {
   display: flex;
   align-items: center;
@@ -153,89 +157,6 @@ fieldset.formulario-panel__campo {
   margin: 0.2rem 0 0;
 }
 
-.semana__dias {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.dia {
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--p-linea);
-}
-
-.dia:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.dia__fecha {
-  display: flex;
-  flex-direction: column;
-}
-
-.dia__nombre {
-  color: var(--p-texto);
-  font-weight: 600;
-}
-
-.dia__numero {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--p-texto-2);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.dia__bloques {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.dia__vacio {
-  color: #a3a3aa;
-  font-size: 0.9rem;
-}
-
-.dia--pasado .dia__nombre,
-.dia--pasado .bloque-hora {
-  opacity: 0.55;
-}
-
-/* Cada bloque es una píldora con su hora y sus acciones */
-.bloque-hora {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.35rem 0.3rem 0.75rem;
-  border: 1px solid #f4d3ab;
-  border-radius: 999px;
-  background: var(--p-acento-tinte);
-  color: var(--p-acento-texto);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.bloque-hora form {
-  display: inline-flex;
-  margin: 0;
-}
-
-.bloque-hora__texto {
-  color: var(--p-texto);
-  font-variant-numeric: tabular-nums;
-}
-
-.dia--pasado .bloque-hora {
-  padding-right: 0.75rem;
-}
-
 .boton-fila--chico {
   position: relative;
   width: 1.7rem;
@@ -244,12 +165,575 @@ fieldset.formulario-panel__campo {
   font-size: 0.85rem;
 }
 
-.bloque-hora .boton-fila:hover {
+/* ---------- La semana en columnas: un día por columna, las horas hacia abajo ----------
+   Cada bloque se ubica con top y height en % (los calcula HorarioService), como en un calendario. */
+.cal-semana {
+  --alto-hora: 3rem;
+  margin: 0 -1.4rem -1.25rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.cal-semana__cabecera,
+.cal-semana__cuerpo {
+  display: grid;
+  grid-template-columns: 3.5rem repeat(7, minmax(5.75rem, 1fr));
+  min-width: 46rem;
+}
+
+.cal-semana__cabecera {
+  border-bottom: 1px solid var(--p-borde);
+}
+
+/* La columna de las horas queda fija al deslizar la semana de lado en el celular */
+.cal-semana__esquina,
+.cal-semana__horas {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--p-superficie);
+}
+
+.cal-dia {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.65rem 0.25rem 0.7rem;
+  border-left: 1px solid var(--p-linea);
+}
+
+.cal-dia__nombre {
+  color: var(--p-texto-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cal-dia__numero {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  color: var(--p-texto);
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: 50%;
+}
+
+.cal-dia.es-hoy .cal-dia__nombre {
+  color: var(--p-acento-texto);
+}
+
+.cal-dia.es-hoy .cal-dia__numero {
+  color: #fff;
+  background: var(--p-acento);
+}
+
+.cal-dia__total {
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-dia.ya-paso {
+  opacity: 0.5;
+}
+
+/* "+" para agregar un bloque ese día: aparece al pasar el mouse (siempre visible en pantallas táctiles) */
+.cal-dia__agregar {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  color: var(--p-acento-texto);
+  font-size: 0.85rem;
+  background: var(--p-acento-tinte);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 150ms ease, transform 120ms ease;
+}
+
+.cal-dia:hover .cal-dia__agregar,
+.cal-dia__agregar:focus-visible {
+  opacity: 1;
+}
+
+.cal-dia__agregar:active {
+  transform: scale(0.92);
+}
+
+.cal-dia__agregar:focus-visible {
+  outline: 2px solid var(--p-acento);
+}
+
+@media (hover: none) {
+  .cal-dia__agregar {
+    opacity: 1;
+  }
+}
+
+.cal-semana__cuerpo {
+  padding-bottom: 0.75rem;
+}
+
+.cal-semana__horas {
+  display: grid;
+  grid-template-rows: repeat(var(--horas), var(--alto-hora));
+  margin: 0;
+  padding: 0 0.55rem 0 0;
+  list-style: none;
+}
+
+.cal-semana__horas li {
+  color: var(--p-texto-2);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  transform: translateY(-0.5em);
+}
+
+.cal-semana__horas li:first-child {
+  transform: translateY(0.15rem);
+}
+
+/* Una línea por hora, dibujada con el fondo de la columna */
+.cal-columna {
+  position: relative;
+  height: calc(var(--horas) * var(--alto-hora));
+  border-left: 1px solid var(--p-linea);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--p-linea) 0,
+    var(--p-linea) 1px,
+    transparent 1px,
+    transparent var(--alto-hora)
+  );
+}
+
+.cal-columna.es-hoy {
+  background-color: #fffaf3;
+}
+
+.cal-columna.ya-paso {
+  background-color: #fbfbfc;
+}
+
+.cal-columna__vacio {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  padding: 0 0.4rem;
+  color: #b4b4bb;
+  font-size: 0.78rem;
+  text-align: center;
+  transform: translateY(-50%);
+}
+
+.cal-bloque {
+  position: absolute;
+  right: 0.3rem;
+  left: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-height: 1.75rem;
+  padding: 0.4rem 0.45rem 0.35rem 0.55rem;
+  overflow: hidden;
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
+  border: 1px solid #f4d3ab;
+  border-left: 3px solid var(--p-acento);
+  border-radius: 8px;
+  transition: box-shadow 150ms ease;
+}
+
+.cal-bloque:hover,
+.cal-bloque:focus-within {
+  z-index: 1;
+  box-shadow: 0 8px 18px -12px rgba(194, 106, 18, 0.6);
+}
+
+.cal-bloque__hora {
+  color: var(--p-texto);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.cal-bloque__meta {
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.cal-bloque__acciones {
+  display: flex;
+  gap: 0.15rem;
+  margin-top: auto;
+}
+
+.cal-bloque__acciones form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.cal-bloque .boton-fila--chico {
+  width: 1.55rem;
+  height: 1.55rem;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.cal-bloque .boton-fila--chico:hover {
   background: #fff;
 }
 
-@media (max-width: 991.98px) {
+/* Bloque corto (menos de 1 h 15): solo la hora; las acciones aparecen encima al pasar el mouse o con el teclado */
+.cal-bloque--corto {
+  justify-content: center;
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+}
+
+.cal-bloque--corto .cal-bloque__meta {
+  display: none;
+}
+
+.cal-bloque--corto .cal-bloque__acciones {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 150ms ease;
+}
+
+.cal-bloque--corto:hover .cal-bloque__acciones,
+.cal-bloque--corto:focus-within .cal-bloque__acciones {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .cal-bloque--corto .cal-bloque__acciones {
+    opacity: 1;
+  }
+}
+
+.ya-paso .cal-bloque {
+  opacity: 0.55;
+}
+
+/* ---------- Formulario del bloque: días, turnos frecuentes y selector de hora ---------- */
+.dias-rapidos {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.dia-rapido {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  padding: 0.4rem 0 0.5rem;
+  color: var(--p-texto);
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 10px;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+}
+
+.dia-rapido:hover:not(:disabled) {
+  border-color: var(--p-control);
+}
+
+.dia-rapido:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.dia-rapido__nombre {
+  color: var(--p-texto-2);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.dia-rapido__numero {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un punto debajo: ese día ya tiene bloques */
+.dia-rapido.tiene-bloques::after {
+  position: absolute;
+  bottom: 0.2rem;
+  width: 0.25rem;
+  height: 0.25rem;
+  content: "";
+  background: var(--p-acento);
+  border-radius: 50%;
+}
+
+.dia-rapido[aria-pressed="true"] {
+  color: #fff;
+  background: var(--p-acento);
+  border-color: var(--p-acento);
+}
+
+.dia-rapido[aria-pressed="true"] .dia-rapido__nombre {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dia-rapido[aria-pressed="true"].tiene-bloques::after {
+  background: #fff;
+}
+
+.dia-rapido:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.dia-rapido:focus-visible,
+.turno-rapido:focus-visible,
+.selector-hora__boton:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 2px;
+}
+
+/* El input de fecha queda debajo de los días, para elegir un día de otra semana */
+.dias-rapidos:not([hidden]) + .control-panel {
+  height: 2.4rem;
+  font-size: 0.88rem;
+}
+
+.turnos-rapidos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.turno-rapido {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.55rem 0.25rem;
+  color: var(--p-texto);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 10px;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+}
+
+.turno-rapido .bi {
+  color: var(--p-acento-texto);
+  font-size: 1rem;
+}
+
+.turno-rapido small {
+  color: var(--p-texto-2);
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.turno-rapido:hover {
+  border-color: var(--p-control);
+}
+
+.turno-rapido:active {
+  transform: scale(0.96);
+}
+
+.turno-rapido[aria-pressed="true"] {
+  background: var(--p-acento-tinte);
+  border-color: var(--p-acento);
+}
+
+/* Botón con la hora elegida; abre la grilla de horas y minutos */
+.selector-hora {
+  position: relative;
+}
+
+.selector-hora__boton {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--p-texto);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selector-hora__boton .bi-clock {
+  color: var(--p-acento-texto);
+  font-size: 0.95rem;
+}
+
+.selector-hora__boton.es-vacio .selector-hora__valor {
+  color: #a3a3aa;
+  font-weight: 500;
+}
+
+.selector-hora__flecha {
+  margin-left: auto;
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.selector-hora__boton[aria-expanded="true"] {
+  border-color: var(--p-acento);
+  box-shadow: 0 0 0 3px rgba(238, 154, 53, 0.2);
+}
+
+.selector-hora__boton[aria-expanded="true"] .selector-hora__flecha {
+  transform: rotate(180deg);
+}
+
+.selector-hora__panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 20;
+  width: 16.5rem;
+  padding: 0.8rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -18px rgba(29, 24, 20, 0.35);
+  transform-origin: top left;
+  animation: selector-entra 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* "Hasta" está en la columna derecha: su grilla se abre hacia la izquierda para no salirse */
+.formulario-servicio__par > :last-child .selector-hora__panel {
+  right: 0;
+  left: auto;
+  transform-origin: top right;
+}
+
+.selector-hora__panel[hidden],
+.dias-rapidos[hidden],
+.turnos-rapidos[hidden],
+.resumen-bloque[hidden] {
+  display: none;
+}
+
+@keyframes selector-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+
+.selector-hora__titulo {
+  margin: 0 0 0.4rem;
+  color: var(--p-texto-2);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.selector-hora__horas {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.selector-hora__minutos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.selector-hora__panel button {
+  height: 2.1rem;
+  color: var(--p-texto);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--p-fondo);
+  border: 0;
+  border-radius: 8px;
+  transition: background-color 120ms ease, color 120ms ease, transform 100ms ease;
+}
+
+.selector-hora__panel button:hover {
+  background: #ececef;
+}
+
+.selector-hora__panel button:active {
+  transform: scale(0.94);
+}
+
+.selector-hora__panel button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--p-acento);
+}
+
+.selector-hora__panel button:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 1px;
+}
+
+.resumen-bloque {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+  background: var(--p-fondo);
+  border-radius: 10px;
+}
+
+.resumen-bloque strong {
+  color: var(--p-texto);
+}
+
+.resumen-bloque .bi {
+  color: var(--p-acento-texto);
+}
+
+.resumen-bloque.es-error {
+  color: #b4232a;
+  background: #fdecee;
+}
+
+.resumen-bloque.es-error .bi {
+  color: inherit;
+}
+
+@media (max-width: 1199.98px) {
   .horario {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .horario__lado {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .horario__lado {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -259,9 +743,28 @@ fieldset.formulario-panel__campo {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .dia {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.5rem;
+  /* En una sola columna, la grilla de "Hasta" vuelve a abrirse hacia la derecha */
+  .formulario-servicio__par > :last-child .selector-hora__panel {
+    right: auto;
+    left: 0;
+  }
+
+  .cal-semana {
+    --alto-hora: 2.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selector-hora__panel {
+    animation: none;
+  }
+
+  .cal-dia__agregar,
+  .cal-bloque,
+  .selector-hora__flecha,
+  .dia-rapido,
+  .turno-rapido {
+    transition: none;
   }
 }
 
@@ -1850,5 +2353,582 @@ a.lado-cita:hover {
   .confirmacion-cita__titulo,
   .confirmacion-cita__texto {
     animation: none;
+  }
+}
+
+/* =========================================================
+   Mi semana (inicio del veterinario): la misma grilla de Mi horario (.cal-semana), con el horario
+   de fondo en un tinte suave y las citas reservadas encima en naranja lleno. Cada cita abre su detalle.
+   ========================================================= */
+.semana-vet {
+  padding: 1.5rem 1.6rem 1.25rem;
+  border-radius: 18px;
+}
+
+.semana-vet__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.semana-vet__cabecera > div:first-child {
+  flex: 1 1 18rem;
+}
+
+.semana-vet__rango {
+  margin: 0.2rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.semana-vet__leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0;
+  color: var(--p-texto-2);
+  font-size: 0.82rem;
+  list-style: none;
+}
+
+.semana-vet__leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.semana-vet__muestra {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 4px;
+}
+
+.semana-vet__muestra--horario {
+  background: #fff3e4;
+  border: 1px dashed #efc48e;
+}
+
+.semana-vet__muestra--cita {
+  background: var(--p-acento);
+}
+
+.semana-vet__muestra--cerrada {
+  background: #e3e3e7;
+}
+
+.semana-vet__navegar {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.cal-semana--vet {
+  --alto-hora: 2.9rem;
+  margin: 0 -1.6rem -1.25rem;
+  border-top: 1px solid var(--p-linea);
+}
+
+.semana-vet__aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.75rem 0 0;
+  padding: 0.75rem 1rem;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+  background: var(--p-acento-tinte);
+  border-radius: 12px;
+}
+
+.semana-vet__aviso .bi {
+  color: var(--p-acento-texto);
+}
+
+/* De fondo: el bloque del horario (no se toca; solo dice "aquí atiendo") */
+.cal-turno {
+  position: absolute;
+  right: 0.2rem;
+  left: 0.2rem;
+  padding: 0.3rem 0.4rem;
+  overflow: hidden;
+  background: #fff3e4;
+  border: 1px dashed #efc48e;
+  border-radius: 8px;
+}
+
+.cal-turno__hora {
+  color: #b07a3a;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Encima: la cita reservada. Se toca para ver su detalle */
+.cal-cita {
+  position: absolute;
+  right: 0.35rem;
+  left: 0.35rem;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 1.35rem;
+  padding: 0.25rem 0.45rem;
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.74rem;
+  line-height: 1.25;
+  text-decoration: none;
+  background: var(--p-acento);
+  border-radius: 7px;
+  box-shadow: 0 6px 14px -10px rgba(194, 106, 18, 0.9);
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.cal-cita:hover {
+  z-index: 2;
+  color: #fff;
+  background: var(--woof-naranja-600);
+  box-shadow: 0 10px 20px -10px rgba(194, 106, 18, 0.9);
+  transform: translateY(-1px);
+}
+
+.cal-cita:active {
+  transform: scale(0.98);
+}
+
+.cal-cita:focus-visible {
+  outline: 2px solid var(--woof-marron);
+  outline-offset: 2px;
+}
+
+.cal-cita__hora {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-cita__mascota,
+.cal-cita__servicio {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cal-cita__mascota {
+  font-weight: 600;
+}
+
+.cal-cita__servicio {
+  opacity: 0.85;
+}
+
+/* Cita corta (menos de 45 min): hora y mascota en una sola línea */
+.cal-cita--corta {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.3rem;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.cal-cita--corta .cal-cita__servicio {
+  display: none;
+}
+
+/* Las ya cerradas se apagan: la atención va a las que faltan */
+.cal-cita--atendida {
+  color: var(--p-texto-2);
+  background: #e3e3e7;
+  box-shadow: none;
+}
+
+.cal-cita--no_asistio {
+  color: #9a5b00;
+  background: #fdf1e3;
+  border: 1px solid #f4d3ab;
+  box-shadow: none;
+}
+
+.cal-cita--atendida:hover,
+.cal-cita--no_asistio:hover {
+  color: var(--p-texto);
+  background: #d9d9de;
+}
+
+/* La línea de "ahora" en la columna de hoy */
+.cal-ahora {
+  position: absolute;
+  right: 0;
+  left: -1px;
+  z-index: 3;
+  height: 0;
+  border-top: 2px solid #c0392b;
+  pointer-events: none;
+}
+
+.cal-ahora::before {
+  position: absolute;
+  top: -5px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  content: "";
+  background: #c0392b;
+  border-radius: 50%;
+}
+
+.esta-listo .cal-ahora {
+  transition: top 600ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* La cita es un botón (abre el pop-up): sin el borde ni la letra del botón del navegador */
+button.cal-cita {
+  border: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ---------- Pop-up con el detalle de la cita ----------
+   Pop-up nativo (atributo popover): el navegador lo centra, lo pone encima de todo y lo cierra con Escape
+   o tocando fuera. Entra subiendo y creciendo un poco; sale más rápido de lo que entra. */
+.detalle-cita {
+  width: min(25rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  color: var(--p-texto);
+  background: var(--p-superficie);
+  border: 0;
+  border-radius: 26px;
+  box-shadow: 0 30px 70px -28px rgba(29, 24, 20, 0.55), 0 0 0 1px rgba(29, 24, 20, 0.04);
+  overscroll-behavior: contain;
+  opacity: 0;
+  transform: translateY(14px) scale(0.96);
+  transition:
+    opacity 180ms ease-in,
+    transform 180ms ease-in,
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+
+.detalle-cita:popover-open {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 240ms ease-out,
+    transform 320ms cubic-bezier(0.32, 0.72, 0, 1),
+    overlay 320ms allow-discrete,
+    display 320ms allow-discrete;
+}
+
+@starting-style {
+  .detalle-cita:popover-open {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+.detalle-cita::backdrop {
+  background: rgba(29, 24, 20, 0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color 220ms ease,
+    backdrop-filter 220ms ease,
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
+}
+
+.detalle-cita:popover-open::backdrop {
+  background: rgba(29, 24, 20, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+@starting-style {
+  .detalle-cita:popover-open::backdrop {
+    background: rgba(29, 24, 20, 0);
+    backdrop-filter: blur(0);
+  }
+}
+
+/* Portada: un tinte cálido según la especie, con el estado y la X */
+.detalle-cita__portada {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 6.5rem;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 85% -20%, rgba(255, 255, 255, 0.75), transparent 55%),
+    linear-gradient(135deg, #f7c27a, #fdebd3 70%);
+}
+
+.detalle-cita__portada--gato {
+  background:
+    radial-gradient(circle at 85% -20%, rgba(255, 255, 255, 0.75), transparent 55%),
+    linear-gradient(135deg, #fbc164, #fef3c7 70%);
+}
+
+.detalle-cita__portada--otro {
+  background:
+    radial-gradient(circle at 85% -20%, rgba(255, 255, 255, 0.75), transparent 55%),
+    linear-gradient(135deg, #d9c8bc, #f3ece6 70%);
+}
+
+.detalle-cita__estado {
+  box-shadow: 0 4px 10px -6px rgba(29, 24, 20, 0.4);
+}
+
+.detalle-cita__cerrar {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--woof-marron);
+  background: rgba(255, 255, 255, 0.8);
+  border: 0;
+  border-radius: 50%;
+  backdrop-filter: blur(6px);
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.detalle-cita__cerrar:hover {
+  background: #fff;
+}
+
+.detalle-cita__cerrar:active {
+  transform: scale(0.92);
+}
+
+.detalle-cita__cerrar:focus-visible,
+.detalle-cita__llamar:focus-visible {
+  outline: 2px solid var(--woof-marron);
+  outline-offset: 2px;
+}
+
+/* La foto, montada sobre el borde de la portada, con un anillo blanco */
+.detalle-cita__foto {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 6rem;
+  height: 6rem;
+  margin: -3rem auto 0;
+  color: var(--woof-marron);
+  font-size: 2.4rem;
+  font-weight: 700;
+  border: 4px solid var(--p-superficie);
+  border-radius: 50%;
+  box-shadow: 0 12px 24px -14px rgba(29, 24, 20, 0.55);
+}
+
+.detalle-cita__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1.4rem 1.4rem;
+}
+
+.detalle-cita__identidad {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  text-align: center;
+}
+
+.detalle-cita__titulo {
+  margin: 0;
+  color: var(--woof-marron);
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.detalle-cita__rasgos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detalle-cita__rasgos li {
+  padding: 0.2rem 0.65rem;
+  color: var(--p-texto-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--p-fondo);
+  border-radius: 999px;
+}
+
+/* Filas de datos: ícono redondo, texto y un dato a la derecha */
+.detalle-cita__cuando,
+.detalle-cita__servicio,
+.detalle-cita__dueno {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+}
+
+.detalle-cita__cuando {
+  background: var(--p-acento-tinte);
+}
+
+.detalle-cita__servicio,
+.detalle-cita__dueno {
+  border: 1px solid var(--p-borde);
+}
+
+.detalle-cita__icono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #fff;
+  font-size: 1.05rem;
+  background: var(--p-acento);
+  border-radius: 12px;
+}
+
+.detalle-cita__icono--suave {
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
+}
+
+.detalle-cita__texto {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.05rem;
+  line-height: 1.3;
+}
+
+.detalle-cita__texto strong {
+  overflow: hidden;
+  color: var(--p-texto);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.detalle-cita__texto > span:not(.detalle-cita__etiqueta) {
+  color: var(--p-texto-2);
+  font-size: 0.84rem;
+}
+
+.detalle-cita__cuando strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalle-cita__cuando .detalle-cita__texto > span {
+  color: #8a5a22;
+}
+
+.detalle-cita__etiqueta {
+  color: var(--p-texto-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.detalle-cita__duracion {
+  flex: none;
+  padding: 0.25rem 0.6rem;
+  color: var(--p-acento-texto);
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #fff;
+  border-radius: 999px;
+}
+
+.detalle-cita__precio {
+  flex: none;
+  color: var(--p-texto);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El motivo que escribió el cliente, como una cita textual */
+.detalle-cita__motivo {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  background: var(--p-fondo);
+  border-left: 3px solid var(--p-acento);
+  border-radius: 4px 14px 14px 4px;
+}
+
+.detalle-cita__motivo p {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.detalle-cita__llamar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #fff;
+  text-decoration: none;
+  background: #2b2522;
+  border-radius: 50%;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.6);
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.detalle-cita__llamar:hover {
+  color: #fff;
+  background: var(--woof-marron);
+}
+
+.detalle-cita__llamar:active {
+  transform: scale(0.94);
+}
+
+.detalle-cita__listo {
+  width: 100%;
+  height: 2.9rem;
+  margin-top: 0.35rem;
+  border-radius: 14px;
+}
+
+@media (max-width: 767.98px) {
+  .semana-vet {
+    padding: 1.25rem 1rem 1rem;
+  }
+
+  .cal-semana--vet {
+    margin: 0 -1rem -1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-cita,
+  .esta-listo .cal-ahora,
+  .detalle-cita,
+  .detalle-cita::backdrop,
+  .detalle-cita__cerrar,
+  .detalle-cita__llamar {
+    transition: none;
+  }
+
+  .detalle-cita {
+    transform: none;
   }
 }
