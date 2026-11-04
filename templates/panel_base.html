@@ -35,11 +35,12 @@
       <nav class="panel-menu__nav">
         {% if user.gestiona_clinica %}
           {% if user.es_superadmin %}
-            {# Superadministrador: su portada y el equipo; debajo, todo lo que ve un administrador #}
+            {# Superadministrador: su portada, el equipo y el catálogo de especies; debajo, todo lo que ve un administrador #}
             <p class="panel-menu__grupo">Superadmin</p>
             <ul class="panel-menu__lista">
               <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_superadmin' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_superadmin' %}" title="Inicio"{% if ruta == 'cuentas:inicio_superadmin' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
               <li><a class="panel-menu__enlace{% if 'cuentas:equipo' in ruta %} es-activo{% endif %}" href="{% url 'cuentas:equipo' %}" title="Equipo"{% if ruta == 'cuentas:equipo' %} aria-current="page"{% endif %}><i class="bi bi-person-badge" aria-hidden="true"></i><span class="panel-menu__texto">Equipo</span></a></li>
+              <li><a class="panel-menu__enlace{% if ruta == 'mascotas:especies' or 'mascotas:especie_' in ruta or 'mascotas:raza_' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:especies' %}" title="Especies y razas"{% if ruta == 'mascotas:especies' %} aria-current="page"{% endif %}><i class="bi bi-tags" aria-hidden="true"></i><span class="panel-menu__texto">Especies y razas</span></a></li>
             </ul>
           {% endif %}
           <p class="panel-menu__grupo">Plataforma</p>

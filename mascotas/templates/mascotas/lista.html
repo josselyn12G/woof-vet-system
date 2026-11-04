@@ -22,9 +22,9 @@
         <article class="tarjeta-mascota">
           {# La foto y los datos llevan a la ficha; abajo van los botones de acción #}
           <a class="tarjeta-mascota__enlace" href="{% url 'mascotas:detalle' mascota.pk %}">
-            <span class="tarjeta-mascota__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+            <span class="tarjeta-mascota__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">
               {% include 'mascotas/_avatar.html' %}
-              <span class="tarjeta-mascota__especie">{{ mascota.get_especie_display }}</span>
+              <span class="tarjeta-mascota__especie">{{ mascota.especie }}</span>
             </span>
 
             <span class="tarjeta-mascota__cuerpo">
@@ -104,6 +104,6 @@
 {% endblock %}
 
 {% block panel_scripts %}
-  <script src="{% static 'js/registro-mascota.js' %}" data-vista-previa="{% static 'mascotas/js/vista-previa-foto.js' %}" defer></script>
+  <script src="{% static 'js/registro-mascota.js' %}" data-vista-previa="{% static 'mascotas/js/vista-previa-foto.js' %}" data-razas="{% static 'mascotas/js/razas.js' %}" defer></script>
   {% include 'mascotas/_carnet_scripts.html' %}
 {% endblock %}

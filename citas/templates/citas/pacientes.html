@@ -33,10 +33,10 @@
     <ul class="pacientes">
       {% for mascota in mascotas %}
         {# Tarjeta tipo foto: la mascota llena la tarjeta; abajo, su dueño (franja oscura) y sus datos (barra de vidrio) #}
-        <li class="paciente foto-mascota foto-mascota--{{ mascota.especie }}">
+        <li class="paciente foto-mascota foto-mascota--{{ mascota.especie.estilo }}">
           {% include 'mascotas/_avatar.html' %}
 
-          <span class="paciente__especie">{{ mascota.get_especie_display }}</span>
+          <span class="paciente__especie">{{ mascota.especie }}</span>
           {% if mascota.citas_conmigo %}<span class="paciente__citas">{{ mascota.citas_conmigo }} cita{{ mascota.citas_conmigo|pluralize }} contigo</span>{% endif %}
 
           <div class="paciente__pie">
@@ -48,7 +48,7 @@
             <div class="paciente__barra">
               <span class="paciente__datos">
                 <strong>{{ mascota.nombre }}</strong>
-                <span>{{ mascota.raza|default:mascota.get_especie_display }}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}{% if mascota.peso_kg %} · {{ mascota.peso_kg }} kg{% endif %}</span>
+                <span>{{ mascota.raza|default:mascota.especie }}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}{% if mascota.peso_kg %} · {{ mascota.peso_kg }} kg{% endif %}</span>
               </span>
               <a class="paciente__llamar" href="tel:{{ mascota.dueno.telefono }}" title="Llamar a {{ mascota.dueno.get_full_name|default:mascota.dueno.username }}">
                 <i class="bi bi-telephone" aria-hidden="true"></i>Llamar

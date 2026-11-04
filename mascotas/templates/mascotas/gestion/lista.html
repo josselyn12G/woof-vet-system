@@ -16,6 +16,7 @@
 
 {% block panel_acciones %}
   {% if user.es_superadmin %}
+    <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:especies' %}"><i class="bi bi-tags" aria-hidden="true"></i>Especies y razas</a>
     <a class="boton-panel" href="{% url 'mascotas:gestion_crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva mascota</a>
   {% endif %}
 {% endblock %}
@@ -30,10 +31,11 @@
           {% if resumen.nuevas %}<span class="variacion variacion--nuevo" title="Últimos 30 días">+{{ resumen.nuevas }} nuevas</span>{% endif %}
         </p>
       </div>
-      {% for valor, nombre, cantidad in resumen.por_especie %}
+      {# Perros y gatos aparte; las demás especies se suman en "Otras especies" #}
+      {% for fila in resumen.cifras_especie %}
         <div class="cifra">
-          <p class="cifra__etiqueta"><span class="punto-especie punto-especie--{{ valor }}" aria-hidden="true"></span>{% if valor == 'otro' %}Otras especies{% else %}{{ nombre }}s{% endif %}</p>
-          <p class="cifra__fila"><span class="cifra__valor" data-contar="{{ cantidad }}">{{ cantidad }}</span></p>
+          <p class="cifra__etiqueta"><span class="punto-especie punto-especie--{{ fila.estilo }}" aria-hidden="true"></span>{{ fila.plural }}</p>
+          <p class="cifra__fila"><span class="cifra__valor" data-contar="{{ fila.cantidad }}">{{ fila.cantidad }}</span></p>
         </div>
       {% endfor %}
     </div>
@@ -51,8 +53,9 @@
     <fieldset class="chips-filtro">
       <legend class="visually-hidden">Especie</legend>
       <label class="chip-filtro"><input type="radio" name="especie" value=""{% if not especie_elegida %} checked{% endif %} onchange="this.form.submit()"><span>Todas</span></label>
-      {% for valor, nombre, cantidad in resumen.por_especie %}
-        <label class="chip-filtro"><input type="radio" name="especie" value="{{ valor }}"{% if valor == especie_elegida %} checked{% endif %} onchange="this.form.submit()"><span>{{ nombre }}</span></label>
+      {# Una chip por cada especie que tiene mascotas #}
+      {% for fila in resumen.por_especie %}
+        <label class="chip-filtro"><input type="radio" name="especie" value="{{ fila.codigo }}"{% if fila.codigo == especie_elegida %} checked{% endif %} onchange="this.form.submit()"><span>{{ fila.nombre }}</span></label>
       {% endfor %}
     </fieldset>
     <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
@@ -64,10 +67,10 @@
     <ul class="pacientes entra entra--3">
       {% for mascota in mascotas %}
         {# La misma tarjeta tipo foto de Pacientes; toda la tarjeta abre la ficha #}
-        <li class="paciente paciente--enlace foto-mascota foto-mascota--{{ mascota.especie }}">
+        <li class="paciente paciente--enlace foto-mascota foto-mascota--{{ mascota.especie.estilo }}">
           {% include 'mascotas/_avatar.html' %}
 
-          <span class="paciente__especie">{{ mascota.get_especie_display }}</span>
+          <span class="paciente__especie">{{ mascota.especie }}</span>
           {% if mascota.total_citas %}<span class="paciente__citas">{{ mascota.total_citas }} cita{{ mascota.total_citas|pluralize }}</span>{% endif %}
 
           <div class="paciente__pie">
@@ -79,7 +82,7 @@
             <div class="paciente__barra">
               <span class="paciente__datos">
                 <strong>{{ mascota.nombre }}</strong>
-                <span>{{ mascota.raza|default:mascota.get_especie_display }}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}{% if mascota.peso_kg %} · {{ mascota.peso_kg }} kg{% endif %}</span>
+                <span>{{ mascota.raza|default:mascota.especie }}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}{% if mascota.peso_kg %} · {{ mascota.peso_kg }} kg{% endif %}</span>
               </span>
               <a class="paciente__llamar paciente__ver" href="{% url 'mascotas:gestion_detalle' mascota.pk %}">
                 Ver ficha<i class="bi bi-arrow-right" aria-hidden="true"></i><span class="visually-hidden"> de {{ mascota.nombre }}</span>

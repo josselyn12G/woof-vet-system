@@ -7,10 +7,12 @@ from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.text import slugify
 
+from cuentas.forms import con_estilo_del_panel
 from cuentas.models import Roles
 
-from .models import Mascota
+from .models import Especie, Mascota, Raza
 from .services import preparar_foto
 
 TAMANO_MAXIMO_FOTO_MB = 5
@@ -57,7 +59,9 @@ class MascotaForm(forms.ModelForm):
         }
         widgets = {
             'nombre': forms.TextInput(attrs={'placeholder': 'Ej.: Firulais', 'autofocus': True}),
-            'raza': forms.TextInput(attrs={'placeholder': 'Ej.: Mestizo'}),
+            # razas.js deja en "Raza" solo las de la especie elegida
+            'especie': forms.Select(attrs={'data-elige-especie': ''}),
+            'raza': forms.Select(attrs={'data-elige-raza': ''}),
             'fecha_nacimiento': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'peso_kg': forms.NumberInput(attrs={'step': '0.01', 'min': '0.01', 'max': '150', 'placeholder': 'Ej.: 12.5'}),
         }
@@ -71,8 +75,7 @@ class MascotaForm(forms.ModelForm):
             campo.error_messages['required'] = MENSAJES_OBLIGATORIOS[nombre]
         # Sin la opción vacía "---------" en el sexo ahora que es obligatorio
         self.fields['sexo'].choices = [('', 'Elige una opción')] + list(self.fields['sexo'].choices)[1:]
-        self.fields['especie'].choices = [('', 'Elige una opción')] + list(self.fields['especie'].choices)[1:]
-        self.fields['raza'].help_text = 'Opcional. Si no la sabes, escribe "Mestizo".'
+        self.preparar_especie_y_raza()
         # El calendario del navegador no deja elegir fechas futuras (el modelo lo valida igual)
         self.fields['fecha_nacimiento'].widget.attrs['max'] = timezone.localdate().isoformat()
         # Clases de Bootstrap: las listas usan form-select, las casillas form-check-input y el resto form-control
@@ -85,6 +88,25 @@ class MascotaForm(forms.ModelForm):
                 clase = 'form-control'
             campo.widget.attrs['class'] = clase
 
+    def preparar_especie_y_raza(self):
+        """
+        Especies y razas activas del catálogo (al editar, también la que ya tiene aunque se haya desactivado).
+        Las razas van agrupadas por especie: sin JavaScript se elige igual; razas.js muestra solo un grupo.
+        Que la raza sea de la especie elegida lo valida Mascota.clean().
+        """
+        especie, raza = self.fields['especie'], self.fields['raza']
+        especie.queryset = Especie.objects.filter(Q(activa=True) | Q(pk=self.instance.especie_id))
+        especie.empty_label = 'Elige una opción'
+        raza.queryset = (
+            Raza.objects.filter(Q(activa=True, especie__in=especie.queryset) | Q(pk=self.instance.raza_id))
+            .select_related('especie').mestizo_primero()
+        )
+        grupos = {}
+        for opcion in raza.queryset:
+            grupos.setdefault(opcion.especie.nombre, []).append((opcion.pk, opcion.nombre))
+        raza.choices = [('', 'Elige la raza')] + list(grupos.items())
+        raza.help_text = 'Opcional. Si no la sabes, elige "Mestizo".'
+
     def clean_nombre(self):
         nombre = ' '.join(self.cleaned_data['nombre'].split())  # sin espacios de más
         if len(nombre) < 2:
@@ -96,12 +118,6 @@ class MascotaForm(forms.ModelForm):
             if repetidas.exists():
                 raise forms.ValidationError(f'Ya tienes una mascota llamada {nombre}.')
         return nombre
-
-    def clean_raza(self):
-        raza = ' '.join(self.cleaned_data['raza'].split())
-        if raza and not SOLO_LETRAS.match(raza):
-            raise forms.ValidationError('La raza solo puede tener letras y espacios.')
-        return raza
 
     def clean_fecha_nacimiento(self):
         fecha = self.cleaned_data['fecha_nacimiento']
@@ -179,4 +195,82 @@ class MascotaGestionForm(MascotaForm):
             repetidas = Mascota.objects.filter(dueno=dueno, nombre__iexact=nombre).exclude(pk=self.instance.pk)
             if repetidas.exists():
                 self.add_error('nombre', f'{dueno} ya tiene una mascota llamada {nombre}.')
+        return datos
+
+
+# ---------------------------------------------------------------------------
+# Catálogo de especies y razas (superadministrador)
+# ---------------------------------------------------------------------------
+def sin_espacios_de_mas(texto):
+    return ' '.join(texto.split())
+
+
+class EspecieForm(forms.ModelForm):
+    """Una especie del catálogo. El código (para las URLs y el CSS) se arma solo con el nombre al crearla."""
+
+    class Meta:
+        model = Especie
+        fields = ['nombre', 'plural', 'orden', 'activa']
+        labels = {'nombre': 'Nombre', 'plural': 'Nombre en plural', 'orden': 'Orden', 'activa': 'Especie activa'}
+        help_texts = {
+            'plural': 'Se usa en los filtros y las cifras: "Conejos", "Peces".',
+            'activa': 'Si la desactivas ya no se ofrece al registrar una mascota; las que la tienen la conservan.',
+        }
+        widgets = {
+            'nombre': forms.TextInput(attrs={'placeholder': 'Ej.: Conejo'}),
+            'plural': forms.TextInput(attrs={'placeholder': 'Ej.: Conejos'}),
+            'orden': forms.NumberInput(attrs={'min': 0}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        con_estilo_del_panel(self)
+
+    def clean_nombre(self):
+        nombre = sin_espacios_de_mas(self.cleaned_data['nombre'])
+        if Especie.objects.filter(nombre__iexact=nombre).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('Ya existe una especie con ese nombre.')
+        if not self.instance.pk:
+            codigo = slugify(nombre)
+            if not codigo:
+                raise forms.ValidationError('El nombre debe tener letras.')
+            if Especie.objects.filter(codigo=codigo).exists():
+                raise forms.ValidationError('Ya existe una especie con un nombre casi igual.')
+            self.instance.codigo = codigo
+        return nombre
+
+    def clean_plural(self):
+        return sin_espacios_de_mas(self.cleaned_data['plural'])
+
+
+class EspecieOpcion(forms.ModelChoiceField):
+    def label_from_instance(self, especie):
+        return especie.nombre if especie.activa else f'{especie.nombre} (desactivada)'
+
+
+class RazaForm(forms.ModelForm):
+    """Una raza del catálogo. No se repite el nombre dentro de la misma especie."""
+    especie = EspecieOpcion(label='Especie', queryset=Especie.objects.all(), empty_label='Elige la especie')
+
+    class Meta:
+        model = Raza
+        fields = ['especie', 'nombre', 'activa']
+        labels = {'nombre': 'Nombre', 'activa': 'Raza activa'}
+        help_texts = {'activa': 'Si la desactivas ya no se ofrece al registrar; las mascotas que la tienen la conservan.'}
+        widgets = {'nombre': forms.TextInput(attrs={'placeholder': 'Ej.: Shar Pei'})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        con_estilo_del_panel(self)
+
+    def clean_nombre(self):
+        return sin_espacios_de_mas(self.cleaned_data['nombre'])
+
+    def clean(self):
+        datos = super().clean()
+        especie, nombre = datos.get('especie'), datos.get('nombre')
+        if especie and nombre:
+            repetida = Raza.objects.filter(especie=especie, nombre__iexact=nombre).exclude(pk=self.instance.pk)
+            if repetida.exists():
+                self.add_error('nombre', f'{especie} ya tiene la raza {nombre}.')
         return datos

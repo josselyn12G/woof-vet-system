@@ -85,20 +85,20 @@
           {# Pestañas por especie: filtran las tarjetas en el navegador (panel-cliente.js) #}
           <div class="pestanas" role="tablist" aria-label="Filtrar por especie" data-pestanas>
             <button type="button" class="pestanas__opcion es-activo" role="tab" aria-selected="true" data-especie="">Todas</button>
-            {% for valor, nombre in especies %}
-              <button type="button" class="pestanas__opcion" role="tab" aria-selected="false" data-especie="{{ valor }}">{{ nombre }}s</button>
+            {% for especie in especies %}
+              <button type="button" class="pestanas__opcion" role="tab" aria-selected="false" data-especie="{{ especie.codigo }}">{{ especie.plural }}</button>
             {% endfor %}
           </div>
 
           <ul class="fichas" data-fichas>
             {% for mascota in mascotas %}
-              <li class="ficha-mini{% if forloop.first %} ficha-mini--destacada{% endif %}" data-especie="{{ mascota.especie }}" data-buscar="{{ mascota.nombre|lower }} {{ mascota.raza|lower }}">
+              <li class="ficha-mini{% if forloop.first %} ficha-mini--destacada{% endif %}" data-especie="{{ mascota.especie.codigo }}" data-buscar="{{ mascota.nombre|lower }} {{ mascota.raza.nombre|lower }}">
                 <a class="ficha-mini__enlace" href="{% url 'mascotas:detalle' mascota.pk %}">
                   <span class="ficha-mini__cabeza">
                     <span class="ficha-mini__foto">{% include 'mascotas/_avatar.html' %}</span>
                     <span class="ficha-mini__identidad">
                       <span class="ficha-mini__nombre">{{ mascota.nombre }}</span>
-                      <span class="ficha-mini__raza">{{ mascota.raza|default:mascota.get_especie_display }}</span>
+                      <span class="ficha-mini__raza">{{ mascota.raza|default:mascota.especie }}</span>
                     </span>
                     <i class="bi bi-three-dots-vertical ficha-mini__mas" aria-hidden="true"></i>
                   </span>

@@ -15,7 +15,7 @@
 {% block panel_contenido %}
   {# Se borra con un formulario POST, nunca con un enlace #}
   <div class="confirmar">
-    <span class="confirmar__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+    <span class="confirmar__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">
       {% include 'mascotas/_avatar.html' %}
       <span class="confirmar__alerta" aria-hidden="true"><i class="bi bi-trash"></i></span>
     </span>

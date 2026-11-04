@@ -9,7 +9,7 @@
         data-carnet
         {% if abrir_al_cargar %}data-abrir-al-cargar{% endif %}
         data-nombre="{{ mascota.nombre }}"
-        data-especie="{{ mascota.get_especie_display }}"
+        data-especie="{{ mascota.especie }}"
         data-raza="{{ mascota.raza|default:'Raza sin registrar' }}"
         data-edad="{{ mascota.edad|default:'—' }}"
         data-sexo="{{ mascota.get_sexo_display|default:'—' }}"

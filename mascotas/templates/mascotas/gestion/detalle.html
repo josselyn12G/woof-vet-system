@@ -12,7 +12,7 @@
 {% block panel_icono %}bi-heart{% endblock %}
 {% block panel_seccion %}Mascotas{% endblock %}
 {% block panel_titulo %}{{ mascota.nombre }}{% endblock %}
-{% block panel_subtitulo %}{{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %} · ficha creada el {{ mascota.creado|date:'j \d\e F \d\e Y' }}{% endblock %}
+{% block panel_subtitulo %}{{ mascota.especie }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %} · ficha creada el {{ mascota.creado|date:'j \d\e F \d\e Y' }}{% endblock %}
 {% block panel_acciones %}
   <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:gestion' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Todas las mascotas</a>
   {% if user.es_superadmin %}
@@ -25,11 +25,11 @@
   <div class="ficha-gestion">
     <aside class="ficha-gestion__lado">
       <section class="bloque-panel ficha-gestion__tarjeta">
-        <div class="ficha-gestion__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+        <div class="ficha-gestion__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">
           {% include 'mascotas/_avatar.html' %}
         </div>
         <dl class="mini-datos mini-datos--lista">
-          <div><dt>Especie</dt><dd>{{ mascota.get_especie_display }}</dd></div>
+          <div><dt>Especie</dt><dd>{{ mascota.especie }}</dd></div>
           <div><dt>Raza</dt><dd>{{ mascota.raza|default:'—' }}</dd></div>
           <div><dt>Sexo</dt><dd>{{ mascota.get_sexo_display|default:'—' }}</dd></div>
           <div><dt>Edad</dt><dd>{{ mascota.edad|default:'—' }}</dd></div>
