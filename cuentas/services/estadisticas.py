@@ -8,7 +8,7 @@ from django.utils import timezone
 from citas.models import Cita, EstadoCita, HorarioVeterinario, Servicio
 from citas.services import CitaService, EstadisticasService, HorarioService, ServicioService
 from cuentas.models import ROLES_DEL_PERSONAL, Roles
-from mascotas.models import Especies, Mascota
+from mascotas.models import Mascota
 
 PERIODOS_VETERINARIO = {'7d': ('7 días', 7), 'mes': ('1 mes', 30), '3m': ('3 meses', 90)}
 PERIODOS_ADMINISTRADOR = {'7d': ('7 días', 7), 'mes': ('1 mes', 30), '3m': ('3 meses', 90), '6m': ('6 meses', 180)}
@@ -91,8 +91,8 @@ class PanelClienteService:
         proximas = CitaService.proximas_del_cliente(cliente)
         return {
             'mascotas': mascotas,
-            'especies': [(valor, nombre) for valor, nombre in Especies.choices
-                         if any(m.especie == valor for m in mascotas)],
+            # Las especies de sus mascotas, sin repetir y en el orden del catálogo (pestañas para filtrar)
+            'especies': sorted({m.especie for m in mascotas}, key=lambda especie: (especie.orden, especie.nombre)),
             'hoy': hoy,
             'semana': [lunes + timedelta(days=i) for i in range(7)],
             'proximas_citas': proximas,

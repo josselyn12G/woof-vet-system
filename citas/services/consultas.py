@@ -15,9 +15,10 @@ VISTAS_GESTION = {'proximas': 'Próximas', 'hoy': 'Hoy', 'pasadas': 'Pasadas', '
 
 
 def con_foto_de_la_mascota(citas):
-    """Sin los bytes de la foto de la mascota, pero sabiendo si tiene una (para el avatar)."""
+    """Sin los bytes de la foto de la mascota, pero sabiendo si tiene una (para el avatar).
+    Trae también su especie y su raza, que se muestran en las tarjetas."""
     citas = list(
-        citas.defer('mascota__foto')
+        citas.select_related('mascota__especie', 'mascota__raza').defer('mascota__foto')
         .annotate(foto_mascota=ExpressionWrapper(Q(mascota__foto__isnull=False), output_field=BooleanField()))
     )
     for cita in citas:

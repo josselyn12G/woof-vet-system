@@ -35,7 +35,7 @@
       <div class="formulario-mascota__cuerpo">
         {# ----- Columna de la foto: vista previa + botón para elegirla ----- #}
         <div class="subir-foto">
-          <div class="subir-foto__vista foto-mascota foto-mascota--{{ mascota.especie|default:'otro' }}" data-foto-vista>
+          <div class="subir-foto__vista foto-mascota foto-mascota--{{ mascota.especie.estilo|default:'otro' }}" data-foto-vista>
             {% if mascota.tiene_foto %}
               <img src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="Foto actual" data-foto-imagen>
             {% else %}
@@ -102,4 +102,5 @@
 
 {% block panel_scripts %}
   <script src="{% static 'mascotas/js/vista-previa-foto.js' %}" defer></script>
+  <script src="{% static 'mascotas/js/razas.js' %}" defer></script>
 {% endblock %}

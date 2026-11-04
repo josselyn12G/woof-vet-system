@@ -32,7 +32,7 @@
         {% for mascota in form.fields.mascota.queryset %}
           <label class="opcion-mascota">
             <input type="radio" name="{{ form.mascota.html_name }}" value="{{ mascota.pk }}" data-mascota="{{ mascota.nombre }}"{% if mascota.pk|stringformat:'s' == form.mascota.value|stringformat:'s' or form.fields.mascota.queryset.count == 1 %} checked{% endif %} required>
-            <span class="opcion-mascota__foto foto-mascota foto-mascota--{{ mascota.especie }}">{% include 'mascotas/_avatar.html' %}</span>
+            <span class="opcion-mascota__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>
             <span class="opcion-mascota__nombre">{{ mascota.nombre }}</span>
           </label>
         {% endfor %}

@@ -13,7 +13,7 @@ El sistema se divide en **apps de Django**. Cada app es un módulo con sus propi
 | App | Tablas | Fase |
 |---|---|---|
 | `cuentas` | Usuario, PerfilVeterinario, VersionTerminos, AceptacionTerminos | 1 (Usuario) · 2 · 3 |
-| `mascotas` | Mascota | 1 |
+| `mascotas` | Especie, Raza, Mascota | 1 |
 | `citas` | Servicio, HorarioVeterinario, Cita, Calificacion | 3 |
 | `historial` | Consulta, Medicamento, Prescripcion, Toma, ExamenLaboratorio, Vacuna, VacunaAplicada | 3 |
 | `notificaciones` | PreferenciaNotificacion, Notificacion | 3 |
@@ -51,8 +51,8 @@ erDiagram
         bigint id PK
         bigint dueno_id FK
         string nombre
-        string especie "perro | gato | otro"
-        string raza
+        bigint especie_id FK
+        bigint raza_id FK "opcional"
         string sexo "M | H"
         date fecha_nacimiento
         decimal peso_kg
@@ -379,13 +379,29 @@ En `settings.py`: `AUTH_USER_MODEL = "cuentas.Usuario"` **antes de la primera mi
 |---|---|---|
 | dueno | `ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mascotas")` | se asigna solo en la vista |
 | nombre | `CharField(max_length=60)` | obligatorio |
-| especie | `CharField(max_length=10, choices=...)` | obligatorio |
-| raza | `CharField(max_length=60, blank=True)` | |
+| especie | `ForeignKey(Especie, on_delete=models.PROTECT, related_name="mascotas")` | obligatorio |
+| raza | `ForeignKey(Raza, on_delete=models.PROTECT, null=True, blank=True)` | opcional; tiene que ser de la especie elegida (`Mascota.clean()`) |
 | sexo | `CharField(max_length=1, choices=...)` | |
 | fecha_nacimiento | `DateField(null=True, blank=True)` | no futura |
 | peso_kg | `DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)` | > 0 |
 | foto | `BinaryField(null=True, blank=True, editable=False)` | la imagen se guarda dentro de la base (así todos la ven), reducida con Pillow a WEBP de máx. 800 px; se muestra con la URL `/mascotas/<id>/foto/` |
 | creado / actualizado | `DateTimeField(auto_now_add / auto_now)` | |
+
+### `mascotas.Especie` y `mascotas.Raza`
+
+El catálogo que se ofrece al registrar una mascota vive en la base, no en el código: el superadministrador lo
+gestiona en *Especies y razas*. La migración `0003_especie_raza` carga la lista inicial (unas 50 razas de perro,
+20 de gato y algunas de conejo, hámster, cobayo, hurón, ave, tortuga y pez) y la `0005` pasó las mascotas que ya
+existían a la raza *Mestizo* de su especie.
+
+| Campo | Tipo Django | Notas |
+|---|---|---|
+| Especie.nombre / plural | `CharField(max_length=40)` | nombre único; el plural se usa en filtros y cifras |
+| Especie.codigo | `SlugField(unique=True)` | fijo: va en las URLs (`?especie=gato`) y en las clases del CSS |
+| Especie.orden | `PositiveSmallIntegerField` | las de menor número salen primero (perro 1, gato 2) |
+| Raza.especie | `ForeignKey(Especie, on_delete=models.CASCADE, related_name="razas")` | |
+| Raza.nombre | `CharField(max_length=60)` | no se repite dentro de la misma especie (sin importar mayúsculas) |
+| activa (las dos) | `BooleanField(default=True)` | desactivada: no se ofrece al registrar, pero las mascotas la conservan |
 
 ---
 

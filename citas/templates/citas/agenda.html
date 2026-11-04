@@ -62,7 +62,7 @@
               <span class="turno__punto" aria-hidden="true"></span>
 
               <article class="turno__tarjeta">
-                <span class="turno__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}" aria-hidden="true">
+                <span class="turno__foto foto-mascota foto-mascota--{{ cita.mascota.especie.estilo }}" aria-hidden="true">
                   {% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}
                 </span>
 
@@ -70,7 +70,7 @@
                   <header class="turno__cabecera">
                     <div>
                       <h3 class="turno__mascota">{{ cita.mascota }}</h3>
-                      <p class="turno__rasgos">{{ cita.mascota.get_especie_display }}{% if cita.mascota.raza %} · {{ cita.mascota.raza }}{% endif %}{% if cita.mascota.edad %} · {{ cita.mascota.edad }}{% endif %}{% if cita.mascota.peso_kg %} · {{ cita.mascota.peso_kg }} kg{% endif %}</p>
+                      <p class="turno__rasgos">{{ cita.mascota.especie }}{% if cita.mascota.raza %} · {{ cita.mascota.raza }}{% endif %}{% if cita.mascota.edad %} · {{ cita.mascota.edad }}{% endif %}{% if cita.mascota.peso_kg %} · {{ cita.mascota.peso_kg }} kg{% endif %}</p>
                     </div>
                     {% if cita.puede_cerrarse %}
                       <span class="estado-cita turno__estado turno__estado--pendiente">Por cerrar</span>

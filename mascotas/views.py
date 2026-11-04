@@ -2,17 +2,17 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import Http404, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from cuentas.mixins import AdministradorRequeridoMixin, SuperadminRequeridoMixin
 from cuentas.models import Roles
 
-from .forms import MascotaForm, MascotaGestionForm
-from .models import Especies, Mascota
-from .services import MascotaService, foto_visible
+from .forms import EspecieForm, MascotaForm, MascotaGestionForm, RazaForm
+from .models import Especie, Mascota, Raza
+from .services import CatalogoService, MascotaService, foto_visible
 
 
 class MascotasDelUsuarioMixin(LoginRequiredMixin):
@@ -135,10 +135,12 @@ class MascotaGestionListView(AdministradorRequeridoMixin, ListView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         especie = self.request.GET.get('especie', '')
+        resumen = MascotaService.resumen_de_la_clinica()
         contexto.update({
             'buscar': self.buscar(),
-            'especie_elegida': especie if especie in Especies.values else '',
-            'resumen': MascotaService.resumen_de_la_clinica(),
+            # Solo se marca un filtro que existe (una especie inventada en la URL queda en "Todas")
+            'especie_elegida': especie if any(fila['codigo'] == especie for fila in resumen['por_especie']) else '',
+            'resumen': resumen,
         })
         return contexto
 
@@ -216,3 +218,69 @@ class MascotaGestionDeleteView(MascotaGestionadaMixin, DeleteView):
     def form_valid(self, form):
         messages.success(self.request, f'Se eliminó la ficha de {self.object.nombre}.')
         return super().form_valid(form)
+
+
+# ---------------------------------------------------------------------------
+# Superadministrador: el catálogo de especies y razas que se ofrece al registrar una mascota
+# ---------------------------------------------------------------------------
+class EspecieListView(SuperadminRequeridoMixin, TemplateView):
+    """Cada especie con sus razas, cuántas mascotas tiene y sus acciones."""
+    template_name = 'mascotas/gestion/especies.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['especies'] = CatalogoService.especies_con_razas()
+        return contexto
+
+
+class CatalogoFormularioMixin(SuperadminRequeridoMixin, SuccessMessageMixin):
+    template_name = 'mascotas/gestion/catalogo_formulario.html'
+    success_url = reverse_lazy('mascotas:especies')
+
+
+class EspecieCreateView(CatalogoFormularioMixin, CreateView):
+    form_class = EspecieForm
+    success_message = 'Se agregó la especie %(nombre)s.'
+
+
+class EspecieUpdateView(CatalogoFormularioMixin, UpdateView):
+    model = Especie
+    form_class = EspecieForm
+    success_message = 'Se guardaron los cambios de %(nombre)s.'
+
+
+class RazaCreateView(CatalogoFormularioMixin, CreateView):
+    form_class = RazaForm
+    success_message = 'Se agregó la raza %(nombre)s.'
+
+    def get_initial(self):
+        # ?especie=<id> desde el "Agregar raza" de una especie
+        return {'especie': self.request.GET.get('especie')}
+
+
+class RazaUpdateView(CatalogoFormularioMixin, UpdateView):
+    model = Raza
+    form_class = RazaForm
+    success_message = 'Se guardaron los cambios de %(nombre)s.'
+
+
+class CatalogoEliminarView(SuperadminRequeridoMixin, View):
+    """Borra una especie o una raza (POST). Si alguna mascota la usa no se borra: se ofrece desactivarla."""
+    http_method_names = ['post']
+    modelo = None
+
+    def post(self, request, pk):
+        elemento = get_object_or_404(self.modelo, pk=pk)
+        if CatalogoService.eliminar(elemento):
+            messages.success(request, f'Se eliminó {elemento}.')
+        else:
+            messages.error(request, f'{elemento} tiene mascotas registradas y no se puede eliminar. Desactívala en su lugar.')
+        return redirect('mascotas:especies')
+
+
+class EspecieEliminarView(CatalogoEliminarView):
+    modelo = Especie
+
+
+class RazaEliminarView(CatalogoEliminarView):
+    modelo = Raza

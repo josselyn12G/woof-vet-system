@@ -18,7 +18,7 @@
 
   <article class="ficha">
     {# Columna izquierda: la foto grande (o el ícono de la especie) #}
-    <div class="ficha__foto foto-mascota foto-mascota--{{ mascota.especie }}">
+    <div class="ficha__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">
       {% include 'mascotas/_avatar.html' %}
       {# Volver: en la esquina de la foto, como una píldora de vidrio #}
       <a class="boton-volver boton-volver--vidrio" href="{% url 'mascotas:lista' %}" aria-label="Volver a Mis mascotas" title="Volver a Mis mascotas"><i class="bi bi-arrow-left" aria-hidden="true"></i></a>
@@ -27,7 +27,7 @@
     {# Columna derecha: nombre, datos y acciones #}
     <div class="ficha__info">
       <div class="ficha__insignias">
-        <span class="etiqueta etiqueta--marca">{{ mascota.get_especie_display }}</span>
+        <span class="etiqueta etiqueta--marca">{{ mascota.especie }}</span>
         {% if mascota.sexo %}
           <span class="etiqueta">
             <i class="bi {% if mascota.sexo == 'M' %}bi-gender-male{% else %}bi-gender-female{% endif %}" aria-hidden="true"></i>{{ mascota.get_sexo_display }}
@@ -57,7 +57,7 @@
         <div class="dato">
           <span class="dato__icono" aria-hidden="true"><i class="bi bi-tag"></i></span>
           <dt>Especie</dt>
-          <dd>{{ mascota.get_especie_display }}</dd>
+          <dd>{{ mascota.especie }}</dd>
         </div>
         <div class="dato">
           <span class="dato__icono" aria-hidden="true"><i class="bi bi-gender-ambiguous"></i></span>

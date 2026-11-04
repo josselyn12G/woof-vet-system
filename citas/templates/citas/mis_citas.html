@@ -45,10 +45,10 @@
             <div class="tarjeta-cita__cuerpo">
               <div class="tarjeta-cita__fila">
                 <span class="tarjeta-cita__mascota">
-                  <span class="tarjeta-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}">{% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
+                  <span class="tarjeta-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie.estilo }}">{% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
                   <span>
                     <strong class="tarjeta-cita__nombre">{{ cita.mascota }}</strong>
-                    <span class="tarjeta-cita__detalle"><i class="bi bi-heart" aria-hidden="true"></i>{{ cita.mascota.raza|default:cita.mascota.get_especie_display }}</span>
+                    <span class="tarjeta-cita__detalle"><i class="bi bi-heart" aria-hidden="true"></i>{{ cita.mascota.raza|default:cita.mascota.especie }}</span>
                   </span>
                 </span>
                 <span class="estado-cita estado-cita--{{ cita.estado }}">
@@ -125,7 +125,7 @@
             <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
           </span>
           <span class="lado-cita__mascota">
-            <span class="lado-cita__foto foto-mascota foto-mascota--{{ proxima.mascota.especie }}">{% with mascota=proxima.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
+            <span class="lado-cita__foto foto-mascota foto-mascota--{{ proxima.mascota.especie.estilo }}">{% with mascota=proxima.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
             <span>
               <strong>{{ proxima.mascota }}</strong>
               <span>{{ proxima.servicio }}</span>
@@ -143,7 +143,7 @@
             <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
           </span>
           <span class="lado-cita__mascota">
-            <span class="lado-cita__foto foto-mascota foto-mascota--{{ ultima.mascota.especie }}">{% with mascota=ultima.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
+            <span class="lado-cita__foto foto-mascota foto-mascota--{{ ultima.mascota.especie.estilo }}">{% with mascota=ultima.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}</span>
             <span><strong>{{ ultima.mascota }}</strong><span>{{ ultima.servicio }} · {{ ultima.get_estado_display }}</span></span>
           </span>
         </a>
@@ -155,8 +155,8 @@
           {% for mascota in mascotas %}
             <li>
               <a href="{% url 'mascotas:detalle' mascota.pk %}">
-                <span class="lado-cita__foto foto-mascota foto-mascota--{{ mascota.especie }}">{% include 'mascotas/_avatar.html' %}</span>
-                <span><strong>{{ mascota.nombre }}</strong><span>{{ mascota.raza|default:mascota.get_especie_display }}</span></span>
+                <span class="lado-cita__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>
+                <span><strong>{{ mascota.nombre }}</strong><span>{{ mascota.raza|default:mascota.especie }}</span></span>
                 <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
               </a>
             </li>

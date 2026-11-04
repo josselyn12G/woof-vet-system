@@ -19,4 +19,12 @@ urlpatterns = [
     path('gestion/nueva/', views.MascotaGestionCreateView.as_view(), name='gestion_crear'),
     path('gestion/<int:pk>/editar/', views.MascotaGestionUpdateView.as_view(), name='gestion_editar'),
     path('gestion/<int:pk>/eliminar/', views.MascotaGestionDeleteView.as_view(), name='gestion_eliminar'),
+    # Catálogo de especies y razas: solo el superadministrador (403 para los demás)
+    path('especies/', views.EspecieListView.as_view(), name='especies'),
+    path('especies/nueva/', views.EspecieCreateView.as_view(), name='especie_crear'),
+    path('especies/<int:pk>/editar/', views.EspecieUpdateView.as_view(), name='especie_editar'),
+    path('especies/<int:pk>/eliminar/', views.EspecieEliminarView.as_view(), name='especie_eliminar'),
+    path('razas/nueva/', views.RazaCreateView.as_view(), name='raza_crear'),
+    path('razas/<int:pk>/editar/', views.RazaUpdateView.as_view(), name='raza_editar'),
+    path('razas/<int:pk>/eliminar/', views.RazaEliminarView.as_view(), name='raza_eliminar'),
 ]

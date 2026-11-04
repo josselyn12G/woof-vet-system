@@ -4,7 +4,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 
 from cuentas.models import Roles
-from mascotas.models import Especies, Mascota
+from mascotas.models import Especie, Mascota
 
 
 def filtro_de_busqueda(texto):
@@ -50,7 +50,8 @@ class MascotaService:
 
     @staticmethod
     def de_la_clinica(buscar='', especie=''):
-        """Todas las mascotas registradas, para el administrador: con su dueño y cuántas citas tienen."""
+        """Todas las mascotas registradas, para el administrador: con su dueño y cuántas citas tienen.
+        especie es el código (?especie=gato); uno inventado en la URL no filtra nada."""
         mascotas = (
             Mascota.objects.select_related('dueno')
             .con_foto()
@@ -59,23 +60,32 @@ class MascotaService:
         )
         if buscar:
             mascotas = mascotas.filter(filtro_de_busqueda(buscar))
-        if especie in Especies.values:   # una especie inventada en la URL se ignora
-            mascotas = mascotas.filter(especie=especie)
+        if especie and Especie.objects.filter(codigo=especie).exists():
+            mascotas = mascotas.filter(especie__codigo=especie)
         return mascotas
 
     @staticmethod
     def resumen_de_la_clinica():
-        """Cifras de la gestión de mascotas: total, por especie y registradas en los últimos 30 días."""
+        """
+        Cifras de la gestión de mascotas: total, registradas en los últimos 30 días y por especie.
+        por_especie son las especies que tienen mascotas (para los filtros); en las cifras, perros y gatos
+        van aparte y el resto se suma en "Otras especies".
+        """
         hace_un_mes = timezone.now() - timedelta(days=30)
-        cuentas = Mascota.objects.aggregate(
-            total=Count('pk'),
-            nuevas=Count('pk', filter=Q(creado__gte=hace_un_mes)),
-            **{valor: Count('pk', filter=Q(especie=valor)) for valor in Especies.values},
-        )
+        cuentas = Mascota.objects.aggregate(total=Count('pk'), nuevas=Count('pk', filter=Q(creado__gte=hace_un_mes)))
+        por_especie = [
+            {'codigo': especie.codigo, 'nombre': especie.nombre, 'plural': especie.plural, 'estilo': especie.estilo,
+             'cantidad': especie.cantidad}
+            for especie in Especie.objects.annotate(cantidad=Count('mascotas')).filter(cantidad__gt=0)
+        ]
+        principales = [fila for fila in por_especie if fila['codigo'] in ('perro', 'gato')]
+        otras = sum(fila['cantidad'] for fila in por_especie if fila not in principales)
+        cifras = principales + ([{'plural': 'Otras especies', 'estilo': 'otro', 'cantidad': otras}] if otras else [])
         return {
             'total': cuentas['total'],
             'nuevas': cuentas['nuevas'],
-            'por_especie': [(valor, nombre, cuentas[valor]) for valor, nombre in Especies.choices],
+            'por_especie': por_especie,
+            'cifras_especie': cifras,
         }
 
     @staticmethod

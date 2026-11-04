@@ -82,12 +82,12 @@
     {% for cita in dia.citas %}
       <div class="detalle-cita" id="detalle-cita-{{ cita.pk }}" popover role="dialog" aria-labelledby="detalle-cita-{{ cita.pk }}-titulo">
         {# Portada pastel con huellitas y, encima de la onda, la foto de la mascota con su corazoncito #}
-        <div class="detalle-cita__portada detalle-cita__portada--{{ cita.mascota.especie }}">
+        <div class="detalle-cita__portada detalle-cita__portada--{{ cita.mascota.especie.estilo }}">
           <span class="estado-cita estado-cita--{{ cita.estado }} detalle-cita__estado">{{ cita.get_estado_display }}</span>
           <button type="button" class="detalle-cita__cerrar" popovertarget="detalle-cita-{{ cita.pk }}" popovertargetaction="hide" aria-label="Cerrar"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
         <div class="detalle-cita__avatar" aria-hidden="true">
-          <span class="detalle-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}">
+          <span class="detalle-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie.estilo }}">
             {% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}
           </span>
           <span class="detalle-cita__corazon"><i class="bi bi-heart-fill"></i></span>
@@ -97,7 +97,7 @@
           <div class="detalle-cita__identidad">
             <h3 class="detalle-cita__titulo" id="detalle-cita-{{ cita.pk }}-titulo">{{ cita.mascota }}</h3>
             <ul class="detalle-cita__rasgos">
-              <li>{{ cita.mascota.get_especie_display }}</li>
+              <li>{{ cita.mascota.especie }}</li>
               {% if cita.mascota.raza %}<li>{{ cita.mascota.raza }}</li>{% endif %}
               {% if cita.mascota.edad %}<li>{{ cita.mascota.edad }}</li>{% endif %}
               {% if cita.mascota.peso_kg %}<li>{{ cita.mascota.peso_kg }} kg</li>{% endif %}
