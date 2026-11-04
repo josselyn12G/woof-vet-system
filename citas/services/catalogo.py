@@ -35,6 +35,31 @@ class ServicioService:
         return True
 
     @staticmethod
+    def todos():
+        return Servicio.objects.all()
+
+    @staticmethod
+    def activos():
+        """Los que se ofrecen hoy: las casillas de "Servicios que atiendo"."""
+        return Servicio.objects.filter(activo=True)
+
+    @staticmethod
+    def activo(pk):
+        """El servicio activo con ese id (llega en la URL), o None si no existe, está inactivo o el id es inventado."""
+        if not str(pk or '').isdigit():
+            return None
+        return Servicio.objects.filter(pk=pk, activo=True).first()
+
+    @staticmethod
+    def nombre_repetido(nombre, excluir_pk=None):
+        """True si otro servicio ya se llama así: "Vacunación" y "vacunación" son el mismo."""
+        return Servicio.objects.filter(nombre__iexact=nombre).exclude(pk=excluir_pk).exists()
+
+    @staticmethod
+    def lo_atiende(servicio, veterinario):
+        return servicio.veterinarios.filter(pk=veterinario.pk).exists()
+
+    @staticmethod
     def agendables():
         """Servicios activos que algún veterinario atiende: los únicos que el cliente puede agendar."""
         return Servicio.objects.filter(activo=True, veterinarios__isnull=False).distinct()

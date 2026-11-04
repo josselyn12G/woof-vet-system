@@ -50,6 +50,23 @@ class HorarioService:
         return HorarioVeterinario.objects.filter(veterinario=veterinario)
 
     @staticmethod
+    def fecha_guardada(bloque):
+        """La fecha que está en la base (el formulario con errores trae la que se escribió)."""
+        return HorarioVeterinario.objects.values_list('fecha', flat=True).get(pk=bloque.pk)
+
+    @staticmethod
+    def quitar_bloque(bloque):
+        """Borra el bloque y devuelve su fecha (para volver a esa semana)."""
+        fecha = bloque.fecha
+        bloque.delete()
+        return fecha
+
+    @staticmethod
+    def servicios_activos(veterinario):
+        """Los servicios activos que atiende: las casillas marcadas de "Servicios que atiendo"."""
+        return veterinario.servicios.filter(activo=True)
+
+    @staticmethod
     def semana_del_veterinario(veterinario, lunes):
         """
         La semana como columnas de días para la grilla: cada bloque trae su posición (arriba y alto, en %)

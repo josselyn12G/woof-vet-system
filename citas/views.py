@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 
 from django.contrib import messages
-from django.contrib.auth import get_user_model
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
@@ -16,11 +15,10 @@ from django.views.generic import CreateView, DeleteView, FormView, ListView, Tem
 from cuentas.mixins import (
     AdministradorRequeridoMixin, ClienteRequeridoMixin, SuperadminRequeridoMixin, VeterinarioRequeridoMixin,
 )
-from cuentas.models import Roles
 from mascotas.services import MascotaService
 
 from .forms import AgendarCitaForm, FiltroCitasForm, HorarioForm, MisServiciosForm, ServicioForm
-from .models import Cita, HorarioVeterinario, Servicio
+from .models import HorarioVeterinario, Servicio
 from .services import (
     VISTAS_CITAS, VISTAS_GESTION, AgendaService, CitaService, HorarioService, ServicioService,
 )
@@ -69,7 +67,7 @@ class ServicioEstadoView(AdministradorRequeridoMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        servicio = get_object_or_404(Servicio, pk=pk)
+        servicio = get_object_or_404(ServicioService.todos(), pk=pk)
         if ServicioService.alternar_estado(servicio):
             messages.success(request, f'{servicio.nombre} vuelve a ofrecerse al agendar.')
         else:
@@ -141,7 +139,7 @@ class HorarioGestionadoMixin(SuperadminRequeridoMixin):
 
     @cached_property
     def veterinario(self):
-        return get_object_or_404(get_user_model(), pk=self.kwargs['vet'], rol=Roles.VETERINARIO)
+        return get_object_or_404(CitaService.veterinarios(), pk=self.kwargs['vet'])
 
     def url(self, nombre, *args):
         return reverse(self.rutas[nombre], args=[self.veterinario.pk, *args])
@@ -183,7 +181,7 @@ class MiHorarioView(HorarioDelVeterinarioMixin, SuccessMessageMixin, CreateView)
                 bloque.url_eliminar = self.url('eliminar', bloque.pk)
         contexto['rutas'] = {nombre: self.url(nombre) for nombre in ('semana', 'copiar', 'servicios')}
         contexto['servicios_form'] = MisServiciosForm(
-            initial={'servicios': self.veterinario.servicios.filter(activo=True)},
+            initial={'servicios': HorarioService.servicios_activos(self.veterinario)},
         )
         return contexto
 
@@ -207,7 +205,7 @@ class HorarioEditarView(HorarioDelVeterinarioMixin, SuccessMessageMixin, UpdateV
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         # Con errores, self.object trae la fecha que se escribió: "Cancelar" vuelve a la semana guardada
-        contexto['volver'] = self.url_semana(HorarioVeterinario.objects.get(pk=self.object.pk).fecha)
+        contexto['volver'] = self.url_semana(HorarioService.fecha_guardada(self.object))
         return contexto
 
     def get_success_url(self):
@@ -220,8 +218,7 @@ class HorarioEliminarView(HorarioDelVeterinarioMixin, DeleteView):
     http_method_names = ['post']
 
     def form_valid(self, form):
-        fecha = self.object.fecha
-        self.object.delete()
+        fecha = HorarioService.quitar_bloque(self.object)
         messages.success(self.request, f'Se quitó el bloque de {self.el_horario}.')
         return redirect(self.url_semana(fecha))
 
@@ -354,7 +351,7 @@ def datos_de_confirmacion(cita):
 
 def servicio_pedido(request):
     """El servicio activo de ?servicio=<id>, o None."""
-    return Servicio.objects.filter(pk=request.GET.get('servicio') or 0, activo=True).first()
+    return ServicioService.activo(request.GET.get('servicio'))
 
 
 class TurnosDelDiaView(ClienteRequeridoMixin, View):
@@ -427,7 +424,7 @@ class CancelarCitaView(ClienteRequeridoMixin, View):
     """Cancela una cita por POST. Una cita de otro cliente responde 404, como si no existiera."""
 
     def post(self, request, pk):
-        cita = get_object_or_404(Cita, pk=pk, mascota__dueno=request.user)
+        cita = get_object_or_404(CitaService.de_las_mascotas_de(request.user), pk=pk)
         try:
             AgendaService.cancelar(cita)
         except ValidationError as error:
@@ -465,7 +462,7 @@ class ResultadoCitaView(VeterinarioRequeridoMixin, View):
     """Marca una cita como atendida o no asistió (POST). Solo las citas del propio veterinario: las de otro, 404."""
 
     def post(self, request, pk):
-        cita = get_object_or_404(Cita, pk=pk, veterinario=request.user)
+        cita = get_object_or_404(CitaService.atendidas_por(request.user), pk=pk)
         try:
             AgendaService.registrar_resultado(cita, request.POST.get('estado'))
         except ValidationError as error:
@@ -543,7 +540,7 @@ class GestionCancelarCitaView(AdministradorRequeridoMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        cita = get_object_or_404(Cita, pk=pk)
+        cita = get_object_or_404(CitaService.todas(), pk=pk)
         try:
             AgendaService.cancelar(cita)
         except ValidationError as error:

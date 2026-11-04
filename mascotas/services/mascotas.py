@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 from django.utils import timezone
 
@@ -26,6 +27,19 @@ class MascotaService:
     def del_dueno(dueno):
         """Solo las mascotas de esa persona: la de otro cliente no está en la consulta (404 en el detalle)."""
         return Mascota.objects.del_dueno(dueno).con_foto()
+
+    @staticmethod
+    def nombre_repetido(dueno, nombre, excluir_pk=None):
+        """True si ese dueño ya tiene otra mascota con ese nombre (sin importar mayúsculas)."""
+        return Mascota.objects.filter(dueno=dueno, nombre__iexact=nombre).exclude(pk=excluir_pk).exists()
+
+    @staticmethod
+    def duenos_posibles(actual_pk=None):
+        """Las cuentas de cliente, que pueden ser dueñas de una mascota; al editar, también el dueño que ya tiene."""
+        duenos = Q(rol=Roles.CLIENTE)
+        if actual_pk:
+            duenos |= Q(pk=actual_pk)
+        return get_user_model().objects.filter(duenos).order_by('first_name', 'last_name', 'username')
 
     @staticmethod
     def nombre_guardado(pk):
@@ -89,9 +103,18 @@ class MascotaService:
         }
 
     @staticmethod
+    def fichas():
+        """Todas las mascotas con su dueño, sin los bytes de la foto (para la gestión de la clínica)."""
+        return Mascota.objects.select_related('dueno').con_foto()
+
+    @staticmethod
     def ficha_de_la_clinica(pk):
         """Una mascota cualquiera con su dueño (el administrador ve todas). Mascota.DoesNotExist si no existe."""
-        return Mascota.objects.select_related('dueno').con_foto().get(pk=pk)
+        return MascotaService.fichas().get(pk=pk)
+
+    @staticmethod
+    def total_citas(mascota):
+        return mascota.citas.count()
 
     @staticmethod
     def citas_de(mascota):

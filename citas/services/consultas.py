@@ -176,6 +176,26 @@ class CitaService:
         return cuentas
 
     @staticmethod
-    def veterinarios():
-        """Los veterinarios para el filtro de la gestión (también los desactivados: sus citas siguen ahí)."""
-        return get_user_model().objects.filter(rol=Roles.VETERINARIO).order_by('first_name', 'last_name', 'username')
+    def veterinarios(activos=False):
+        """
+        Los veterinarios por nombre. Para la gestión van también los desactivados (sus citas y su horario
+        siguen ahí); con activos=True, solo los que pueden atender (agendar y asignar servicios).
+        """
+        veterinarios = get_user_model().objects.filter(rol=Roles.VETERINARIO)
+        if activos:
+            veterinarios = veterinarios.filter(is_active=True)
+        return veterinarios.order_by('first_name', 'last_name', 'username')
+
+    # ---------- Una cita de la URL (las vistas responden 404 si no está en la consulta) ----------
+    @staticmethod
+    def todas():
+        return Cita.objects.all()
+
+    @staticmethod
+    def de_las_mascotas_de(cliente):
+        """Solo las citas de las mascotas del cliente: la de otro cliente no está (404, como si no existiera)."""
+        return Cita.objects.filter(mascota__dueno=cliente)
+
+    @staticmethod
+    def atendidas_por(veterinario):
+        return Cita.objects.filter(veterinario=veterinario)
