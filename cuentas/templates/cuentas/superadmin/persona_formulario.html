@@ -69,7 +69,7 @@
 
       <div class="formulario-panel__acciones">
         <button type="submit" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>{% if persona %}Guardar cambios{% else %}Crear la cuenta{% endif %}</button>
-        <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:equipo' %}">Cancelar</a>
+        <a class="boton-panel boton-panel--secundario" href="{% if persona.es_cliente %}{% url 'cuentas:usuarios' %}{% else %}{% url 'cuentas:equipo' %}{% endif %}">Cancelar</a>
       </div>
     </form>
 
@@ -83,6 +83,12 @@
             <div><dt>Estado</dt><dd>{% if persona.is_active %}Activa{% else %}Desactivada{% endif %}</dd></div>
           </dl>
           <a class="boton-panel boton-panel--secundario formulario-equipo__boton" href="{% url 'cuentas:equipo_contrasena' persona.pk %}"><i class="bi bi-key" aria-hidden="true"></i>Cambiar la contraseña</a>
+          {% if persona.es_veterinario %}
+            <a class="boton-panel boton-panel--secundario formulario-equipo__boton" href="{% url 'citas:gestion_horario' persona.pk %}"><i class="bi bi-clock-history" aria-hidden="true"></i>Horario y servicios</a>
+          {% elif persona.es_cliente %}
+            <a class="boton-panel boton-panel--secundario formulario-equipo__boton" href="{% url 'mascotas:gestion' %}?q={{ persona.cedula|urlencode }}"><i class="bi bi-heart" aria-hidden="true"></i>Sus mascotas</a>
+            <a class="boton-panel boton-panel--secundario formulario-equipo__boton" href="{% url 'mascotas:gestion_crear' %}?dueno={{ persona.pk }}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar una mascota</a>
+          {% endif %}
         </section>
       </aside>
     {% endif %}

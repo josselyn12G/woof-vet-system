@@ -63,7 +63,8 @@
               <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.date_joined|date:'j M Y' }}</td>
               <td class="tabla-panel__accion">
                 {% if persona.gestionable %}
-                  <a class="bloque-panel__enlace" href="{% url 'cuentas:usuario_editar' persona.pk %}">Editar<span class="visually-hidden"> a {{ persona }}</span></a>
+                  {# El superadministrador corrige todos los datos; el administrador, el rol y el estado #}
+                  <a class="bloque-panel__enlace" href="{% if user.es_superadmin %}{% url 'cuentas:equipo_editar' persona.pk %}{% else %}{% url 'cuentas:usuario_editar' persona.pk %}{% endif %}">Editar<span class="visually-hidden"> a {{ persona }}</span></a>
                 {% else %}
                   {# Otro administrador o un superadministrador: lo gestiona el superadministrador #}
                   <span class="tabla-panel__secundario" title="Solo el superadministrador gestiona esta cuenta"><i class="bi bi-lock" aria-hidden="true"></i><span class="visually-hidden">Solo el superadministrador gestiona esta cuenta</span></span>

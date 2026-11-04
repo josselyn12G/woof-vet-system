@@ -485,6 +485,17 @@ class SuperadminTests(TestCase):
         self.administrador.refresh_from_db()
         self.assertEqual((self.administrador.first_name, self.administrador.rol), ('Laura', Roles.VETERINARIO))
 
+    def test_corrige_los_datos_de_un_cliente_desde_usuarios_y_vuelve_ahi(self):
+        url = reverse('cuentas:equipo_editar', args=[self.cliente.pk])
+        self.assertContains(self.client.get(reverse('cuentas:usuarios')), url)
+        respuesta = self.client.post(url, {
+            'first_name': 'Ana', 'last_name': 'Torres', 'email': 'ana.torres@woof.ec', 'telefono': '+593987654321',
+            'cedula': self.cliente.cedula, 'sector': '', 'rol': Roles.CLIENTE, 'is_active': 'on',
+        })
+        self.assertRedirects(respuesta, reverse('cuentas:usuarios'))
+        self.cliente.refresh_from_db()
+        self.assertEqual((self.cliente.last_name, self.cliente.email), ('Torres', 'ana.torres@woof.ec'))
+
     def test_no_se_quita_su_propio_rol(self):
         respuesta = self.client.post(
             reverse('cuentas:usuario_editar', args=[self.superadmin.pk]), {'rol': Roles.ADMINISTRADOR, 'is_active': 'on'},
