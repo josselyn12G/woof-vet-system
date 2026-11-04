@@ -33,20 +33,36 @@
       </a>
 
       <nav class="panel-menu__nav">
-        <p class="panel-menu__grupo">Plataforma</p>
-        <ul class="panel-menu__lista">
-          {% if user.es_administrador %}
-            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_administrador' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_administrador' %}" title="Inicio"{% if ruta == 'cuentas:inicio_administrador' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
+        {% if user.gestiona_clinica %}
+          {% if user.es_superadmin %}
+            {# Superadministrador: su portada y el equipo; debajo, todo lo que ve un administrador #}
+            <p class="panel-menu__grupo">Superadmin</p>
+            <ul class="panel-menu__lista">
+              <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_superadmin' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_superadmin' %}" title="Inicio"{% if ruta == 'cuentas:inicio_superadmin' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
+              <li><a class="panel-menu__enlace{% if 'cuentas:equipo' in ruta %} es-activo{% endif %}" href="{% url 'cuentas:equipo' %}" title="Equipo"{% if ruta == 'cuentas:equipo' %} aria-current="page"{% endif %}><i class="bi bi-person-badge" aria-hidden="true"></i><span class="panel-menu__texto">Equipo</span></a></li>
+            </ul>
+          {% endif %}
+          <p class="panel-menu__grupo">Plataforma</p>
+          <ul class="panel-menu__lista">
+            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_administrador' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_administrador' %}" title="{% if user.es_superadmin %}Clínica{% else %}Inicio{% endif %}"{% if ruta == 'cuentas:inicio_administrador' %} aria-current="page"{% endif %}><i class="bi {% if user.es_superadmin %}bi-bar-chart{% else %}bi-grid{% endif %}" aria-hidden="true"></i><span class="panel-menu__texto">{% if user.es_superadmin %}Clínica{% else %}Inicio{% endif %}</span></a></li>
             <li><a class="panel-menu__enlace{% if ruta == 'cuentas:usuarios' or ruta == 'cuentas:usuario_editar' %} es-activo{% endif %}" href="{% url 'cuentas:usuarios' %}" title="Usuarios"{% if ruta == 'cuentas:usuarios' %} aria-current="page"{% endif %}><i class="bi bi-people" aria-hidden="true"></i><span class="panel-menu__texto">Usuarios</span></a></li>
             <li><a class="panel-menu__enlace{% if 'citas:servicio' in ruta %} es-activo{% endif %}" href="{% url 'citas:servicios' %}" title="Servicios"{% if ruta == 'citas:servicios' %} aria-current="page"{% endif %}><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i><span class="panel-menu__texto">Servicios</span></a></li>
-            <li><span class="panel-menu__enlace es-pronto" aria-disabled="true" title="Citas (pronto)"><i class="bi bi-calendar-week" aria-hidden="true"></i><span class="panel-menu__texto">Citas</span><span class="panel-menu__pronto">Pronto</span></span></li>
-          {% else %}
+          </ul>
+          <p class="panel-menu__grupo">Clínica</p>
+          <ul class="panel-menu__lista">
+            <li><a class="panel-menu__enlace{% if ruta == 'citas:gestion_citas' %} es-activo{% endif %}" href="{% url 'citas:gestion_citas' %}" title="Citas"{% if ruta == 'citas:gestion_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-week" aria-hidden="true"></i><span class="panel-menu__texto">Citas</span></a></li>
+            <li><a class="panel-menu__enlace{% if ruta == 'citas:gestion_horarios' %} es-activo{% endif %}" href="{% url 'citas:gestion_horarios' %}" title="Horarios"{% if ruta == 'citas:gestion_horarios' %} aria-current="page"{% endif %}><i class="bi bi-clock-history" aria-hidden="true"></i><span class="panel-menu__texto">Horarios</span></a></li>
+            <li><a class="panel-menu__enlace{% if 'mascotas:gestion' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:gestion' %}" title="Mascotas"{% if ruta == 'mascotas:gestion' %} aria-current="page"{% endif %}><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mascotas</span></a></li>
+          </ul>
+        {% else %}
+          <p class="panel-menu__grupo">Plataforma</p>
+          <ul class="panel-menu__lista">
             <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_cliente' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_cliente' %}" title="Inicio"{% if ruta == 'cuentas:inicio_cliente' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
             <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
             {# Agendar vive dentro de Mis citas (botón que abre un pop-up), así que el menú solo lleva Mis citas #}
             <li><a class="panel-menu__enlace{% if ruta == 'citas:mis_citas' or ruta == 'citas:agendar' %} es-activo{% endif %}" href="{% url 'citas:mis_citas' %}" title="Mis citas"{% if ruta == 'citas:mis_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="panel-menu__texto">Mis citas</span></a></li>
-          {% endif %}
-        </ul>
+          </ul>
+        {% endif %}
 
         <p class="panel-menu__grupo">Sistema</p>
         <ul class="panel-menu__lista">
@@ -102,7 +118,7 @@
         <span class="panel-barra__separador" aria-hidden="true"></span>
         <span class="panel-barra__seccion"><i class="bi {% block panel_icono %}bi-grid{% endblock %}" aria-hidden="true"></i>{% block panel_seccion %}Inicio{% endblock %}</span>
 
-        {% if user.es_administrador %}
+        {% if user.gestiona_clinica %}
           {# Buscador de usuarios: ⌘K (o Ctrl+K) lo enfoca desde cualquier pantalla #}
           <form class="panel-buscar" method="get" action="{% url 'cuentas:usuarios' %}" role="search">
             <i class="bi bi-search" aria-hidden="true"></i>

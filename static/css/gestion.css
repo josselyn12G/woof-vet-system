@@ -1,0 +1,646 @@
+/* Gestión de la clínica (administrador y superadministrador): equipo, citas, horarios y mascotas.
+   Usa los tokens y las piezas de panel.css (tarjetas, tablas, filtros, cifras); aquí solo va lo nuevo. */
+
+/* =========================================================
+   1. Piezas comunes
+   ========================================================= */
+
+/* Iniciales y píldoras con el color de cada rol (el mismo de la barra de reparto) */
+.inicial--cliente { background: #fdf1e3; color: #9a5b00; }
+.inicial--veterinario { background: #fde4c4; color: var(--p-acento-texto); }
+.inicial--administrador { background: #efe7e2; color: var(--woof-marron); }
+.inicial--superadmin { background: var(--woof-marron); color: #fff; }
+
+.estado--rol-veterinario { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
+.estado--rol-administrador { background: #efe7e2; color: var(--woof-marron); }
+.estado--rol-superadmin { background: var(--woof-marron); color: #fff; }
+
+/* Datos cortos en filas: etiqueta a la izquierda, valor a la derecha */
+.mini-datos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.mini-datos div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.mini-datos dt {
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.mini-datos dd {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-datos--lista {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.mini-datos--lista div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.mini-datos--lista div:last-child {
+  border-bottom: 0;
+}
+
+.mini-datos--lista dd {
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+.dos-columnas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 1.25rem;
+}
+
+/* Cinco cifras en la tira (gestión de citas) */
+.tira-cifras--cinco {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.tira-cifras--cinco .cifra__valor {
+  font-size: 1.75rem;
+}
+
+.cifra__de {
+  color: var(--p-texto-2);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Lista de personas (pendientes y personal reciente) */
+.lista-equipo {
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+}
+
+.lista-equipo__fila {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1.4rem;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.lista-equipo__fila:hover {
+  background: #fafafa;
+}
+
+.lista-equipo__datos {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.lista-equipo__datos > * {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lista-equipo__nota {
+  margin: 0;
+  padding: 0.85rem 1.4rem 1.1rem;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--p-linea);
+}
+
+.lista-equipo__vacia {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 2.25rem 1.5rem;
+  color: var(--p-texto-2);
+  text-align: center;
+}
+
+.lista-equipo__vacia .bi {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  color: var(--p-acento-texto);
+  font-size: 1.35rem;
+  background: var(--p-acento-tinte);
+  border-radius: 50%;
+}
+
+.lista-equipo__vacia p {
+  max-width: 22rem;
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+/* =========================================================
+   2. Equipo: formulario de una persona
+   ========================================================= */
+.formulario-equipo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.formulario-equipo__principal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1.6rem;
+}
+
+.formulario-equipo__principal:only-child {
+  grid-column: 1 / -1;
+  max-width: 48rem;
+}
+
+.formulario-equipo__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.formulario-equipo__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem;
+  padding: 0 0 0.75rem;
+  color: var(--p-texto);
+  font-size: 1rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.formulario-equipo__titulo .bi {
+  color: var(--p-acento-texto);
+}
+
+.formulario-equipo__boton {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+/* La ayuda de las contraseñas de Django llega como lista */
+.formulario-panel__ayuda ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+/* Rol: tarjetas con radio. La elegida lleva el borde y el tinte naranja */
+.opciones-rol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.6rem;
+}
+
+.opcion-rol {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.opcion-rol:hover {
+  border-color: var(--p-control);
+}
+
+.opcion-rol input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.opcion-rol:has(input:checked) {
+  border-color: var(--p-acento);
+  background: var(--p-acento-tinte);
+}
+
+.opcion-rol:has(input:focus-visible) {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 2px;
+}
+
+.opcion-rol__icono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+}
+
+.opcion-rol__texto {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.opcion-rol__texto strong {
+  color: var(--p-texto);
+  font-size: 0.95rem;
+}
+
+.opcion-rol__texto span {
+  color: var(--p-texto-2);
+}
+
+/* =========================================================
+   3. Citas de la clínica
+   ========================================================= */
+.fecha-cita {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fecha-cita__dia {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--p-texto);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--p-fondo);
+  border-radius: 10px;
+}
+
+.fecha-cita__dia small {
+  color: var(--p-acento-texto);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Buscador y tres filtros en una sola fila en la computadora */
+.filtros--citas .buscador {
+  flex-basis: 15rem;
+}
+
+.filtros--citas .filtros__rol {
+  flex: 0 1 11.5rem;
+}
+
+a.tabla-panel__enlace {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.tabla-panel__enlace:hover .tabla-panel__nombre {
+  color: var(--p-acento-texto);
+}
+
+.tabla-citas form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.sin-citas--gestion {
+  min-height: 18rem;
+}
+
+.sin-citas--gestion .sin-citas__foto {
+  height: 92%;
+}
+
+/* =========================================================
+   4. Horarios de la clínica: veterinarios en filas, días en columnas
+   ========================================================= */
+.semana-clinica {
+  padding-bottom: 0.5rem;
+}
+
+.grilla-clinica {
+  margin: 0 -1.4rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.grilla-clinica__fila {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1.6fr) repeat(7, minmax(6.5rem, 1fr));
+  min-width: 62rem;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.grilla-clinica__fila:last-child {
+  border-bottom: 0;
+}
+
+.grilla-clinica__fila--cabecera {
+  border-bottom-color: var(--p-borde);
+}
+
+.grilla-clinica__vet {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem 0.9rem 1.4rem;
+  background: var(--p-superficie);
+  border-right: 1px solid var(--p-linea);
+}
+
+.grilla-clinica__fila--cabecera .grilla-clinica__vet {
+  align-items: center;
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.grilla-clinica__persona {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.grilla-clinica__persona .estado {
+  justify-self: start;
+}
+
+.grilla-clinica__servicios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.grilla-clinica__servicios span {
+  padding: 0.1rem 0.5rem;
+  color: var(--p-texto-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--p-fondo);
+  border-radius: 999px;
+}
+
+.grilla-clinica__aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #9a5b00;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.grilla-clinica__dia {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.75rem 0.4rem;
+}
+
+.grilla-clinica__nombre {
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.grilla-clinica__numero {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--p-texto);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: 50%;
+}
+
+.grilla-clinica__dia.es-hoy .grilla-clinica__numero {
+  color: #fff;
+  background: var(--p-acento);
+}
+
+.grilla-clinica__celda {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.75rem 0.45rem;
+  border-left: 1px solid var(--p-linea);
+}
+
+.grilla-clinica__celda.es-hoy {
+  background: #fffaf3;
+}
+
+.grilla-clinica__celda.ya-paso,
+.grilla-clinica__dia.ya-paso {
+  opacity: 0.55;
+}
+
+.bloque-clinica {
+  padding: 0.35rem 0.4rem;
+  color: var(--p-acento-texto);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+  background: var(--p-acento-tinte);
+  border: 1px solid #f4d3ab;
+  border-radius: 8px;
+}
+
+.grilla-clinica__vacio {
+  align-self: center;
+  color: #c4c4cb;
+}
+
+.sin-horario .grilla-clinica__celda {
+  background: repeating-linear-gradient(-45deg, transparent 0 8px, #fafafa 8px 16px);
+}
+
+/* =========================================================
+   5. Mascotas de la clínica
+   ========================================================= */
+.punto-especie {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+}
+
+.punto-especie--perro { background: var(--p-acento); }
+.punto-especie--gato { background: var(--woof-ambar-400); }
+.punto-especie--otro { background: var(--woof-marron); }
+
+/* Chips de un solo valor (radios ocultos) */
+.chips-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.25rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+}
+
+.chip-filtro {
+  position: relative;
+  cursor: pointer;
+}
+
+.chip-filtro input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chip-filtro span {
+  display: inline-block;
+  padding: 0.45rem 0.85rem;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.chip-filtro:hover span {
+  color: var(--p-texto);
+}
+
+.chip-filtro input:checked + span {
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
+}
+
+.chip-filtro input:focus-visible + span {
+  outline: 2px solid var(--p-acento);
+}
+
+/* La tarjeta de Pacientes, con "Ver ficha" en lugar de "Llamar" */
+.paciente__ver .bi {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.paciente__ver:hover .bi {
+  transform: translateX(2px);
+}
+
+/* Ficha: foto y datos al costado, historial a la derecha */
+.ficha-gestion {
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.ficha-gestion__lado {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ficha-gestion__tarjeta {
+  padding: 0.5rem 0.5rem 1rem;
+}
+
+.ficha-gestion__tarjeta .mini-datos {
+  padding: 0 0.9rem;
+}
+
+.ficha-gestion__foto {
+  aspect-ratio: 1;
+  font-size: 5rem;
+  border-radius: 12px;
+}
+
+/* =========================================================
+   6. Tablet y celular
+   ========================================================= */
+@media (max-width: 1199.98px) {
+  .tira-cifras--cinco {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tira-cifras--cinco .cifra:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .tira-cifras--cinco .cifra:nth-child(even) {
+    border-left: 1px solid var(--p-borde);
+  }
+
+  .dos-columnas,
+  .formulario-equipo,
+  .ficha-gestion {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .mini-datos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tira-cifras--cinco {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tira-cifras--cinco .cifra,
+  .tira-cifras--cinco .cifra:nth-child(even) {
+    border-left: 0;
+  }
+
+  .tira-cifras--cinco .cifra + .cifra {
+    border-top: 1px solid var(--p-borde);
+  }
+
+  .lista-equipo__fila {
+    padding: 0.7rem 1rem;
+  }
+
+  .grilla-clinica {
+    margin: 0 -1.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paciente__ver .bi,
+  .opcion-rol,
+  .chip-filtro span {
+    transition: none;
+  }
+}

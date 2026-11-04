@@ -1,0 +1,115 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Equipo · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-person-badge{% endblock %}
+{% block panel_seccion %}Equipo{% endblock %}
+{% block panel_titulo %}Equipo{% endblock %}
+{% block panel_subtitulo %}Veterinarios, administradores y superadministradores. Crea sus cuentas, corrige sus datos, cambia su rol o desactívalas.{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel" href="{% url 'cuentas:equipo_crear' %}"><i class="bi bi-person-plus" aria-hidden="true"></i>Nueva cuenta</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  {# Filtros por GET: la búsqueda queda en la URL y se puede recargar o compartir #}
+  <form class="filtros" method="get" role="search">
+    <div class="buscador">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="visually-hidden" for="buscar-equipo">Buscar</label>
+      <input class="control-panel" type="search" id="buscar-equipo" name="q" value="{{ buscar }}"
+             placeholder="Buscar por nombre, usuario, correo o cédula">
+    </div>
+    <label class="visually-hidden" for="filtro-rol">Rol</label>
+    <select class="control-panel filtros__rol" id="filtro-rol" name="rol" onchange="this.form.submit()">
+      <option value="">Todos los roles</option>
+      {% for valor, nombre in roles %}
+        <option value="{{ valor }}"{% if valor == rol_elegido %} selected{% endif %}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+    <label class="visually-hidden" for="filtro-estado">Estado</label>
+    <select class="control-panel filtros__rol" id="filtro-estado" name="estado" onchange="this.form.submit()">
+      <option value="">Activas y desactivadas</option>
+      {% for valor, nombre in estados %}
+        <option value="{{ valor }}"{% if valor == estado_elegido %} selected{% endif %}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
+  </form>
+
+  <p class="tabla-panel__total">{{ paginator.count }} persona{{ paginator.count|pluralize }}{% if buscar or rol_elegido or estado_elegido %} con estos filtros{% endif %}</p>
+
+  {% if personas %}
+    <div class="tabla-envoltorio">
+      <table class="tabla-panel">
+        <thead>
+          <tr>
+            <th scope="col">Persona</th>
+            <th scope="col">Rol</th>
+            <th scope="col" class="tabla-panel__ocultable">Teléfono</th>
+            <th scope="col" class="tabla-panel__ocultable">Último acceso</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="tabla-panel__accion"><span class="visually-hidden">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for persona in personas %}
+            <tr>
+              <td>
+                <span class="tabla-panel__persona">
+                  <span class="inicial inicial--{{ persona.rol }}" aria-hidden="true">{{ persona.first_name|default:persona.username|slice:':1'|upper }}{{ persona.last_name|slice:':1'|upper }}</span>
+                  <span>
+                    <span class="tabla-panel__nombre d-block">{{ persona }}{% if persona.pk == user.pk %} <span class="tabla-panel__secundario">(tú)</span>{% endif %}</span>
+                    <span class="tabla-panel__secundario">{{ persona.email }}</span>
+                  </span>
+                </span>
+              </td>
+              <td><span class="estado estado--rol-{{ persona.rol }}">{{ persona.get_rol_display }}</span></td>
+              <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.telefono|default:'—' }}</td>
+              <td class="tabla-panel__num tabla-panel__ocultable">{% if persona.last_login %}{{ persona.last_login|date:'j M Y, H:i' }}{% else %}<span class="tabla-panel__secundario">Nunca</span>{% endif %}</td>
+              <td>
+                {% if persona.is_active %}
+                  <span class="estado estado--listo"><i class="bi bi-check-circle" aria-hidden="true"></i>Activa</span>
+                {% else %}
+                  <span class="estado"><i class="bi bi-dash-circle" aria-hidden="true"></i>Desactivada</span>
+                {% endif %}
+              </td>
+              <td class="tabla-panel__accion">
+                <span class="acciones-fila">
+                  <a class="boton-fila" href="{% url 'cuentas:equipo_editar' persona.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar a {{ persona }}</span></a>
+                  <a class="boton-fila" href="{% url 'cuentas:equipo_contrasena' persona.pk %}" title="Cambiar la contraseña"><i class="bi bi-key" aria-hidden="true"></i><span class="visually-hidden">Cambiar la contraseña de {{ persona }}</span></a>
+                  {% if persona.pk != user.pk %}
+                    {# Activar o desactivar: un formulario POST, nunca un enlace #}
+                    <form method="post" action="{% url 'cuentas:equipo_estado' persona.pk %}"{% if persona.is_active %} onsubmit="return confirm('¿Desactivar la cuenta de {{ persona|escapejs }}? Ya no podrá iniciar sesión.');"{% endif %}>
+                      {% csrf_token %}
+                      {% if persona.is_active %}
+                        <button type="submit" class="boton-fila boton-fila--peligro" title="Desactivar"><i class="bi bi-person-dash" aria-hidden="true"></i><span class="visually-hidden">Desactivar a {{ persona }}</span></button>
+                      {% else %}
+                        <button type="submit" class="boton-fila" title="Activar"><i class="bi bi-person-check" aria-hidden="true"></i><span class="visually-hidden">Activar a {{ persona }}</span></button>
+                      {% endif %}
+                    </form>
+                  {% endif %}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="filtros" aria-label="Páginas">
+        {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if rol_elegido %}&rol={{ rol_elegido }}{% endif %}{% if estado_elegido %}&estado={{ estado_elegido }}{% endif %}">Anterior</a>{% endif %}
+        <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if rol_elegido %}&rol={{ rol_elegido }}{% endif %}{% if estado_elegido %}&estado={{ estado_elegido }}{% endif %}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="bloque-panel__vacio">Nadie del equipo coincide con la búsqueda. Prueba con otro nombre o quita los filtros.</p>
+  {% endif %}
+{% endblock %}
