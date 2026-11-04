@@ -14,6 +14,12 @@
 {% block panel_titulo %}Mascotas de la clínica{% endblock %}
 {% block panel_subtitulo %}{{ resumen.total }} ficha{{ resumen.total|pluralize }} registrada{{ resumen.total|pluralize }} por sus dueños{% if resumen.nuevas %}, {{ resumen.nuevas }} en los últimos 30 días{% endif %}. Busca por la mascota o por el nombre, la cédula o el teléfono del dueño.{% endblock %}
 
+{% block panel_acciones %}
+  {% if user.es_superadmin %}
+    <a class="boton-panel" href="{% url 'mascotas:gestion_crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva mascota</a>
+  {% endif %}
+{% endblock %}
+
 {% block panel_contenido %}
   <section class="estadisticas entra entra--1" aria-label="Mascotas por especie">
     <div class="tira-cifras">

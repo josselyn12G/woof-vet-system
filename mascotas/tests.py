@@ -495,3 +495,73 @@ class GestionMascotasTests(TestCase):
         self.firulais.foto = b'imagen'
         self.firulais.save()
         self.assertEqual(self.client.get(reverse('mascotas:foto', args=[self.firulais.pk])).status_code, 200)
+
+
+class GestionMascotasSuperadminTests(TestCase):
+    """El superadministrador crea, corrige (también el dueño) y elimina cualquier ficha; el administrador no."""
+
+    def setUp(self):
+        self.superadmin = crear_usuario('sara', rol='superadmin')
+        self.ana = crear_usuario('ana', first_name='Ana')
+        self.luis = crear_usuario('luis', first_name='Luis')
+        self.firulais = crear_mascota(self.ana, nombre='Firulais', sexo='M', fecha_nacimiento=date(2022, 1, 10),
+                                      peso_kg=Decimal('12.5'))
+        self.client.force_login(self.superadmin)
+
+    def datos(self, **cambios):
+        valores = {'dueno': self.luis.pk, 'nombre': 'Max', 'especie': 'perro', 'raza': 'Mestizo', 'sexo': 'M',
+                   'fecha_nacimiento': '2021-05-01', 'peso_kg': '8.5'}
+        valores.update(cambios)
+        return valores
+
+    def test_el_administrador_y_los_demas_reciben_403(self):
+        for usuario in (crear_usuario('laura', rol='administrador'), crear_usuario('sofia', rol='veterinario'),
+                        self.ana):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('mascotas:gestion_crear')).status_code, 403)
+                self.assertEqual(self.client.get(reverse('mascotas:gestion_editar', args=[self.firulais.pk])).status_code, 403)
+                self.assertEqual(self.client.post(reverse('mascotas:gestion_eliminar', args=[self.firulais.pk])).status_code, 403)
+        self.assertTrue(Mascota.objects.filter(pk=self.firulais.pk).exists())
+
+    def test_registra_una_mascota_para_un_cliente(self):
+        respuesta = self.client.post(reverse('mascotas:gestion_crear'), self.datos())
+        max_ = Mascota.objects.get(nombre='Max')
+        self.assertRedirects(respuesta, reverse('mascotas:gestion_detalle', args=[max_.pk]))
+        self.assertEqual(max_.dueno, self.luis)
+
+    def test_el_dueno_es_obligatorio_y_solo_un_cliente(self):
+        veterinaria = crear_usuario('sofia', rol='veterinario')
+        for dueno in ('', veterinaria.pk):
+            with self.subTest(dueno=dueno):
+                respuesta = self.client.post(reverse('mascotas:gestion_crear'), self.datos(dueno=dueno))
+                self.assertIn('dueno', respuesta.context['form'].errors)
+        self.assertFalse(Mascota.objects.filter(nombre='Max').exists())
+
+    def test_no_repite_el_nombre_entre_las_mascotas_del_mismo_dueno(self):
+        respuesta = self.client.post(reverse('mascotas:gestion_crear'), self.datos(dueno=self.ana.pk, nombre='firulais'))
+        self.assertIn('nombre', respuesta.context['form'].errors)
+        # con otro dueño, el mismo nombre sí se puede
+        self.client.post(reverse('mascotas:gestion_crear'), self.datos(nombre='Firulais'))
+        self.assertEqual(Mascota.objects.filter(nombre='Firulais').count(), 2)
+
+    def test_corrige_los_datos_y_el_dueno(self):
+        url = reverse('mascotas:gestion_editar', args=[self.firulais.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        respuesta = self.client.post(url, self.datos(nombre='Firulais', peso_kg='13'))
+        self.assertRedirects(respuesta, reverse('mascotas:gestion_detalle', args=[self.firulais.pk]))
+        self.firulais.refresh_from_db()
+        self.assertEqual((self.firulais.dueno, self.firulais.peso_kg), (self.luis, Decimal('13')))
+
+    def test_eliminar_pide_confirmacion_y_borra_con_post(self):
+        url = reverse('mascotas:gestion_eliminar', args=[self.firulais.pk])
+        self.assertContains(self.client.get(url), '¿Eliminar a Firulais?')
+        self.assertTrue(Mascota.objects.filter(pk=self.firulais.pk).exists())
+        self.assertRedirects(self.client.post(url), reverse('mascotas:gestion'))
+        self.assertFalse(Mascota.objects.filter(pk=self.firulais.pk).exists())
+
+    def test_los_botones_solo_los_ve_el_superadministrador(self):
+        editar = reverse('mascotas:gestion_editar', args=[self.firulais.pk])
+        self.assertContains(self.client.get(reverse('mascotas:gestion_detalle', args=[self.firulais.pk])), editar)
+        self.client.force_login(crear_usuario('laura', rol='administrador'))
+        self.assertNotContains(self.client.get(reverse('mascotas:gestion_detalle', args=[self.firulais.pk])), editar)

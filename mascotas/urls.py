@@ -15,4 +15,8 @@ urlpatterns = [
     # Gestión de la clínica: administrador y superadministrador (403 para los demás)
     path('gestion/', views.MascotaGestionListView.as_view(), name='gestion'),
     path('gestion/<int:pk>/', views.MascotaGestionDetailView.as_view(), name='gestion_detalle'),
+    # Crear, editar y eliminar cualquier ficha: solo el superadministrador (403 para los demás)
+    path('gestion/nueva/', views.MascotaGestionCreateView.as_view(), name='gestion_crear'),
+    path('gestion/<int:pk>/editar/', views.MascotaGestionUpdateView.as_view(), name='gestion_editar'),
+    path('gestion/<int:pk>/eliminar/', views.MascotaGestionDeleteView.as_view(), name='gestion_eliminar'),
 ]

@@ -3,8 +3,12 @@ from datetime import date
 from decimal import Decimal
 
 from django import forms
+from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
+from django.db.models import Q
 from django.utils import timezone
+
+from cuentas.models import Roles
 
 from .models import Mascota
 from .services import preparar_foto
@@ -135,3 +139,44 @@ class MascotaForm(forms.ModelForm):
         for nombre in self.errors:
             if nombre in self.fields:
                 self.fields[nombre].widget.attrs['class'] += ' is-invalid'
+
+
+class DuenoOpcion(forms.ModelChoiceField):
+    """En el desplegable se ve el nombre del dueño y su cédula, no su id."""
+
+    def label_from_instance(self, dueno):
+        return f'{dueno.get_full_name() or dueno.username} · {dueno.cedula}'
+
+
+class MascotaGestionForm(MascotaForm):
+    """La ficha de una mascota para el superadministrador: los mismos datos que llena el cliente y, además,
+    el dueño (solo cuentas de cliente; al editar también se acepta el dueño que ya tiene)."""
+    dueno = DuenoOpcion(
+        label='Dueño',
+        queryset=get_user_model().objects.none(),
+        empty_label='Elige al dueño',
+        error_messages={'required': 'Elige al dueño de la mascota.',
+                        'invalid_choice': 'Elige un cliente de la lista.'},
+    )
+
+    class Meta(MascotaForm.Meta):
+        fields = ['dueno'] + MascotaForm.Meta.fields
+
+    def __init__(self, *args, **kwargs):
+        # Sin dueño fijo: el repetido se revisa en clean() con el dueño elegido
+        super().__init__(*args, dueno=None, **kwargs)
+        clientes = Q(rol=Roles.CLIENTE)
+        if self.instance.dueno_id:
+            clientes |= Q(pk=self.instance.dueno_id)
+        self.fields['dueno'].queryset = (
+            get_user_model().objects.filter(clientes).order_by('first_name', 'last_name', 'username')
+        )
+
+    def clean(self):
+        datos = super().clean()
+        dueno, nombre = datos.get('dueno'), datos.get('nombre')
+        if dueno and nombre:
+            repetidas = Mascota.objects.filter(dueno=dueno, nombre__iexact=nombre).exclude(pk=self.instance.pk)
+            if repetidas.exists():
+                self.add_error('nombre', f'{dueno} ya tiene una mascota llamada {nombre}.')
+        return datos
