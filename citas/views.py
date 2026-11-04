@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
@@ -8,10 +9,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.formats import date_format
+from django.utils.functional import cached_property
 from django.views import View
 from django.views.generic import CreateView, DeleteView, FormView, ListView, TemplateView, UpdateView
 
-from cuentas.mixins import AdministradorRequeridoMixin, ClienteRequeridoMixin, VeterinarioRequeridoMixin
+from cuentas.mixins import (
+    AdministradorRequeridoMixin, ClienteRequeridoMixin, SuperadminRequeridoMixin, VeterinarioRequeridoMixin,
+)
+from cuentas.models import Roles
 from mascotas.services import MascotaService
 
 from .forms import AgendarCitaForm, FiltroCitasForm, HorarioForm, MisServiciosForm, ServicioForm
@@ -92,18 +97,62 @@ class ServicioDeleteView(AdministradorRequeridoMixin, DeleteView):
 
 
 # ---------- Mi horario (veterinario): HU-26, RF-07 a RF-10 ----------
-
-def url_semana(fecha):
-    return f"{reverse('citas:horario')}?semana={lunes_de(fecha).isoformat()}"
-
+# Las mismas vistas sirven al superadministrador para editar el horario de cualquier veterinario
+# (desde Horarios): solo cambian de quién es el horario, a qué URLs van los formularios y los textos.
 
 class HorarioDelVeterinarioMixin(VeterinarioRequeridoMixin):
     """Solo el veterinario entra (403 para los demás) y solo ve sus bloques: el de otro veterinario
     no está en la consulta, así que get_object() responde 404."""
     model = HorarioVeterinario
+    # Nombre de cada URL del horario (las de la gestión llevan además el id del veterinario)
+    rutas = {'semana': 'citas:horario', 'editar': 'citas:horario_editar', 'eliminar': 'citas:horario_eliminar',
+             'copiar': 'citas:horario_copiar', 'servicios': 'citas:mis_servicios'}
+    el_horario = 'tu horario'   # para los mensajes: "se cruzaban con tu horario"
+
+    @property
+    def veterinario(self):
+        return self.request.user
+
+    def url(self, nombre, *args):
+        return reverse(self.rutas[nombre], args=args)
+
+    def url_semana(self, fecha):
+        return f"{self.url('semana')}?semana={lunes_de(fecha).isoformat()}"
+
+    def texto_servicios(self, cantidad):
+        return f'Ahora atiendes {plural(cantidad, "servicio")}.'
 
     def get_queryset(self):
-        return HorarioService.del_veterinario(self.request.user)
+        return HorarioService.del_veterinario(self.veterinario)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['vet_gestionado'] = None   # la plantilla dice "Mi horario"
+        return contexto
+
+
+class HorarioGestionadoMixin(SuperadminRequeridoMixin):
+    """El superadministrador edita el horario del veterinario de la URL (403 para los demás roles;
+    404 si el id no es de un veterinario). Un bloque de otro veterinario tampoco está en la consulta."""
+    rutas = {'semana': 'citas:gestion_horario', 'editar': 'citas:gestion_horario_editar',
+             'eliminar': 'citas:gestion_horario_eliminar', 'copiar': 'citas:gestion_horario_copiar',
+             'servicios': 'citas:gestion_horario_servicios'}
+    el_horario = 'su horario'
+
+    @cached_property
+    def veterinario(self):
+        return get_object_or_404(get_user_model(), pk=self.kwargs['vet'], rol=Roles.VETERINARIO)
+
+    def url(self, nombre, *args):
+        return reverse(self.rutas[nombre], args=[self.veterinario.pk, *args])
+
+    def texto_servicios(self, cantidad):
+        return f'{self.veterinario} ahora atiende {plural(cantidad, "servicio")}.'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['vet_gestionado'] = self.veterinario
+        return contexto
 
 
 class MiHorarioView(HorarioDelVeterinarioMixin, SuccessMessageMixin, CreateView):
@@ -114,8 +163,9 @@ class MiHorarioView(HorarioDelVeterinarioMixin, SuccessMessageMixin, CreateView)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        # El veterinario siempre es quien inició sesión; va antes de validar para revisar los cruces
-        kwargs['instance'] = HorarioVeterinario(veterinario=self.request.user)
+        # El veterinario no va en el formulario (es el de la sesión o el de la URL); va antes de validar
+        # para revisar los cruces
+        kwargs['instance'] = HorarioVeterinario(veterinario=self.veterinario)
         return kwargs
 
     def get_initial(self):
@@ -126,9 +176,14 @@ class MiHorarioView(HorarioDelVeterinarioMixin, SuccessMessageMixin, CreateView)
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         lunes = semana_pedida(self.request.GET.get('semana'))
-        contexto.update(HorarioService.semana_del_veterinario(self.request.user, lunes))
+        contexto.update(HorarioService.semana_del_veterinario(self.veterinario, lunes))
+        for dia in contexto['dias']:
+            for bloque in dia['bloques']:
+                bloque.url_editar = self.url('editar', bloque.pk)
+                bloque.url_eliminar = self.url('eliminar', bloque.pk)
+        contexto['rutas'] = {nombre: self.url(nombre) for nombre in ('semana', 'copiar', 'servicios')}
         contexto['servicios_form'] = MisServiciosForm(
-            initial={'servicios': self.request.user.servicios.filter(activo=True)},
+            initial={'servicios': self.veterinario.servicios.filter(activo=True)},
         )
         return contexto
 
@@ -140,7 +195,7 @@ class MiHorarioView(HorarioDelVeterinarioMixin, SuccessMessageMixin, CreateView)
         }
 
     def get_success_url(self):
-        return url_semana(self.object.fecha)
+        return self.url_semana(self.object.fecha)
 
 
 class HorarioEditarView(HorarioDelVeterinarioMixin, SuccessMessageMixin, UpdateView):
@@ -149,8 +204,14 @@ class HorarioEditarView(HorarioDelVeterinarioMixin, SuccessMessageMixin, UpdateV
     context_object_name = 'bloque'
     success_message = 'Se guardaron los cambios del bloque.'
 
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # Con errores, self.object trae la fecha que se escribió: "Cancelar" vuelve a la semana guardada
+        contexto['volver'] = self.url_semana(HorarioVeterinario.objects.get(pk=self.object.pk).fecha)
+        return contexto
+
     def get_success_url(self):
-        return url_semana(self.object.fecha)
+        return self.url_semana(self.object.fecha)
 
 
 class HorarioEliminarView(HorarioDelVeterinarioMixin, DeleteView):
@@ -161,46 +222,68 @@ class HorarioEliminarView(HorarioDelVeterinarioMixin, DeleteView):
     def form_valid(self, form):
         fecha = self.object.fecha
         self.object.delete()
-        messages.success(self.request, 'Se quitó el bloque de tu horario.')
-        return redirect(url_semana(fecha))
+        messages.success(self.request, f'Se quitó el bloque de {self.el_horario}.')
+        return redirect(self.url_semana(fecha))
 
 
-class CopiarSemanaView(VeterinarioRequeridoMixin, View):
+class CopiarSemanaView(HorarioDelVeterinarioMixin, View):
     """Copia los bloques de la semana anterior en la semana elegida (HU-26). Se saltan los días que ya
     pasaron y los bloques que se cruzarían con otros que ya están cargados."""
     http_method_names = ['post']
 
-    def post(self, request):
+    def post(self, request, **kwargs):
         lunes = semana_pedida(request.POST.get('semana'))
         try:
-            copiados, omitidos = HorarioService.copiar_semana(request.user, lunes)
+            copiados, omitidos = HorarioService.copiar_semana(self.veterinario, lunes)
         except ValidationError as error:
             messages.error(request, error.messages[0])
-            return redirect(url_semana(lunes))
+            return redirect(self.url_semana(lunes))
 
         if copiados:
             texto = f'Se copiaron {plural(copiados, "bloque")} de la semana anterior.'
             if omitidos:
-                texto += f' {omitidos} no se copiaron porque el día ya pasó o se cruzaban con tu horario.'
+                texto += f' {omitidos} no se copiaron porque el día ya pasó o se cruzaban con {self.el_horario}.'
             messages.success(request, texto)
         else:
-            messages.error(request, 'No se copió ningún bloque: los días ya pasaron o se cruzaban con tu horario.')
-        return redirect(url_semana(lunes))
+            messages.error(request,
+                           f'No se copió ningún bloque: los días ya pasaron o se cruzaban con {self.el_horario}.')
+        return redirect(self.url_semana(lunes))
 
 
-class MisServiciosView(VeterinarioRequeridoMixin, View):
+class MisServiciosView(HorarioDelVeterinarioMixin, View):
     """Guarda los servicios que atiende el veterinario: solo aparece al agendar los que marque."""
     http_method_names = ['post']
 
-    def post(self, request):
+    def post(self, request, **kwargs):
         formulario = MisServiciosForm(request.POST)
-        destino = url_semana(semana_pedida(request.POST.get('semana')))
+        destino = self.url_semana(semana_pedida(request.POST.get('semana')))
         if not formulario.is_valid():
             messages.error(request, 'Elige servicios de la lista.')
             return redirect(destino)
-        cantidad = HorarioService.guardar_servicios(request.user, formulario.cleaned_data['servicios'])
-        messages.success(request, f'Ahora atiendes {plural(cantidad, "servicio")}.')
+        cantidad = HorarioService.guardar_servicios(self.veterinario, formulario.cleaned_data['servicios'])
+        messages.success(request, self.texto_servicios(cantidad))
         return redirect(destino)
+
+
+# El superadministrador, en el horario de un veterinario (Horarios > el veterinario)
+class GestionHorarioView(HorarioGestionadoMixin, MiHorarioView):
+    pass
+
+
+class GestionHorarioEditarView(HorarioGestionadoMixin, HorarioEditarView):
+    pass
+
+
+class GestionHorarioEliminarView(HorarioGestionadoMixin, HorarioEliminarView):
+    pass
+
+
+class GestionCopiarSemanaView(HorarioGestionadoMixin, CopiarSemanaView):
+    pass
+
+
+class GestionServiciosVeterinarioView(HorarioGestionadoMixin, MisServiciosView):
+    pass
 
 
 # ---------------------------------------------------------------------------

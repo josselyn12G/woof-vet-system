@@ -31,4 +31,14 @@ urlpatterns = [
     path('gestion/', views.GestionCitasView.as_view(), name='gestion_citas'),
     path('gestion/<int:pk>/cancelar/', views.GestionCancelarCitaView.as_view(), name='gestion_cancelar'),
     path('gestion/horarios/', views.GestionHorariosView.as_view(), name='gestion_horarios'),
+    # El horario y los servicios de un veterinario: solo el superadministrador (403 para los demás)
+    path('gestion/horarios/<int:vet>/', views.GestionHorarioView.as_view(), name='gestion_horario'),
+    path('gestion/horarios/<int:vet>/bloques/<int:pk>/editar/', views.GestionHorarioEditarView.as_view(),
+         name='gestion_horario_editar'),
+    path('gestion/horarios/<int:vet>/bloques/<int:pk>/eliminar/', views.GestionHorarioEliminarView.as_view(),
+         name='gestion_horario_eliminar'),
+    path('gestion/horarios/<int:vet>/copiar-semana/', views.GestionCopiarSemanaView.as_view(),
+         name='gestion_horario_copiar'),
+    path('gestion/horarios/<int:vet>/servicios/', views.GestionServiciosVeterinarioView.as_view(),
+         name='gestion_horario_servicios'),
 ]

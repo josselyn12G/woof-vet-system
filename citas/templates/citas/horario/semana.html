@@ -1,18 +1,28 @@
 {% extends 'panel_base.html' %}
 {% load static l10n %}
 
-{% block titulo %}Mi horario · Woof{% endblock %}
+{% comment %}
+  Mi horario del veterinario. El superadministrador usa la misma pantalla para editar el horario de un
+  veterinario (vet_gestionado): las URLs de los formularios llegan en rutas y en cada bloque.
+{% endcomment %}
+
+{% block titulo %}{% if vet_gestionado %}Horario de {{ vet_gestionado.get_full_name|default:vet_gestionado.username }}{% else %}Mi horario{% endif %} · Woof{% endblock %}
 
 {% block panel_estilos %}
   <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
 {% endblock %}
 
-{% block panel_titulo %}Mi horario{% endblock %}
-{% block panel_subtitulo %}Carga los días y las horas en que atiendes. Los clientes solo pueden agendar dentro de estos bloques.{% endblock %}
+{% block panel_icono %}bi-clock-history{% endblock %}
+{% block panel_seccion %}Horarios{% endblock %}
+{% block panel_titulo %}{% if vet_gestionado %}Horario de {{ vet_gestionado.get_full_name|default:vet_gestionado.username }}{% else %}Mi horario{% endif %}{% endblock %}
+{% block panel_subtitulo %}{% if vet_gestionado %}Edita los días y las horas en que atiende y los servicios que ofrece. Los clientes solo pueden agendar dentro de estos bloques.{% else %}Carga los días y las horas en que atiendes. Los clientes solo pueden agendar dentro de estos bloques.{% endif %}{% endblock %}
 {% block panel_acciones %}
+  {% if vet_gestionado %}
+    <a class="boton-panel boton-panel--secundario" href="{% url 'citas:gestion_horarios' %}?semana={{ lunes|date:'Y-m-d' }}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Todos los horarios</a>
+  {% endif %}
   {% if se_puede_copiar %}
     {# Copiar la semana anterior para no cargarlo todo de nuevo (HU-26) #}
-    <form method="post" action="{% url 'citas:horario_copiar' %}">
+    <form method="post" action="{{ rutas.copiar }}">
       {% csrf_token %}
       <input type="hidden" name="semana" value="{{ lunes|date:'Y-m-d' }}">
       <button type="submit" class="boton-panel boton-panel--secundario"><i class="bi bi-copy" aria-hidden="true"></i>Copiar la semana anterior</button>
@@ -28,7 +38,7 @@
         <a class="boton-fila" href="?semana={{ semana_anterior|date:'Y-m-d' }}" title="Semana anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i><span class="visually-hidden">Semana anterior</span></a>
         <div class="semana__rango">
           <h2 class="bloque-panel__titulo" id="semana-titulo">{{ lunes|date:'j M' }} – {{ domingo|date:'j M Y' }}</h2>
-          <p class="bloque-panel__meta">{{ total_semana }} de atención · {{ dias_con_horario }} día{{ dias_con_horario|pluralize }} · {{ citas_semana }} cita{{ citas_semana|pluralize }} agendada{{ citas_semana|pluralize }}{% if not es_semana_actual %} · <a class="bloque-panel__enlace" href="{% url 'citas:horario' %}">Ir a esta semana</a>{% endif %}</p>
+          <p class="bloque-panel__meta">{{ total_semana }} de atención · {{ dias_con_horario }} día{{ dias_con_horario|pluralize }} · {{ citas_semana }} cita{{ citas_semana|pluralize }} agendada{{ citas_semana|pluralize }}{% if not es_semana_actual %} · <a class="bloque-panel__enlace" href="{{ rutas.semana }}">Ir a esta semana</a>{% endif %}</p>
         </div>
         <a class="boton-fila" href="?semana={{ semana_siguiente|date:'Y-m-d' }}" title="Semana siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i><span class="visually-hidden">Semana siguiente</span></a>
       </header>
@@ -63,9 +73,9 @@
                   <span class="cal-bloque__meta">{{ bloque.duracion }}{% if bloque.citas %} · {{ bloque.citas }} cita{{ bloque.citas|pluralize }}{% endif %}</span>
                   {% if not dia.ya_paso %}
                     <span class="cal-bloque__acciones">
-                      <a class="boton-fila boton-fila--chico" href="{% url 'citas:horario_editar' bloque.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></a>
+                      <a class="boton-fila boton-fila--chico" href="{{ bloque.url_editar }}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></a>
                       {# Quitar: POST con confirmación del navegador #}
-                      <form method="post" action="{% url 'citas:horario_eliminar' bloque.pk %}" onsubmit="return confirm('¿Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}?{% if bloque.citas %} Tiene {{ bloque.citas }} cita{{ bloque.citas|pluralize }} agendada{{ bloque.citas|pluralize }}.{% endif %}');">
+                      <form method="post" action="{{ bloque.url_eliminar }}" onsubmit="return confirm('¿Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }} a {{ bloque.hora_fin|time:'H:i' }}?{% if bloque.citas %} Tiene {{ bloque.citas }} cita{{ bloque.citas|pluralize }} agendada{{ bloque.citas|pluralize }}.{% endif %}');">
                         {% csrf_token %}
                         <button type="submit" class="boton-fila boton-fila--chico boton-fila--peligro" title="Quitar"><i class="bi bi-x-lg" aria-hidden="true"></i><span class="visually-hidden">Quitar el bloque de {{ bloque.hora_inicio|time:'H:i' }}</span></button>
                       </form>
@@ -73,7 +83,7 @@
                   {% endif %}
                 </div>
               {% empty %}
-                <span class="cal-columna__vacio">{% if dia.ya_paso %}—{% else %}No atiendes{% endif %}</span>
+                <span class="cal-columna__vacio">{% if dia.ya_paso %}—{% elif vet_gestionado %}No atiende{% else %}No atiendes{% endif %}</span>
               {% endfor %}
             </div>
           {% endfor %}
@@ -83,10 +93,10 @@
     </section>
 
     <div class="horario__lado">
-      {# ---------- Nuevo bloque: el veterinario es quien inició sesión, no va en el formulario ---------- #}
+      {# ---------- Nuevo bloque: el veterinario (el de la sesión o el de la URL) no va en el formulario ---------- #}
       <section class="bloque-panel" id="nuevo-bloque" aria-labelledby="nuevo-titulo">
         <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio" id="nuevo-titulo">Nuevo bloque</h2>
-        <form class="formulario-panel" method="post" action="{% url 'citas:horario' %}?semana={{ lunes|date:'Y-m-d' }}" novalidate data-formulario-bloque>
+        <form class="formulario-panel" method="post" action="{{ rutas.semana }}?semana={{ lunes|date:'Y-m-d' }}" novalidate data-formulario-bloque>
           {% include 'citas/horario/_campos.html' %}
           <div class="formulario-panel__acciones">
             <button type="submit" class="boton-panel"><i class="bi bi-plus-lg" aria-hidden="true"></i>Agregar bloque</button>
@@ -96,9 +106,9 @@
 
       {# ---------- Servicios que atiende: casillas con los servicios activos ---------- #}
       <section class="bloque-panel" id="mis-servicios" aria-labelledby="servicios-titulo">
-        <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio" id="servicios-titulo">Servicios que atiendo</h2>
+        <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio" id="servicios-titulo">{% if vet_gestionado %}Servicios que atiende{% else %}Servicios que atiendo{% endif %}</h2>
         {% if servicios_form.fields.servicios.queryset.exists %}
-          <form class="formulario-panel" method="post" action="{% url 'citas:mis_servicios' %}">
+          <form class="formulario-panel" method="post" action="{{ rutas.servicios }}">
             {% csrf_token %}
             <input type="hidden" name="semana" value="{{ lunes|date:'Y-m-d' }}">
             <fieldset class="formulario-panel__campo">
@@ -111,14 +121,14 @@
                   </label>
                 {% endfor %}
               </div>
-              <p class="formulario-panel__ayuda">Solo apareces como opción al agendar los servicios que marques.</p>
+              <p class="formulario-panel__ayuda">{% if vet_gestionado %}Solo aparece como opción al agendar los servicios marcados.{% else %}Solo apareces como opción al agendar los servicios que marques.{% endif %}</p>
             </fieldset>
             <div class="formulario-panel__acciones">
               <button type="submit" class="boton-panel boton-panel--secundario">Guardar servicios</button>
             </div>
           </form>
         {% else %}
-          <p class="bloque-panel__vacio">La clínica todavía no tiene servicios activos. Cuando el administrador los cree, podrás elegirlos aquí.</p>
+          <p class="bloque-panel__vacio">La clínica todavía no tiene servicios activos. {% if vet_gestionado %}<a class="bloque-panel__enlace" href="{% url 'citas:servicio_crear' %}">Crea el primero</a>.{% else %}Cuando el administrador los cree, podrás elegirlos aquí.{% endif %}</p>
         {% endif %}
       </section>
     </div>
