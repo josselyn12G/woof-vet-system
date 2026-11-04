@@ -75,6 +75,11 @@ class UsuarioService:
     """Consultas y cambios de cuentas para el panel del administrador y del superadministrador."""
 
     @staticmethod
+    def todas():
+        """Todas las cuentas: las vistas buscan aquí la de la URL (404 si no está)."""
+        return get_user_model().objects.all()
+
+    @staticmethod
     def buscar(texto='', rol=''):
         usuarios = get_user_model().objects.order_by('-date_joined')
         if texto:

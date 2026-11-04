@@ -3,17 +3,14 @@ from datetime import date
 from decimal import Decimal
 
 from django import forms
-from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
 
 from cuentas.forms import con_estilo_del_panel
-from cuentas.models import Roles
 
 from .models import Especie, Mascota, Raza
-from .services import preparar_foto
+from .services import CatalogoService, MascotaService, preparar_foto
 
 TAMANO_MAXIMO_FOTO_MB = 5
 FORMATOS_FOTO = ['jpg', 'jpeg', 'png', 'webp']  # los que muestran todos los navegadores
@@ -95,12 +92,9 @@ class MascotaForm(forms.ModelForm):
         Que la raza sea de la especie elegida lo valida Mascota.clean().
         """
         especie, raza = self.fields['especie'], self.fields['raza']
-        especie.queryset = Especie.objects.filter(Q(activa=True) | Q(pk=self.instance.especie_id))
+        especie.queryset = CatalogoService.especies_para_elegir(self.instance.especie_id)
         especie.empty_label = 'Elige una opción'
-        raza.queryset = (
-            Raza.objects.filter(Q(activa=True, especie__in=especie.queryset) | Q(pk=self.instance.raza_id))
-            .select_related('especie').mestizo_primero()
-        )
+        raza.queryset = CatalogoService.razas_para_elegir(especie.queryset, self.instance.raza_id)
         grupos = {}
         for opcion in raza.queryset:
             grupos.setdefault(opcion.especie.nombre, []).append((opcion.pk, opcion.nombre))
@@ -113,10 +107,8 @@ class MascotaForm(forms.ModelForm):
             raise forms.ValidationError('El nombre debe tener al menos 2 letras.')
         if not SOLO_LETRAS.match(nombre):
             raise forms.ValidationError('El nombre solo puede tener letras y espacios.')
-        if self.dueno is not None:
-            repetidas = Mascota.objects.filter(dueno=self.dueno, nombre__iexact=nombre).exclude(pk=self.instance.pk)
-            if repetidas.exists():
-                raise forms.ValidationError(f'Ya tienes una mascota llamada {nombre}.')
+        if self.dueno is not None and MascotaService.nombre_repetido(self.dueno, nombre, self.instance.pk):
+            raise forms.ValidationError(f'Ya tienes una mascota llamada {nombre}.')
         return nombre
 
     def clean_fecha_nacimiento(self):
@@ -169,7 +161,7 @@ class MascotaGestionForm(MascotaForm):
     el dueño (solo cuentas de cliente; al editar también se acepta el dueño que ya tiene)."""
     dueno = DuenoOpcion(
         label='Dueño',
-        queryset=get_user_model().objects.none(),
+        queryset=MascotaService.duenos_posibles().none(),
         empty_label='Elige al dueño',
         error_messages={'required': 'Elige al dueño de la mascota.',
                         'invalid_choice': 'Elige un cliente de la lista.'},
@@ -181,20 +173,13 @@ class MascotaGestionForm(MascotaForm):
     def __init__(self, *args, **kwargs):
         # Sin dueño fijo: el repetido se revisa en clean() con el dueño elegido
         super().__init__(*args, dueno=None, **kwargs)
-        clientes = Q(rol=Roles.CLIENTE)
-        if self.instance.dueno_id:
-            clientes |= Q(pk=self.instance.dueno_id)
-        self.fields['dueno'].queryset = (
-            get_user_model().objects.filter(clientes).order_by('first_name', 'last_name', 'username')
-        )
+        self.fields['dueno'].queryset = MascotaService.duenos_posibles(self.instance.dueno_id)
 
     def clean(self):
         datos = super().clean()
         dueno, nombre = datos.get('dueno'), datos.get('nombre')
-        if dueno and nombre:
-            repetidas = Mascota.objects.filter(dueno=dueno, nombre__iexact=nombre).exclude(pk=self.instance.pk)
-            if repetidas.exists():
-                self.add_error('nombre', f'{dueno} ya tiene una mascota llamada {nombre}.')
+        if dueno and nombre and MascotaService.nombre_repetido(dueno, nombre, self.instance.pk):
+            self.add_error('nombre', f'{dueno} ya tiene una mascota llamada {nombre}.')
         return datos
 
 
@@ -228,13 +213,13 @@ class EspecieForm(forms.ModelForm):
 
     def clean_nombre(self):
         nombre = sin_espacios_de_mas(self.cleaned_data['nombre'])
-        if Especie.objects.filter(nombre__iexact=nombre).exclude(pk=self.instance.pk).exists():
+        if CatalogoService.especie_repetida(nombre, self.instance.pk):
             raise forms.ValidationError('Ya existe una especie con ese nombre.')
         if not self.instance.pk:
             codigo = slugify(nombre)
             if not codigo:
                 raise forms.ValidationError('El nombre debe tener letras.')
-            if Especie.objects.filter(codigo=codigo).exists():
+            if CatalogoService.codigo_usado(codigo):
                 raise forms.ValidationError('Ya existe una especie con un nombre casi igual.')
             self.instance.codigo = codigo
         return nombre
@@ -250,7 +235,7 @@ class EspecieOpcion(forms.ModelChoiceField):
 
 class RazaForm(forms.ModelForm):
     """Una raza del catálogo. No se repite el nombre dentro de la misma especie."""
-    especie = EspecieOpcion(label='Especie', queryset=Especie.objects.all(), empty_label='Elige la especie')
+    especie = EspecieOpcion(label='Especie', queryset=CatalogoService.especies(), empty_label='Elige la especie')
 
     class Meta:
         model = Raza
@@ -269,8 +254,6 @@ class RazaForm(forms.ModelForm):
     def clean(self):
         datos = super().clean()
         especie, nombre = datos.get('especie'), datos.get('nombre')
-        if especie and nombre:
-            repetida = Raza.objects.filter(especie=especie, nombre__iexact=nombre).exclude(pk=self.instance.pk)
-            if repetida.exists():
-                self.add_error('nombre', f'{especie} ya tiene la raza {nombre}.')
+        if especie and nombre and CatalogoService.raza_repetida(especie, nombre, self.instance.pk):
+            self.add_error('nombre', f'{especie} ya tiene la raza {nombre}.')
         return datos

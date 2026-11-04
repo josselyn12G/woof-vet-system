@@ -170,7 +170,7 @@ class MascotaGestionadaMixin(SuperadminRequeridoMixin):
     model = Mascota
 
     def get_queryset(self):
-        return Mascota.objects.select_related('dueno').con_foto()
+        return MascotaService.fichas()
 
 
 class FormularioGestionMixin(MascotaGestionadaMixin, SuccessMessageMixin):
@@ -212,7 +212,7 @@ class MascotaGestionDeleteView(MascotaGestionadaMixin, DeleteView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto['total_citas'] = self.object.citas.count()
+        contexto['total_citas'] = MascotaService.total_citas(self.object)
         return contexto
 
     def form_valid(self, form):
@@ -267,10 +267,10 @@ class RazaUpdateView(CatalogoFormularioMixin, UpdateView):
 class CatalogoEliminarView(SuperadminRequeridoMixin, View):
     """Borra una especie o una raza (POST). Si alguna mascota la usa no se borra: se ofrece desactivarla."""
     http_method_names = ['post']
-    modelo = None
+    consulta = None   # la función del servicio que da las especies o las razas
 
     def post(self, request, pk):
-        elemento = get_object_or_404(self.modelo, pk=pk)
+        elemento = get_object_or_404(self.consulta(), pk=pk)
         if CatalogoService.eliminar(elemento):
             messages.success(request, f'Se eliminó {elemento}.')
         else:
@@ -279,8 +279,8 @@ class CatalogoEliminarView(SuperadminRequeridoMixin, View):
 
 
 class EspecieEliminarView(CatalogoEliminarView):
-    modelo = Especie
+    consulta = staticmethod(CatalogoService.especies)
 
 
 class RazaEliminarView(CatalogoEliminarView):
-    modelo = Raza
+    consulta = staticmethod(CatalogoService.razas)

@@ -1,15 +1,12 @@
 from datetime import datetime
 
 from django import forms
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from cuentas.models import Roles
-from mascotas.models import Mascota
 from mascotas.services import MascotaService
 
 from .models import EstadoCita, HorarioVeterinario, Servicio
-from .services import ServicioService
+from .services import CitaService, ServicioService
 
 
 class VeterinarioCasillas(forms.ModelMultipleChoiceField):
@@ -23,7 +20,7 @@ class ServicioForm(forms.ModelForm):
     # Solo veterinarios con la cuenta activa: un cliente o una cuenta desactivada no aparecen ni se aceptan
     veterinarios = VeterinarioCasillas(
         label='Veterinarios que lo atienden',
-        queryset=get_user_model().objects.filter(rol=Roles.VETERINARIO, is_active=True).order_by('first_name', 'last_name'),
+        queryset=CitaService.veterinarios(activos=True),
         widget=forms.CheckboxSelectMultiple,
         required=False,
     )
@@ -43,8 +40,7 @@ class ServicioForm(forms.ModelForm):
     def clean_nombre(self):
         # "Vacunación" y "vacunación" son el mismo servicio aunque la base los vea distintos
         nombre = ' '.join(self.cleaned_data['nombre'].split())
-        repetido = Servicio.objects.filter(nombre__iexact=nombre).exclude(pk=self.instance.pk)
-        if repetido.exists():
+        if ServicioService.nombre_repetido(nombre, excluir_pk=self.instance.pk):
             raise forms.ValidationError('Ya existe un servicio con ese nombre.')
         return nombre
 
@@ -87,7 +83,7 @@ class MisServiciosForm(forms.Form):
     """Los servicios que atiende el veterinario: casillas con los servicios activos del catálogo."""
     servicios = forms.ModelMultipleChoiceField(
         label='Servicios que atiendo',
-        queryset=Servicio.objects.filter(activo=True),
+        queryset=ServicioService.activos(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
     )
@@ -107,7 +103,7 @@ class AgendarCitaForm(forms.Form):
     Valida la entrada (mascota propia, fecha futura, veterinario del servicio);
     que el turno siga libre lo decide AgendaService al guardar.
     """
-    mascota = forms.ModelChoiceField(label='Mascota', queryset=Mascota.objects.none(), empty_label='Elige a tu mascota')
+    mascota = forms.ModelChoiceField(label='Mascota', queryset=MascotaService.fichas().none(), empty_label='Elige a tu mascota')
     # Solo servicios activos que alguien atiende: los demás no se pueden agendar
     servicio = forms.ModelChoiceField(
         label='Servicio',
@@ -116,7 +112,7 @@ class AgendarCitaForm(forms.Form):
     )
     veterinario = VeterinarioOpcion(
         label='Veterinario',
-        queryset=get_user_model().objects.filter(rol=Roles.VETERINARIO, is_active=True),
+        queryset=CitaService.veterinarios(activos=True),
         empty_label='Elige primero el servicio',
     )
     fecha = forms.DateField(label='Fecha', widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
@@ -141,7 +137,7 @@ class AgendarCitaForm(forms.Form):
         servicio = datos.get('servicio')
         veterinario = datos.get('veterinario')
         # Desplegable dependiente: el veterinario debe atender el servicio elegido
-        if servicio and veterinario and not servicio.veterinarios.filter(pk=veterinario.pk).exists():
+        if servicio and veterinario and not ServicioService.lo_atiende(servicio, veterinario):
             self.add_error('veterinario', 'Ese veterinario no atiende este servicio.')
         # Fecha y hora se unen en un solo momento con la zona horaria de Ecuador
         if datos.get('fecha') and datos.get('hora'):
@@ -154,9 +150,9 @@ class FiltroCitasForm(forms.Form):
     en la URL no rompe la página, el campo queda sin filtrar."""
     q = forms.CharField(required=False, max_length=80)
     estado = forms.ChoiceField(required=False, choices=[('', 'Todos los estados')] + EstadoCita.choices)
-    veterinario = VeterinarioOpcion(required=False, queryset=get_user_model().objects.none(),
+    veterinario = VeterinarioOpcion(required=False, queryset=CitaService.veterinarios().none(),
                                     empty_label='Todos los veterinarios')
-    servicio = forms.ModelChoiceField(required=False, queryset=Servicio.objects.all(), empty_label='Todos los servicios')
+    servicio = forms.ModelChoiceField(required=False, queryset=ServicioService.todos(), empty_label='Todos los servicios')
 
     def __init__(self, *args, veterinarios, **kwargs):
         super().__init__(*args, **kwargs)

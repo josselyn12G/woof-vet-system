@@ -2,7 +2,7 @@ import csv
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import get_user_model, login, update_session_auth_hash
+from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.messages.views import SuccessMessageMixin
@@ -126,7 +126,7 @@ class CuentaGestionableMixin:
     context_object_name = 'persona'
 
     def get_queryset(self):
-        return get_user_model().objects.all()
+        return UsuarioService.todas()
 
     def get_object(self, queryset=None):
         persona = super().get_object(queryset)
@@ -238,7 +238,7 @@ class EquipoContrasenaView(SuperadminRequeridoMixin, FormView):
 
     @cached_property
     def persona(self):
-        persona = get_object_or_404(get_user_model(), pk=self.kwargs['pk'])
+        persona = get_object_or_404(UsuarioService.todas(), pk=self.kwargs['pk'])
         if not PoliticaDeCuentas.puede_gestionar(self.request.user, persona):
             raise PermissionDenied
         return persona
@@ -265,7 +265,7 @@ class EquipoEstadoView(SuperadminRequeridoMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        persona = get_object_or_404(get_user_model(), pk=pk)
+        persona = get_object_or_404(UsuarioService.todas(), pk=pk)
         try:
             activa = UsuarioService.alternar_activa(request.user, persona)
         except ValidationError as error:
@@ -336,6 +336,6 @@ class VerificarView(FormView):
         pk = self.request.session.pop('pre_2fa_user')
         siguiente = self.request.session.pop('pre_2fa_next', '/')
 
-        usuario = get_user_model().objects.get(pk=pk)
+        usuario = UsuarioService.todas().get(pk=pk)
         login(self.request, usuario)
         return redirect(siguiente)
