@@ -2,11 +2,13 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import Http404, HttpResponse
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from cuentas.mixins import AdministradorRequeridoMixin
+from cuentas.models import Roles
 
 from .forms import MascotaForm
 from .models import Especies, Mascota
@@ -15,8 +17,15 @@ from .services import MascotaService, foto_visible
 
 class MascotasDelUsuarioMixin(LoginRequiredMixin):
     """Sin sesión redirige al login (?next=...). Con sesión, solo deja ver las mascotas propias:
-    la de otro cliente no está en la consulta, así que get_object() responde 404."""
+    la de otro cliente no está en la consulta, así que get_object() responde 404.
+    "Mis mascotas" es del cliente: otro rol que llega aquí (un enlace viejo, un ?next=) vuelve a su panel."""
     model = Mascota
+    roles_permitidos = (Roles.CLIENTE,)   # también lo revisa el login antes de seguir un ?next=
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.rol not in self.roles_permitidos:
+            return redirect('cuentas:panel')
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         return MascotaService.del_dueno(self.request.user)

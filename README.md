@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-238%20pasan-2e7d32" alt="238 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-244%20pasan-2e7d32" alt="244 pruebas pasan">
 </p>
 
 <p align="center">
@@ -183,11 +183,11 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-238 pruebas:
+244 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 57 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol y gestión del equipo (superadministrador) |
+| `cuentas` | 63 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo (superadministrador) y destino correcto después del login |
 | `mascotas` | 64 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos y gestión de mascotas de la clínica |
 | `citas` | 117 | Servicios, horario en columnas, Mi semana del veterinario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes, gestión de citas y horarios, y acceso por rol |
 

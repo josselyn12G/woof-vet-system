@@ -553,3 +553,47 @@ class AdministradorYSuperadminTests(TestCase):
     def test_la_portada_del_administrador_revisa_servicios_y_horarios(self):
         pasos = self.client.get(reverse('cuentas:inicio_administrador')).context['pasos']
         self.assertEqual([paso['hecho'] for paso in pasos], [False, False, False])
+
+
+class DestinoDespuesDelLoginTests(TestCase):
+    """Si la página guardada en ?next= es de otro rol, el login lleva al panel de quien entra (no a una pantalla ajena)."""
+
+    def setUp(self):
+        self.veterinario = usuario_con_rol('dra.paredes', Roles.VETERINARIO, 1)
+        self.cliente = usuario_con_rol('ana', Roles.CLIENTE, 2)
+
+    def entrar(self, usuario, siguiente):
+        return self.client.post(f"{reverse('cuentas:login')}?next={siguiente}",
+                                {'username': usuario.username, 'password': 'Clave-segura-123'})
+
+    @override_settings(DOBLE_FACTOR=False)
+    def test_el_veterinario_no_cae_en_mis_mascotas(self):
+        respuesta = self.entrar(self.veterinario, reverse('mascotas:lista'))
+        self.assertRedirects(respuesta, reverse('cuentas:panel'), fetch_redirect_response=False)
+
+    @override_settings(DOBLE_FACTOR=False)
+    def test_el_cliente_si_vuelve_a_la_pagina_que_pidio(self):
+        respuesta = self.entrar(self.cliente, reverse('mascotas:lista'))
+        self.assertRedirects(respuesta, reverse('mascotas:lista'))
+
+    @override_settings(DOBLE_FACTOR=False)
+    def test_una_pagina_de_su_rol_si_se_respeta(self):
+        respuesta = self.entrar(self.veterinario, reverse('citas:agenda'))
+        self.assertRedirects(respuesta, reverse('citas:agenda'))
+
+    def test_con_doble_factor_tambien_se_corrige_el_destino(self):
+        self.entrar(self.veterinario, reverse('mascotas:lista'))
+        self.assertEqual(self.client.session['pre_2fa_next'], reverse('cuentas:panel'))
+
+    def test_otro_rol_en_mis_mascotas_vuelve_a_su_panel(self):
+        self.client.force_login(self.veterinario)
+        for nombre in ('mascotas:lista', 'mascotas:crear'):
+            with self.subTest(pantalla=nombre):
+                self.assertRedirects(self.client.get(reverse(nombre)), reverse('cuentas:panel'),
+                                     fetch_redirect_response=False)
+
+    def test_el_menu_de_la_portada_no_ofrece_mis_mascotas_al_veterinario(self):
+        self.client.force_login(self.veterinario)
+        respuesta = self.client.get(reverse('cuentas:inicio'))
+        self.assertContains(respuesta, 'Mi panel')
+        self.assertNotContains(respuesta, 'Mis mascotas</a>')
