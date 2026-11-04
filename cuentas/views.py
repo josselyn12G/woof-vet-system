@@ -9,7 +9,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.views import View
@@ -218,10 +218,13 @@ class EquipoCrearView(SuperadminRequeridoMixin, SuccessMessageMixin, CreateView)
 
 
 class EquipoEditarView(SuperadminRequeridoMixin, CuentaGestionableMixin, SuccessMessageMixin, UpdateView):
-    """Datos, rol y estado de una cuenta (el superadministrador también corrige la de un cliente)."""
+    """Datos, rol y estado de una cuenta (el superadministrador también corrige la de un cliente:
+    la abre desde Usuarios y vuelve ahí)."""
     form_class = PersonalForm
     template_name = 'cuentas/superadmin/persona_formulario.html'
-    success_url = reverse_lazy('cuentas:equipo')
+
+    def get_success_url(self):
+        return reverse('cuentas:usuarios' if self.object.es_cliente else 'cuentas:equipo')
 
     def get_success_message(self, cleaned_data):
         return f'Se guardaron los cambios de {self.object}.'

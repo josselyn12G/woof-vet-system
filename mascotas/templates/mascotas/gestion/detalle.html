@@ -15,6 +15,10 @@
 {% block panel_subtitulo %}{{ mascota.get_especie_display }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %} · ficha creada el {{ mascota.creado|date:'j \d\e F \d\e Y' }}{% endblock %}
 {% block panel_acciones %}
   <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:gestion' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Todas las mascotas</a>
+  {% if user.es_superadmin %}
+    <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:gestion_eliminar' mascota.pk %}"><i class="bi bi-trash" aria-hidden="true"></i>Eliminar</a>
+    <a class="boton-panel" href="{% url 'mascotas:gestion_editar' mascota.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i>Editar</a>
+  {% endif %}
 {% endblock %}
 
 {% block panel_contenido %}

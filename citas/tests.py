@@ -1050,3 +1050,93 @@ class AgendaDelDiaTests(TestCase):
         self.assertEqual(len(semana), 7)
         elegido = next(dia for dia in semana if dia['es_elegido'])
         self.assertEqual((elegido['fecha'], elegido['citas']), (self.ayer, 1))
+
+
+class GestionHorarioVeterinarioTests(TestCase):
+    """El superadministrador edita el horario y los servicios de cualquier veterinario desde Horarios."""
+
+    def setUp(self):
+        self.superadmin = crear_usuario('sara', rol=Roles.SUPERADMIN)
+        self.sofia = crear_veterinario(first_name='Sofía', last_name='Mora')
+        self.manana = timezone.localdate() + timedelta(days=1)
+        self.client.force_login(self.superadmin)
+
+    def url(self, nombre, *args):
+        return reverse(f'citas:{nombre}', args=[self.sofia.pk, *args])
+
+    def semana(self, fecha):
+        return f"{self.url('gestion_horario')}?semana={(fecha - timedelta(days=fecha.weekday())).isoformat()}"
+
+    def test_solo_entra_el_superadministrador(self):
+        for usuario in (crear_usuario('laura', rol=Roles.ADMINISTRADOR), self.sofia, crear_usuario('ana')):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(self.url('gestion_horario')).status_code, 403)
+
+    def test_un_id_que_no_es_de_un_veterinario_responde_404(self):
+        cliente = crear_usuario('ana')
+        self.assertEqual(self.client.get(reverse('citas:gestion_horario', args=[cliente.pk])).status_code, 404)
+
+    def test_ve_la_semana_del_veterinario_con_las_urls_de_la_gestion(self):
+        bloque = crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        respuesta = self.client.get(self.url('gestion_horario'), {'semana': self.manana.isoformat()})
+        self.assertEqual(respuesta.context['vet_gestionado'], self.sofia)
+        self.assertContains(respuesta, 'Horario de Sofía Mora')
+        self.assertContains(respuesta, self.url('gestion_horario_editar', bloque.pk))
+        self.assertNotContains(respuesta, reverse('citas:horario_editar', args=[bloque.pk]))
+
+    def test_agrega_un_bloque_al_veterinario_de_la_url(self):
+        respuesta = self.client.post(self.url('gestion_horario'), {
+            'fecha': self.manana.isoformat(), 'hora_inicio': '09:00', 'hora_fin': '12:00',
+        })
+        self.assertRedirects(respuesta, self.semana(self.manana))
+        self.assertEqual(HorarioVeterinario.objects.get().veterinario, self.sofia)
+
+    def test_revisa_los_cruces_con_los_bloques_del_veterinario(self):
+        crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        respuesta = self.client.post(self.url('gestion_horario'), {
+            'fecha': self.manana.isoformat(), 'hora_inicio': '11:00', 'hora_fin': '13:00',
+        })
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(HorarioVeterinario.objects.count(), 1)
+
+    def test_edita_y_quita_un_bloque(self):
+        bloque = crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        # "Cancelar" vuelve a la semana del bloque en la gestión, no a "Mi horario"
+        self.assertContains(self.client.get(self.url('gestion_horario_editar', bloque.pk)), self.semana(self.manana))
+        respuesta = self.client.post(self.url('gestion_horario_editar', bloque.pk), {
+            'fecha': self.manana.isoformat(), 'hora_inicio': '10:00', 'hora_fin': '14:00',
+        })
+        self.assertRedirects(respuesta, self.semana(self.manana))
+        bloque.refresh_from_db()
+        self.assertEqual((bloque.hora_inicio, bloque.hora_fin), (time(10), time(14)))
+
+        self.client.post(self.url('gestion_horario_eliminar', bloque.pk))
+        self.assertFalse(HorarioVeterinario.objects.exists())
+
+    def test_un_bloque_de_otro_veterinario_responde_404(self):
+        ajeno = crear_horario(crear_veterinario('mateo'), time(9), time(12), fecha=self.manana)
+        self.assertEqual(self.client.get(self.url('gestion_horario_editar', ajeno.pk)).status_code, 404)
+        self.assertEqual(self.client.post(self.url('gestion_horario_eliminar', ajeno.pk)).status_code, 404)
+        self.assertTrue(HorarioVeterinario.objects.filter(pk=ajeno.pk).exists())
+
+    def test_copia_la_semana_anterior_del_veterinario(self):
+        crear_horario(self.sofia, time(9), time(12), fecha=self.manana)
+        siguiente = self.manana + timedelta(days=7)
+        respuesta = self.client.post(self.url('gestion_horario_copiar'), {'semana': siguiente.isoformat()})
+        self.assertRedirects(respuesta, self.semana(siguiente))
+        self.assertTrue(HorarioVeterinario.objects.filter(veterinario=self.sofia, fecha=siguiente).exists())
+
+    def test_elige_los_servicios_que_atiende(self):
+        consulta = crear_servicio()
+        vacuna = crear_servicio(nombre='Vacunación')
+        respuesta = self.client.post(self.url('gestion_horario_servicios'), {'servicios': [consulta.pk, vacuna.pk]},
+                                     follow=True)
+        self.assertEqual(set(self.sofia.servicios.all()), {consulta, vacuna})
+        self.assertContains(respuesta, 'Sofía Mora ahora atiende 2 servicios.')
+
+    def test_la_grilla_de_horarios_enlaza_al_horario_solo_para_el_superadministrador(self):
+        enlace = self.url('gestion_horario')
+        self.assertContains(self.client.get(reverse('citas:gestion_horarios')), enlace)
+        self.client.force_login(crear_usuario('laura', rol=Roles.ADMINISTRADOR))
+        self.assertNotContains(self.client.get(reverse('citas:gestion_horarios')), enlace)

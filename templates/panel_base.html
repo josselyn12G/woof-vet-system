@@ -51,7 +51,7 @@
           <p class="panel-menu__grupo">Clínica</p>
           <ul class="panel-menu__lista">
             <li><a class="panel-menu__enlace{% if ruta == 'citas:gestion_citas' %} es-activo{% endif %}" href="{% url 'citas:gestion_citas' %}" title="Citas"{% if ruta == 'citas:gestion_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-week" aria-hidden="true"></i><span class="panel-menu__texto">Citas</span></a></li>
-            <li><a class="panel-menu__enlace{% if ruta == 'citas:gestion_horarios' %} es-activo{% endif %}" href="{% url 'citas:gestion_horarios' %}" title="Horarios"{% if ruta == 'citas:gestion_horarios' %} aria-current="page"{% endif %}><i class="bi bi-clock-history" aria-hidden="true"></i><span class="panel-menu__texto">Horarios</span></a></li>
+            <li><a class="panel-menu__enlace{% if 'citas:gestion_horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:gestion_horarios' %}" title="Horarios"{% if ruta == 'citas:gestion_horarios' %} aria-current="page"{% endif %}><i class="bi bi-clock-history" aria-hidden="true"></i><span class="panel-menu__texto">Horarios</span></a></li>
             <li><a class="panel-menu__enlace{% if 'mascotas:gestion' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:gestion' %}" title="Mascotas"{% if ruta == 'mascotas:gestion' %} aria-current="page"{% endif %}><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mascotas</span></a></li>
           </ul>
         {% else %}

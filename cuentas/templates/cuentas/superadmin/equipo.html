@@ -82,6 +82,9 @@
               <td class="tabla-panel__accion">
                 <span class="acciones-fila">
                   <a class="boton-fila" href="{% url 'cuentas:equipo_editar' persona.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar a {{ persona }}</span></a>
+                  {% if persona.es_veterinario %}
+                    <a class="boton-fila" href="{% url 'citas:gestion_horario' persona.pk %}" title="Horario y servicios"><i class="bi bi-clock-history" aria-hidden="true"></i><span class="visually-hidden">Horario y servicios de {{ persona }}</span></a>
+                  {% endif %}
                   <a class="boton-fila" href="{% url 'cuentas:equipo_contrasena' persona.pk %}" title="Cambiar la contraseña"><i class="bi bi-key" aria-hidden="true"></i><span class="visually-hidden">Cambiar la contraseña de {{ persona }}</span></a>
                   {% if persona.pk != user.pk %}
                     {# Activar o desactivar: un formulario POST, nunca un enlace #}

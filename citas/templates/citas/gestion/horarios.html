@@ -11,7 +11,7 @@
 {% block panel_icono %}bi-clock-history{% endblock %}
 {% block panel_seccion %}Horarios{% endblock %}
 {% block panel_titulo %}Horarios de la clínica{% endblock %}
-{% block panel_subtitulo %}{% if not resumen.veterinarios %}Todavía no hay veterinarios activos.{% elif resumen.con_horario == resumen.veterinarios %}Los {{ resumen.veterinarios }} veterinario{{ resumen.veterinarios|pluralize }} publicaron su horario esta semana.{% else %}{{ resumen.con_horario }} de {{ resumen.veterinarios }} veterinario{{ resumen.veterinarios|pluralize }} publicaron horario esta semana. Cada veterinario carga el suyo en «Mi horario».{% endif %}{% endblock %}
+{% block panel_subtitulo %}{% if not resumen.veterinarios %}Todavía no hay veterinarios activos.{% elif resumen.con_horario == resumen.veterinarios %}Los {{ resumen.veterinarios }} veterinario{{ resumen.veterinarios|pluralize }} publicaron su horario esta semana.{% else %}{{ resumen.con_horario }} de {{ resumen.veterinarios }} veterinario{{ resumen.veterinarios|pluralize }} publicaron horario esta semana. Cada veterinario carga el suyo en «Mi horario».{% endif %}{% if user.es_superadmin and resumen.veterinarios %} Toca a un veterinario para editar su horario y sus servicios.{% endif %}{% endblock %}
 
 {% block panel_contenido %}
   <section class="estadisticas entra entra--1" aria-label="Resumen de la semana">
@@ -63,7 +63,12 @@
             <div class="grilla-clinica__vet" role="rowheader">
               <span class="inicial inicial--veterinario" aria-hidden="true">{{ fila.veterinario.first_name|default:fila.veterinario.username|slice:':1'|upper }}{{ fila.veterinario.last_name|slice:':1'|upper }}</span>
               <span class="grilla-clinica__persona">
-                <span class="tabla-panel__nombre">{{ fila.veterinario.get_full_name|default:fila.veterinario.username }}</span>
+                {% if user.es_superadmin %}
+                  {# El superadministrador abre el horario del veterinario para editarlo #}
+                  <a class="tabla-panel__nombre bloque-panel__enlace" href="{% url 'citas:gestion_horario' fila.veterinario.pk %}?semana={{ lunes|date:'Y-m-d' }}" title="Editar el horario y los servicios">{{ fila.veterinario.get_full_name|default:fila.veterinario.username }} <i class="bi bi-pencil" aria-hidden="true"></i></a>
+                {% else %}
+                  <span class="tabla-panel__nombre">{{ fila.veterinario.get_full_name|default:fila.veterinario.username }}</span>
+                {% endif %}
                 {% if fila.sin_horario %}
                   <span class="estado">Sin horario</span>
                 {% else %}

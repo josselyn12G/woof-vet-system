@@ -3,14 +3,14 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from cuentas.mixins import AdministradorRequeridoMixin
+from cuentas.mixins import AdministradorRequeridoMixin, SuperadminRequeridoMixin
 from cuentas.models import Roles
 
-from .forms import MascotaForm
+from .forms import MascotaForm, MascotaGestionForm
 from .models import Especies, Mascota
 from .services import MascotaService, foto_visible
 
@@ -55,6 +55,12 @@ class FormularioMascotaMixin:
         kwargs = super().get_form_kwargs()
         kwargs['dueno'] = self.request.user
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        # La flecha y "Cancelar": a la ficha al editar, a la lista al registrar
+        kwargs['volver'] = (reverse('mascotas:detalle', kwargs={'pk': self.object.pk}) if self.object
+                            else reverse('mascotas:lista'))
+        return super().get_context_data(**kwargs)
 
 
 class MascotaCreateView(MascotasDelUsuarioMixin, FormularioMascotaMixin, SuccessMessageMixin, CreateView):
@@ -152,3 +158,61 @@ class MascotaGestionDetailView(AdministradorRequeridoMixin, DetailView):
         contexto = super().get_context_data(**kwargs)
         contexto['citas'] = MascotaService.citas_de(self.object)
         return contexto
+
+
+# ---------------------------------------------------------------------------
+# Superadministrador: crea, corrige y elimina la ficha de cualquier mascota (también cambia su dueño)
+# ---------------------------------------------------------------------------
+class MascotaGestionadaMixin(SuperadminRequeridoMixin):
+    """Solo el superadministrador (403 para los demás). La foto se ve con tiene_foto, sin traer los bytes."""
+    model = Mascota
+
+    def get_queryset(self):
+        return Mascota.objects.select_related('dueno').con_foto()
+
+
+class FormularioGestionMixin(MascotaGestionadaMixin, SuccessMessageMixin):
+    form_class = MascotaGestionForm
+    template_name = 'mascotas/gestion/formulario.html'
+
+    def get_context_data(self, **kwargs):
+        kwargs['volver'] = (reverse('mascotas:gestion_detalle', kwargs={'pk': self.object.pk}) if self.object
+                            else reverse('mascotas:gestion'))
+        return super().get_context_data(**kwargs)
+
+    def get_success_url(self):
+        return reverse('mascotas:gestion_detalle', kwargs={'pk': self.object.pk})
+
+
+class MascotaGestionCreateView(FormularioGestionMixin, CreateView):
+    success_message = 'Se registró a %(nombre)s.'
+
+    def get_initial(self):
+        # ?dueno=<id> deja elegido al dueño (por ejemplo, desde la búsqueda de un cliente)
+        return {'dueno': self.request.GET.get('dueno')}
+
+
+class MascotaGestionUpdateView(FormularioGestionMixin, UpdateView):
+    context_object_name = 'mascota'
+    success_message = 'Se guardaron los cambios de %(nombre)s.'
+
+    def get_context_data(self, **kwargs):
+        # Si el POST tiene errores, self.object ya trae lo que se escribió: el título usa el nombre guardado
+        kwargs['nombre_original'] = MascotaService.nombre_guardado(self.object.pk)
+        return super().get_context_data(**kwargs)
+
+
+class MascotaGestionDeleteView(MascotaGestionadaMixin, DeleteView):
+    """GET muestra la confirmación (con cuántas citas se borran con ella); solo el POST borra."""
+    template_name = 'mascotas/gestion/confirmar_eliminar.html'
+    context_object_name = 'mascota'
+    success_url = reverse_lazy('mascotas:gestion')
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['total_citas'] = self.object.citas.count()
+        return contexto
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Se eliminó la ficha de {self.object.nombre}.')
+        return super().form_valid(form)
