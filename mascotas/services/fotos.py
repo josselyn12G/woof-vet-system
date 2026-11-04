@@ -2,6 +2,8 @@ from io import BytesIO
 
 from PIL import Image, ImageOps
 
+from mascotas.models import Mascota
+
 # La foto se guarda reducida para que la base no crezca: ~50-100 KB en vez de varios MB
 LADO_MAXIMO_FOTO = 800
 CALIDAD_FOTO = 80
@@ -22,3 +24,15 @@ def preparar_foto(archivo):
     salida = BytesIO()
     imagen.save(salida, 'WEBP', quality=CALIDAD_FOTO)
     return salida.getvalue()
+
+
+def foto_visible(pk, usuario):
+    """Los bytes de la foto de la mascota, o None si no tiene o el usuario no puede verla.
+
+    La ve el dueño; también el personal: los veterinarios (Pacientes y agenda), el administrador
+    y el superadministrador (gestión de mascotas) y quien entra a /admin/ (is_staff)."""
+    mascotas = Mascota.objects.filter(pk=pk, foto__isnull=False)
+    if not (usuario.is_staff or usuario.es_veterinario or usuario.gestiona_clinica):
+        mascotas = mascotas.filter(dueno=usuario)
+    foto = mascotas.values_list('foto', flat=True).first()
+    return bytes(foto) if foto is not None else None

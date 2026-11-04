@@ -2,14 +2,14 @@ from datetime import datetime
 
 from django import forms
 from django.contrib.auth import get_user_model
-from django.db.models import BooleanField, ExpressionWrapper, Q
 from django.utils import timezone
 
 from cuentas.models import Roles
-
 from mascotas.models import Mascota
+from mascotas.services import MascotaService
 
-from .models import HorarioVeterinario, Servicio
+from .models import EstadoCita, HorarioVeterinario, Servicio
+from .services import ServicioService
 
 
 class VeterinarioCasillas(forms.ModelMultipleChoiceField):
@@ -49,6 +49,18 @@ class ServicioForm(forms.ModelForm):
         return nombre
 
 
+class SelectorHora(forms.TimeInput):
+    """Hora cada 15 minutos. Sin JavaScript es el input type="time" del navegador; selector-hora.js
+    (data-selector-hora) lo cambia por un botón que abre una grilla de horas y minutos."""
+    input_type = 'time'
+
+    def __init__(self, attrs=None):
+        super().__init__(
+            attrs={'step': 900, 'class': 'control-panel', 'data-selector-hora': '', **(attrs or {})},
+            format='%H:%M',
+        )
+
+
 class HorarioForm(forms.ModelForm):
     """Un bloque del horario. El veterinario no va en el formulario: la vista lo toma de request.user
     y lo pone en la instancia antes de validar, así clean() del modelo revisa los cruces con sus bloques."""
@@ -58,9 +70,10 @@ class HorarioForm(forms.ModelForm):
         fields = ['fecha', 'hora_inicio', 'hora_fin']
         widgets = {
             # format: el input type="date" y type="time" solo entienden 2026-11-02 y 09:00
-            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'control-panel'}, format='%Y-%m-%d'),
-            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'step': 900, 'class': 'control-panel'}, format='%H:%M'),
-            'hora_fin': forms.TimeInput(attrs={'type': 'time', 'step': 900, 'class': 'control-panel'}, format='%H:%M'),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'control-panel', 'data-fecha-bloque': ''},
+                                     format='%Y-%m-%d'),
+            'hora_inicio': SelectorHora(),
+            'hora_fin': SelectorHora(),
         }
 
     def clean_fecha(self):
@@ -98,7 +111,7 @@ class AgendarCitaForm(forms.Form):
     # Solo servicios activos que alguien atiende: los demás no se pueden agendar
     servicio = forms.ModelChoiceField(
         label='Servicio',
-        queryset=Servicio.objects.filter(activo=True, veterinarios__isnull=False).distinct(),
+        queryset=ServicioService.agendables(),
         empty_label='Elige un servicio',
     )
     veterinario = VeterinarioOpcion(
@@ -114,11 +127,8 @@ class AgendarCitaForm(forms.Form):
     def __init__(self, *args, cliente, **kwargs):
         super().__init__(*args, **kwargs)
         # Desplegable con FK filtrada: el cliente solo ve (y solo puede enviar) sus mascotas
-        self.fields['mascota'].queryset = (
-            Mascota.objects.filter(dueno=cliente)
-            .defer('foto')   # tiene_foto basta para mostrar su foto en la tarjeta, sin traer los bytes
-            .annotate(tiene_foto=ExpressionWrapper(Q(foto__isnull=False), output_field=BooleanField()))
-        )
+        # tiene_foto basta para mostrar su foto en la tarjeta, sin traer los bytes
+        self.fields['mascota'].queryset = MascotaService.del_dueno(cliente)
 
     def clean_fecha(self):
         fecha = self.cleaned_data['fecha']
@@ -137,3 +147,33 @@ class AgendarCitaForm(forms.Form):
         if datos.get('fecha') and datos.get('hora'):
             datos['inicio'] = timezone.make_aware(datetime.combine(datos['fecha'], datos['hora']))
         return datos
+
+
+class FiltroCitasForm(forms.Form):
+    """Filtros de la gestión de citas (administrador). Todos opcionales y por GET: un valor inventado
+    en la URL no rompe la página, el campo queda sin filtrar."""
+    q = forms.CharField(required=False, max_length=80)
+    estado = forms.ChoiceField(required=False, choices=[('', 'Todos los estados')] + EstadoCita.choices)
+    veterinario = VeterinarioOpcion(required=False, queryset=get_user_model().objects.none(),
+                                    empty_label='Todos los veterinarios')
+    servicio = forms.ModelChoiceField(required=False, queryset=Servicio.objects.all(), empty_label='Todos los servicios')
+
+    def __init__(self, *args, veterinarios, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['veterinario'].queryset = veterinarios
+        for campo in self.fields.values():
+            campo.widget.attrs['class'] = 'control-panel'
+            if isinstance(campo.widget, forms.Select):
+                # Como en los demás filtros del panel: elegir una opción ya filtra
+                campo.widget.attrs.update({'class': 'control-panel filtros__rol', 'onchange': 'this.form.submit()'})
+
+    def filtros(self):
+        """Los filtros válidos; los que no pasan la validación se ignoran."""
+        self.is_valid()
+        datos = getattr(self, 'cleaned_data', {})
+        return {
+            'buscar': (datos.get('q') or '').strip(),
+            'estado': datos.get('estado') or '',
+            'veterinario': datos.get('veterinario'),
+            'servicio': datos.get('servicio'),
+        }

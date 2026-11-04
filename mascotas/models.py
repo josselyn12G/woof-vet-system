@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import BooleanField, ExpressionWrapper, Q
 from django.utils import timezone
 
 
@@ -23,6 +24,17 @@ class Especies(models.TextChoices):
 class Sexos(models.TextChoices):
     MACHO = 'M', 'Macho'
     HEMBRA = 'H', 'Hembra'
+
+
+class MascotaQuerySet(models.QuerySet):
+    def con_foto(self):
+        """Sin traer los bytes de la foto (defer), pero sabiendo si tiene una: tiene_foto basta para mostrarla."""
+        return self.defer('foto').annotate(
+            tiene_foto=ExpressionWrapper(Q(foto__isnull=False), output_field=BooleanField()),
+        )
+
+    def del_dueno(self, dueno):
+        return self.filter(dueno=dueno)
 
 
 class Mascota(models.Model):
@@ -49,6 +61,8 @@ class Mascota(models.Model):
     foto = models.BinaryField(null=True, blank=True, editable=False)
     creado = models.DateTimeField(auto_now_add=True)
     actualizado = models.DateTimeField(auto_now=True)
+
+    objects = MascotaQuerySet.as_manager()
 
     # Clase que aporta metadatos al modelo
     class Meta:
