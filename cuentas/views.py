@@ -293,12 +293,18 @@ class LoginDosPasosView(LoginView):
         cancelar_login_pendiente(request)
         return super().get(request, *args, **kwargs)
 
+    def get_success_url(self):
+        # ?next= solo si esa página es del rol de quien entra; si no, a su panel
+        usuario = getattr(self, 'usuario_que_entra', self.request.user)
+        return PoliticaDeCuentas.destino_permitido(usuario, super().get_success_url())
+
     def form_valid(self, form):
+        self.usuario_que_entra = form.get_user()
         # Con el doble factor apagado (Render), LoginView inicia sesión directo y va a ?next= o al panel
         if not settings.DOBLE_FACTOR:
             return super().form_valid(form)
 
-        usuario = form.get_user()
+        usuario = self.usuario_que_entra
         self.request.session['pre_2fa_user'] = usuario.pk           # la sesión es JSON: se guarda el pk, no el objeto
         self.request.session['pre_2fa_next'] = self.get_success_url()  # a dónde ir al terminar (respeta ?next=)
         enviar_codigo(self.request, usuario)

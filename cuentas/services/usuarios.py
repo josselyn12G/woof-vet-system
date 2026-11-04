@@ -1,6 +1,9 @@
+from urllib.parse import urlsplit
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.urls import Resolver404, resolve, reverse
 from django.utils import timezone
 
 from cuentas.models import ROLES_DEL_PERSONAL, Roles
@@ -37,6 +40,21 @@ class PoliticaDeCuentas:
         if actor.es_administrador:
             return persona.pk == actor.pk or persona.rol in ROLES_QUE_ASIGNA[Roles.ADMINISTRADOR]
         return False
+
+    @staticmethod
+    def destino_permitido(usuario, url):
+        """
+        A dónde ir después del login. Si la página guardada en ?next= es de otro rol (por ejemplo,
+        "Mis mascotas" del cliente cuando entra un veterinario), se va a /panel/, que lleva a la de su rol.
+        """
+        try:
+            vista = resolve(urlsplit(url).path).func
+        except Resolver404:
+            return url
+        roles = getattr(getattr(vista, 'view_class', None), 'roles_permitidos', None)
+        if roles and usuario.rol not in roles:
+            return reverse('cuentas:panel')
+        return url
 
     @staticmethod
     def validar_cambio(actor, persona, rol, activo):
