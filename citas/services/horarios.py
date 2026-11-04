@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario
 from citas.services.consultas import con_foto_de_la_mascota
+from citas.services.formato import minutos, texto_duracion
 from cuentas.models import Roles
 
 # La grilla de la semana va de 07:00 a 19:00, o más si algún bloque empieza antes o termina después
@@ -32,19 +33,6 @@ def leer_fecha(texto):
         return date.fromisoformat(texto or '')
     except ValueError:
         return None
-
-
-def minutos(bloque):
-    inicio = datetime.combine(bloque.fecha, bloque.hora_inicio)
-    return (datetime.combine(bloque.fecha, bloque.hora_fin) - inicio).seconds // 60
-
-
-def texto_duracion(total):
-    """180 -> "3 h", 90 -> "1 h 30 min", 45 -> "45 min"."""
-    horas, resto = divmod(total, 60)
-    if not horas and resto:
-        return f'{resto} min'
-    return f'{horas} h' + (f' {resto} min' if resto else '')
 
 
 def rango_de_horas(tramos):

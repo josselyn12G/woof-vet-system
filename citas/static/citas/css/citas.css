@@ -769,179 +769,690 @@ fieldset.formulario-panel__campo {
 }
 
 /* =========================================================
-   Agendar una cita y Mis citas (cliente)
+   Agenda del veterinario: la semana para cambiar de día, una línea de tiempo con cada cita
+   (foto de la mascota, servicio, dueño y acciones) y, al costado, el avance del día y su horario.
    ========================================================= */
-/* Lista de citas (la usa la agenda del veterinario) */
-.citas-lista {
+.agenda-fecha {
+  margin: 0;
+}
+
+.agenda-fecha .control-panel {
+  height: 2.5rem;
+}
+
+/* ---------- La semana: siete días como píldoras; el elegido en naranja ---------- */
+.agenda-semana {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+}
+
+.agenda-semana__flecha {
   display: grid;
-  gap: 0.75rem;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--p-texto-2);
+  border-radius: 50%;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.agenda-semana__flecha:hover {
+  color: var(--p-texto);
+  background: var(--p-fondo);
+}
+
+.agenda-semana__dias {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.4rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-
-
-
-
-
-
-.cita-fila__datos {
+.agenda-dia {
   display: grid;
-  gap: 0.15rem;
-  min-width: 0;
+  justify-items: center;
+  gap: 0.05rem;
+  padding: 0.55rem 0.25rem 0.6rem;
+  color: var(--p-texto);
+  text-decoration: none;
+  border-radius: 14px;
+  transition: background-color 150ms ease, transform 120ms ease;
 }
 
-.cita-fila__titulo {
-  font-weight: 700;
+.agenda-dia:hover {
+  color: var(--p-texto);
+  background: var(--p-acento-tinte);
 }
 
-.cita-fila__detalle,
-.cita-fila__motivo {
+.agenda-dia:active {
+  transform: scale(0.96);
+}
+
+.agenda-dia__nombre {
   color: var(--p-texto-2);
-  font-size: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-
-@media (max-width: 640px) {
+.agenda-dia__numero {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-/* =========================================================
-   Agenda del veterinario
-   ========================================================= */
-.agenda-dias {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+.agenda-dia__citas {
+  color: var(--p-texto-2);
+  font-size: 0.72rem;
 }
 
-.agenda-dias__fecha {
-  margin: 0;
+.agenda-dia.es-hoy .agenda-dia__nombre {
+  color: var(--p-acento-texto);
 }
 
-.agenda-dias__fecha .control-panel {
-  height: 2.5rem;
+.agenda-dia.es-elegido {
+  color: #fff;
+  background: var(--p-acento);
+  box-shadow: 0 10px 20px -12px rgba(194, 106, 18, 0.9);
 }
 
+.agenda-dia.es-elegido .agenda-dia__nombre,
+.agenda-dia.es-elegido .agenda-dia__citas {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.agenda-dia:focus-visible,
+.agenda-semana__flecha:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 2px;
+}
+
+/* ---------- Contenido: citas a la izquierda, el día al costado ---------- */
 .agenda {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-columns: minmax(0, 1fr) 17rem;
   gap: 1.5rem;
   align-items: start;
 }
 
-.cita-agenda {
-  display: grid;
-  grid-template-columns: 3.5rem 3rem minmax(0, 1fr) auto;
-  gap: 1rem;
+.agenda-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.agenda-resumen__item {
+  display: inline-flex;
   align-items: center;
-  padding: 0.85rem 1rem;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
   background: var(--p-superficie);
   border: 1px solid var(--p-borde);
-  border-radius: 14px;
+  border-radius: 999px;
 }
 
-/* Las canceladas y las ya cerradas se ven más apagadas: la atención va a las que faltan */
-.cita-agenda--cancelada,
-.cita-agenda--atendida,
-.cita-agenda--no_asistio {
-  background: var(--p-fondo);
+.agenda-resumen__item strong {
+  color: var(--p-texto);
+  font-variant-numeric: tabular-nums;
 }
 
-.cita-agenda--cancelada .cita-fila__titulo {
-  text-decoration: line-through;
-  color: var(--p-texto-2);
+.agenda-resumen__item::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  content: "";
+  background: var(--p-control);
+  border-radius: 50%;
 }
 
-.cita-agenda__hora {
+.agenda-resumen__item--atender::before { background: var(--p-acento); }
+.agenda-resumen__item--atendida::before { background: #2e9e5b; }
+.agenda-resumen__item--falta::before { background: #e0a23c; }
+.agenda-resumen__item--cancelada::before { background: #d0525a; }
+
+/* ---------- Línea de tiempo ---------- */
+.linea-agenda {
+  position: relative;
   display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* La línea vertical que une los puntos */
+.linea-agenda::before {
+  position: absolute;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  left: 4.6rem;
+  width: 2px;
+  content: "";
+  background: repeating-linear-gradient(to bottom, #f1d9bd 0 6px, transparent 6px 11px);
+}
+
+.turno {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.6rem 2rem minmax(0, 1fr);
+  align-items: start;
+}
+
+.turno__hora {
+  display: grid;
+  justify-items: end;
+  padding-top: 0.95rem;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 
-.cita-agenda__hora strong {
+.turno__hora strong {
+  color: var(--p-texto);
   font-size: 1.05rem;
 }
 
-.cita-agenda__hora span {
+.turno__hora span {
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+}
+
+/* El punto sobre la línea, del color del estado */
+.turno__punto {
+  position: relative;
+  z-index: 1;
+  justify-self: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-top: 1.25rem;
+  background: var(--p-acento);
+  border: 3px solid var(--p-fondo);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #f7c27a;
+}
+
+.turno--atendida .turno__punto { background: #2e9e5b; box-shadow: 0 0 0 2px #bfe6cd; }
+.turno--no_asistio .turno__punto { background: #e0a23c; box-shadow: 0 0 0 2px #f6dfb5; }
+.turno--cancelada .turno__punto { background: #d0525a; box-shadow: 0 0 0 2px #f4c6c9; }
+
+/* Si ya se puede cerrar, el punto late suave para llamar la atención */
+.turno--pendiente .turno__punto {
+  animation: punto-late 1.8s ease-in-out infinite;
+}
+
+@keyframes punto-late {
+  0%, 100% { box-shadow: 0 0 0 2px #f7c27a; }
+  50% { box-shadow: 0 0 0 6px rgba(238, 154, 53, 0.25); }
+}
+
+.turno__tarjeta {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+  transition: box-shadow 160ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.turno__tarjeta:hover {
+  box-shadow: 0 14px 30px -22px rgba(87, 63, 51, 0.55);
+  transform: translateY(-1px);
+}
+
+/* La que hay que cerrar: borde naranja y un tinte apenas cálido */
+.turno--pendiente .turno__tarjeta {
+  background: linear-gradient(180deg, #fffaf4, var(--p-superficie) 60%);
+  border-color: #f4c68f;
+}
+
+/* Las ya cerradas o canceladas se apagan: la atención va a las que faltan */
+.turno--atendida .turno__tarjeta,
+.turno--no_asistio .turno__tarjeta,
+.turno--cancelada .turno__tarjeta {
+  background: #fbfbfc;
+}
+
+.turno--atendida .turno__foto,
+.turno--no_asistio .turno__foto,
+.turno--cancelada .turno__foto {
+  filter: saturate(0.6);
+  opacity: 0.85;
+}
+
+.turno--cancelada .turno__mascota {
+  color: var(--p-texto-2);
+  text-decoration: line-through;
+}
+
+/* La foto de la mascota: grande, redonda, con un anillo blanco y uno del tono de la marca */
+.turno__foto {
+  flex: none;
+  width: 4.25rem;
+  height: 4.25rem;
+  color: var(--woof-marron);
+  font-size: 1.6rem;
+  font-weight: 700;
+  border: 3px solid var(--p-superficie);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #f7dcbc;
+}
+
+.turno__cuerpo {
+  display: grid;
+  flex: 1;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.turno__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.turno__mascota {
+  margin: 0;
+  color: var(--woof-marron);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.turno__rasgos {
+  margin: 0.15rem 0 0;
   color: var(--p-texto-2);
   font-size: 0.85rem;
 }
 
-.cita-agenda__foto {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  overflow: hidden;
-  font-size: 1.2rem;
-  border-radius: 50%;
+.turno__estado {
+  flex: none;
 }
 
-.cita-agenda__foto img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.turno__estado--pendiente {
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
 }
 
-.cita-agenda__especie {
+.turno__datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.turno__dato {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
   color: var(--p-texto-2);
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--p-fondo);
+  border-radius: 999px;
 }
 
-.cita-agenda__acciones {
+.turno__dato .bi {
+  color: var(--p-acento-texto);
+}
+
+.turno__dato--servicio {
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
+}
+
+.turno__motivo {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  color: var(--p-texto);
+  font-size: 0.88rem;
+  background: var(--p-fondo);
+  border-left: 3px solid #f7c27a;
+  border-radius: 4px 12px 12px 4px;
+}
+
+.turno__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--p-borde);
+}
+
+.turno__dueno {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.turno__dueno .inicial {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.75rem;
+}
+
+.turno__dueno-texto {
+  display: grid;
+  min-width: 0;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.turno__dueno-texto strong {
+  overflow: hidden;
+  color: var(--p-texto);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.turno__dueno-texto a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--p-texto-2);
+  text-decoration: none;
+}
+
+.turno__dueno-texto a:hover {
+  color: var(--p-acento-texto);
+}
+
+.turno__acciones {
   display: flex;
   gap: 0.4rem;
 }
 
-.cita-agenda__acciones form {
+.turno__acciones form {
   margin: 0;
 }
 
+.turno__boton {
+  height: 2.25rem;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+}
+
+/* La marca de "ahora" entre las citas que ya pasaron y las que vienen */
+.linea-agenda__ahora {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-left: 4.15rem;
+}
+
+.linea-agenda__ahora::before {
+  position: relative;
+  z-index: 1;
+  width: 1rem;
+  height: 1rem;
+  content: "";
+  background: #c0392b;
+  border: 3px solid var(--p-fondo);
+  border-radius: 50%;
+}
+
+.linea-agenda__ahora::after {
+  flex: 1;
+  height: 2px;
+  content: "";
+  background: linear-gradient(90deg, #c0392b, rgba(192, 57, 43, 0));
+}
+
+.linea-agenda__ahora span {
+  flex: none;
+  padding: 0.15rem 0.6rem;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: #c0392b;
+  border-radius: 999px;
+}
+
+/* ---------- Día sin citas ---------- */
+.agenda-vacia {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 20rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  overflow: hidden;
+  background: var(--p-acento-tinte);
+  border-radius: 24px;
+}
+
+.agenda-vacia__texto {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  max-width: min(22rem, 55%);
+}
+
+.agenda-vacia__titulo {
+  margin: 0;
+  color: var(--woof-marron);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.15;
+}
+
+.agenda-vacia__bajada {
+  margin: 0;
+  color: #6b5a50;
+  line-height: 1.5;
+}
+
+.agenda-vacia__foto {
+  position: absolute;
+  right: clamp(0.5rem, 3vw, 2rem);
+  bottom: 0;
+  width: auto;
+  height: 90%;
+  max-width: 45%;
+  object-fit: contain;
+  object-position: right bottom;
+  pointer-events: none;
+}
+
+/* ---------- Al costado: el avance del día y su horario ---------- */
 .agenda__lado {
-  padding: 1rem 1.1rem;
+  position: sticky;
+  top: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.lado-agenda {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem 1.2rem;
   background: var(--p-superficie);
   border: 1px solid var(--p-borde);
-  border-radius: 14px;
+  border-radius: 20px;
 }
 
-.agenda__bloques {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0 0 0.75rem;
-  padding: 0;
-  list-style: none;
-  font-variant-numeric: tabular-nums;
+.lado-agenda--avance {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #fff7ee, var(--p-superficie));
 }
 
-.agenda__bloques .bi {
-  margin-right: 0.4rem;
+.lado-agenda__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--p-texto);
+  font-family: var(--woof-fuente-texto);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.lado-agenda__titulo .bi {
   color: var(--p-acento-texto);
 }
 
-@media (max-width: 900px) {
+.lado-agenda__texto {
+  margin: 0.15rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+/* Anillo de avance: se llena con conic-gradient según --avance (0 a 100) */
+.anillo {
+  display: grid;
+  place-items: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  background:
+    radial-gradient(closest-side, var(--p-superficie) 74%, transparent 75%),
+    conic-gradient(var(--p-acento) calc(var(--avance) * 1%), #f3e6d8 0);
+  border-radius: 50%;
+}
+
+.anillo__valor {
+  color: var(--woof-marron);
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.anillo__valor small {
+  font-size: 0.7rem;
+}
+
+.lado-agenda__bloques {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lado-agenda__bloques li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--p-texto);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: #fff3e4;
+  border: 1px dashed #efc48e;
+  border-radius: 12px;
+}
+
+.lado-agenda__bloques small {
+  color: #b07a3a;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 991.98px) {
   .agenda {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .cita-agenda {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-  }
-
-  .cita-agenda__foto {
-    display: none;
-  }
-
-  .cita-agenda__acciones,
-  .cita-agenda .estado {
-    grid-column: 2;
-    justify-self: start;
+  .agenda__lado {
+    position: static;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   }
 }
 
+@media (max-width: 640px) {
+  .agenda-semana {
+    padding: 0.4rem;
+  }
+
+  .agenda-semana__flecha {
+    display: none;
+  }
+
+  .agenda-dia__citas {
+    display: none;
+  }
+
+  .linea-agenda::before {
+    left: 3.6rem;
+  }
+
+  .turno {
+    grid-template-columns: 2.9rem 1.5rem minmax(0, 1fr);
+  }
+
+  .turno__tarjeta {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.9rem;
+  }
+
+  .turno__foto {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .linea-agenda__ahora {
+    padding-left: 3.15rem;
+  }
+
+  .agenda-vacia {
+    flex-direction: column;
+    align-items: stretch;
+    padding-bottom: 0;
+  }
+
+  .agenda-vacia__texto {
+    max-width: none;
+  }
+
+  .agenda-vacia__foto {
+    position: static;
+    align-self: flex-end;
+    height: 12rem;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turno--pendiente .turno__punto {
+    animation: none;
+  }
+
+  .turno__tarjeta,
+  .agenda-dia {
+    transition: none;
+  }
+
+  .turno__tarjeta:hover {
+    transform: none;
+  }
+}
+
+/* =========================================================
+   Agendar una cita y Mis citas (cliente)
+   ========================================================= */
 /* =========================================================
    Agendar: reserva en tres columnas (lado | calendario | horas)
    ========================================================= */

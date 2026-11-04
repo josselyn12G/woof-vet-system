@@ -5,6 +5,7 @@ from django.db.models import BooleanField, Count, ExpressionWrapper, Q, Sum
 from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario
+from citas.services.formato import minutos, texto_duracion
 from cuentas.models import Roles
 
 # Pestañas de Mis citas (cliente): valor en la URL (?vista=) -> nombre que se muestra
@@ -65,16 +66,63 @@ class CitaService:
     # ---------- Veterinario ----------
     @staticmethod
     def agenda_del_dia(veterinario, fecha):
-        """Las citas del veterinario ese día, en orden de hora, y los bloques de su horario."""
-        citas = (
+        """
+        La agenda del veterinario ese día: sus citas en orden de hora (con la foto de la mascota, la duración
+        y si ya se pueden cerrar), un resumen por estado, los bloques de su horario y la semana de ese día
+        con cuántas citas tiene cada uno (para cambiar de día).
+        """
+        ahora = timezone.now()
+        hoy = timezone.localdate()
+        citas = con_foto_de_la_mascota(
             Cita.objects.filter(veterinario=veterinario, inicio__date=fecha)
             .select_related('mascota', 'mascota__dueno', 'servicio')
-            .defer('mascota__foto')
+            .order_by('inicio')
         )
+        for cita in citas:
+            cita.duracion = texto_duracion(int((cita.fin - cita.inicio).total_seconds() // 60))
+            # Confirmada y ya empezó: el veterinario la cierra como atendida o no asistió
+            cita.puede_cerrarse = cita.estado == EstadoCita.CONFIRMADA and cita.inicio <= ahora
+
+        bloques = list(HorarioVeterinario.objects.filter(veterinario=veterinario, fecha=fecha))
+        for bloque in bloques:
+            bloque.duracion = texto_duracion(minutos(bloque))
+
+        # La semana de ese día (lunes a domingo) con las citas activas de cada día
+        lunes = fecha - timedelta(days=fecha.weekday())
+        por_dia = {}
+        for inicio in (
+            Cita.objects.filter(veterinario=veterinario, inicio__date__range=(lunes, lunes + timedelta(days=6)))
+            .exclude(estado=EstadoCita.CANCELADA).values_list('inicio', flat=True)
+        ):
+            dia = timezone.localtime(inicio).date()
+            por_dia[dia] = por_dia.get(dia, 0) + 1
+
+        contar = {estado: sum(1 for cita in citas if cita.estado == estado) for estado in EstadoCita.values}
+        activas = len(citas) - contar[EstadoCita.CANCELADA]
+        # La línea de "ahora" va antes de la primera cita que todavía no empieza (solo si se mira hoy)
+        indice_ahora = None
+        if fecha == hoy and citas:
+            indice_ahora = next((i for i, cita in enumerate(citas) if cita.inicio > ahora), len(citas))
+
         return {
             'citas': citas,
-            'activas': sum(1 for cita in citas if cita.estado != EstadoCita.CANCELADA),
-            'bloques': HorarioVeterinario.objects.filter(veterinario=veterinario, fecha=fecha),
+            'activas': activas,
+            'resumen': {
+                'por_atender': contar[EstadoCita.CONFIRMADA],
+                'atendidas': contar[EstadoCita.ATENDIDA],
+                'no_asistio': contar[EstadoCita.NO_ASISTIO],
+                'canceladas': contar[EstadoCita.CANCELADA],
+                # Cuánto del día ya se cerró (atendidas y no asistió sobre las citas activas)
+                'avance': round((contar[EstadoCita.ATENDIDA] + contar[EstadoCita.NO_ASISTIO]) * 100 / activas)
+                if activas else 0,
+            },
+            'indice_ahora': indice_ahora,
+            'bloques': bloques,
+            'total_horario': texto_duracion(sum(minutos(bloque) for bloque in bloques)) if bloques else '',
+            'semana_agenda': [
+                {'fecha': dia, 'citas': por_dia.get(dia, 0), 'es_hoy': dia == hoy, 'es_elegido': dia == fecha}
+                for dia in (lunes + timedelta(days=i) for i in range(7))
+            ],
         }
 
     # ---------- Administrador ----------
