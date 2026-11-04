@@ -81,14 +81,17 @@
   {% for dia in semana.dias %}
     {% for cita in dia.citas %}
       <div class="detalle-cita" id="detalle-cita-{{ cita.pk }}" popover role="dialog" aria-labelledby="detalle-cita-{{ cita.pk }}-titulo">
-        {# Cabecera con tinte y la foto de la mascota montada sobre el borde #}
+        {# Portada pastel con huellitas y, encima de la onda, la foto de la mascota con su corazoncito #}
         <div class="detalle-cita__portada detalle-cita__portada--{{ cita.mascota.especie }}">
           <span class="estado-cita estado-cita--{{ cita.estado }} detalle-cita__estado">{{ cita.get_estado_display }}</span>
           <button type="button" class="detalle-cita__cerrar" popovertarget="detalle-cita-{{ cita.pk }}" popovertargetaction="hide" aria-label="Cerrar"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
-        <span class="detalle-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}" aria-hidden="true">
-          {% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}
-        </span>
+        <div class="detalle-cita__avatar" aria-hidden="true">
+          <span class="detalle-cita__foto foto-mascota foto-mascota--{{ cita.mascota.especie }}">
+            {% with mascota=cita.mascota %}{% include 'mascotas/_avatar.html' %}{% endwith %}
+          </span>
+          <span class="detalle-cita__corazon"><i class="bi bi-heart-fill"></i></span>
+        </div>
 
         <div class="detalle-cita__cuerpo">
           <div class="detalle-cita__identidad">
