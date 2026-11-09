@@ -212,10 +212,17 @@ Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 woof-vet-system/
 ├── config/              configuración del proyecto (settings.py, urls.py)
 ├── cuentas/             portada, registro, login, doble factor, roles, mixins de acceso, usuarios y equipo (superadmin)
+│   ├── forms/           acceso (registro y código) y usuarios (rol y equipo)
 │   └── services/        doble factor y política de cuentas (quién gestiona a quién)
 ├── mascotas/            CRUD de mascotas, carnet y mascotas de la clínica
-│   └── services/        fotos y consultas de mascotas
+│   ├── views/           mis_mascotas, gestion y catalogo (especies y razas)
+│   ├── forms/           los mismos temas que las vistas, más los límites comunes (foto, peso, edad)
+│   ├── mixins.py        acceso a las mascotas propias y formularios de gestión
+│   └── services/        fotos, consultas de mascotas y catálogo de especies
 ├── citas/               servicios, horario, agendar, Mis citas, agenda, pacientes y gestión de citas y horarios
+│   ├── views/           catalogo, horarios, agendar (cliente), agenda (veterinario) y gestion
+│   ├── forms/           los mismos temas que las vistas, más los campos que comparten
+│   ├── mixins.py        el horario del veterinario (y su versión para el superadministrador)
 │   └── services/        AgendaService (turnos, agendar, cancelar), catálogo, horarios y consultas de citas
 ├── panel/               la portada de cada rol después del login (depende de las otras apps; ninguna depende de ella)
 │   └── services/        cifras de cada portada y períodos de las estadísticas
