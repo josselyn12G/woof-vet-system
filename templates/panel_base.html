@@ -27,7 +27,7 @@
     {% if not user.es_veterinario %}
     {# ---------- Sidebar desplegable ---------- #}
     <aside class="panel-menu" id="panel-menu" aria-label="Menú del panel">
-      <a class="panel-menu__marca" href="{% url 'cuentas:panel' %}">
+      <a class="panel-menu__marca" href="{% url 'panel:panel' %}">
         <img class="panel-menu__logo" src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel">
         <img class="panel-menu__isotipo" src="{% static 'img/favicon.png' %}" alt="" aria-hidden="true">
       </a>
@@ -38,14 +38,14 @@
             {# Superadministrador: su portada, el equipo y el catálogo de especies; debajo, todo lo que ve un administrador #}
             <p class="panel-menu__grupo">Superadmin</p>
             <ul class="panel-menu__lista">
-              <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_superadmin' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_superadmin' %}" title="Inicio"{% if ruta == 'cuentas:inicio_superadmin' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
+              <li><a class="panel-menu__enlace{% if ruta == 'panel:inicio_superadmin' %} es-activo{% endif %}" href="{% url 'panel:inicio_superadmin' %}" title="Inicio"{% if ruta == 'panel:inicio_superadmin' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
               <li><a class="panel-menu__enlace{% if 'cuentas:equipo' in ruta %} es-activo{% endif %}" href="{% url 'cuentas:equipo' %}" title="Equipo"{% if ruta == 'cuentas:equipo' %} aria-current="page"{% endif %}><i class="bi bi-person-badge" aria-hidden="true"></i><span class="panel-menu__texto">Equipo</span></a></li>
               <li><a class="panel-menu__enlace{% if ruta == 'mascotas:especies' or 'mascotas:especie_' in ruta or 'mascotas:raza_' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:especies' %}" title="Especies y razas"{% if ruta == 'mascotas:especies' %} aria-current="page"{% endif %}><i class="bi bi-tags" aria-hidden="true"></i><span class="panel-menu__texto">Especies y razas</span></a></li>
             </ul>
           {% endif %}
           <p class="panel-menu__grupo">Plataforma</p>
           <ul class="panel-menu__lista">
-            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_administrador' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_administrador' %}" title="{% if user.es_superadmin %}Clínica{% else %}Inicio{% endif %}"{% if ruta == 'cuentas:inicio_administrador' %} aria-current="page"{% endif %}><i class="bi {% if user.es_superadmin %}bi-bar-chart{% else %}bi-grid{% endif %}" aria-hidden="true"></i><span class="panel-menu__texto">{% if user.es_superadmin %}Clínica{% else %}Inicio{% endif %}</span></a></li>
+            <li><a class="panel-menu__enlace{% if ruta == 'panel:inicio_administrador' %} es-activo{% endif %}" href="{% url 'panel:inicio_administrador' %}" title="{% if user.es_superadmin %}Clínica{% else %}Inicio{% endif %}"{% if ruta == 'panel:inicio_administrador' %} aria-current="page"{% endif %}><i class="bi {% if user.es_superadmin %}bi-bar-chart{% else %}bi-grid{% endif %}" aria-hidden="true"></i><span class="panel-menu__texto">{% if user.es_superadmin %}Clínica{% else %}Inicio{% endif %}</span></a></li>
             <li><a class="panel-menu__enlace{% if ruta == 'cuentas:usuarios' or ruta == 'cuentas:usuario_editar' %} es-activo{% endif %}" href="{% url 'cuentas:usuarios' %}" title="Usuarios"{% if ruta == 'cuentas:usuarios' %} aria-current="page"{% endif %}><i class="bi bi-people" aria-hidden="true"></i><span class="panel-menu__texto">Usuarios</span></a></li>
             <li><a class="panel-menu__enlace{% if 'citas:servicio' in ruta %} es-activo{% endif %}" href="{% url 'citas:servicios' %}" title="Servicios"{% if ruta == 'citas:servicios' %} aria-current="page"{% endif %}><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i><span class="panel-menu__texto">Servicios</span></a></li>
           </ul>
@@ -58,7 +58,7 @@
         {% else %}
           <p class="panel-menu__grupo">Plataforma</p>
           <ul class="panel-menu__lista">
-            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:inicio_cliente' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_cliente' %}" title="Inicio"{% if ruta == 'cuentas:inicio_cliente' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
+            <li><a class="panel-menu__enlace{% if ruta == 'panel:inicio_cliente' %} es-activo{% endif %}" href="{% url 'panel:inicio_cliente' %}" title="Inicio"{% if ruta == 'panel:inicio_cliente' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
             <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
             {# Agendar vive dentro de Mis citas (botón que abre un pop-up), así que el menú solo lleva Mis citas #}
             <li><a class="panel-menu__enlace{% if ruta == 'citas:mis_citas' or ruta == 'citas:agendar' %} es-activo{% endif %}" href="{% url 'citas:mis_citas' %}" title="Mis citas"{% if ruta == 'citas:mis_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="panel-menu__texto">Mis citas</span></a></li>
@@ -94,9 +94,9 @@
       {% if user.es_veterinario %}
       {# Veterinario: navegación arriba, como una píldora con la opción activa rellena #}
       <header class="nav-arriba">
-        <a class="nav-arriba__marca" href="{% url 'cuentas:panel' %}"><img src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel"></a>
+        <a class="nav-arriba__marca" href="{% url 'panel:panel' %}"><img src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel"></a>
         <nav class="nav-arriba__opciones" aria-label="Menú del panel">
-          <a class="nav-arriba__opcion{% if ruta == 'cuentas:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'cuentas:inicio_veterinario' %}"{% if ruta == 'cuentas:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
+          <a class="nav-arriba__opcion{% if ruta == 'panel:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'panel:inicio_veterinario' %}"{% if ruta == 'panel:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
           <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda</a>
           <a class="nav-arriba__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"{% if ruta == 'citas:horario' %} aria-current="page"{% endif %}>Mi horario</a>
           <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>

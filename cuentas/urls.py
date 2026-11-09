@@ -10,16 +10,11 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('registro/', views.RegistroView.as_view(), name='registro'),
     path('verificar/', views.VerificarView.as_view(), name='verificar'),
-    # Panel: /panel/ redirige a la portada del rol; cada portada solo la abre su rol (403 para los demás)
-    path('panel/', views.PanelView.as_view(), name='panel'),
-    path('panel/cliente/', views.InicioClienteView.as_view(), name='inicio_cliente'),
-    path('panel/veterinario/', views.InicioVeterinarioView.as_view(), name='inicio_veterinario'),
-    path('panel/administrador/', views.InicioAdministradorView.as_view(), name='inicio_administrador'),
+    # Gestión de usuarios del administrador (las portadas de cada rol están en la app panel)
     path('panel/administrador/usuarios/', views.UsuarioListView.as_view(), name='usuarios'),
     path('panel/administrador/reporte.csv', views.ReporteUsuariosView.as_view(), name='reporte_usuarios'),
     path('panel/administrador/usuarios/<int:pk>/', views.UsuarioEditarView.as_view(), name='usuario_editar'),
     # Superadministrador: el equipo de la clínica (403 para los demás roles)
-    path('panel/superadmin/', views.InicioSuperadminView.as_view(), name='inicio_superadmin'),
     path('panel/superadmin/equipo/', views.EquipoListView.as_view(), name='equipo'),
     path('panel/superadmin/equipo/nuevo/', views.EquipoCrearView.as_view(), name='equipo_crear'),
     path('panel/superadmin/equipo/<int:pk>/', views.EquipoEditarView.as_view(), name='equipo_editar'),

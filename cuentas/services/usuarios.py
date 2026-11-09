@@ -1,7 +1,7 @@
 from urllib.parse import urlsplit
 
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q
 from django.urls import Resolver404, resolve, reverse
 from django.utils import timezone
@@ -42,6 +42,12 @@ class PoliticaDeCuentas:
         return False
 
     @staticmethod
+    def exigir_gestion(actor, persona):
+        """Lanza PermissionDenied (Django responde 403) si actor no puede gestionar esa cuenta."""
+        if not PoliticaDeCuentas.puede_gestionar(actor, persona):
+            raise PermissionDenied
+
+    @staticmethod
     def destino_permitido(usuario, url):
         """
         A dónde ir después del login. Si la página guardada en ?next= es de otro rol (por ejemplo,
@@ -53,7 +59,7 @@ class PoliticaDeCuentas:
             return url
         roles = getattr(getattr(vista, 'view_class', None), 'roles_permitidos', None)
         if roles and usuario.rol not in roles:
-            return reverse('cuentas:panel')
+            return reverse('panel:panel')
         return url
 
     @staticmethod

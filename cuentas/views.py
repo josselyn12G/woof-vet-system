@@ -2,11 +2,10 @@ import csv
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, update_session_auth_hash
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
 from django.contrib.messages.views import SuccessMessageMixin
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -15,75 +14,22 @@ from django.utils.functional import cached_property
 from django.views import View
 from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
 
-from citas.services.horarios import semana_pedida
 from cuentas.forms import (
     NuevaContrasenaForm, PersonalCreacionForm, PersonalForm, RegistroForm, UsuarioRolForm, VerificarCodigoForm,
 )
 from cuentas.mixins import (
-    AdministradorRequeridoMixin, ClienteRequeridoMixin, SuperadminRequeridoMixin, VeterinarioRequeridoMixin,
+    AdministradorRequeridoMixin, BusquedaMixin, CuentaGestionableMixin, SuperadminRequeridoMixin,
 )
 from cuentas.models import ROLES_DEL_PERSONAL, Roles
 from cuentas.services import (
-    PoliticaDeCuentas, UsuarioService, cancelar_login_pendiente, enviar_codigo, hay_login_pendiente, verificar_codigo,
-)
-from cuentas.services.estadisticas import (
-    PERIODOS_ADMINISTRADOR, PERIODOS_VETERINARIO, PanelAdministradorService, PanelClienteService,
-    PanelSuperadminService, PanelVeterinarioService, elegir_periodo, opciones_de_periodo,
+    PoliticaDeCuentas, UsuarioService, cancelar_login_pendiente, completar_login, hay_login_pendiente,
+    iniciar_login_pendiente, verificar_codigo,
 )
 from cuentas.services.usuarios import ESTADOS_CUENTA
 
 
 class InicioView(TemplateView):
     template_name = 'cuentas/inicio.html'
-
-
-class InicioClienteView(ClienteRequeridoMixin, TemplateView):
-    template_name = 'cuentas/panel/inicio_cliente.html'
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        contexto.update(PanelClienteService.resumen(self.request.user))
-        return contexto
-
-
-class PeriodoMixin:
-    """Lee ?periodo= (un valor inventado vuelve al de siempre) y lo deja en el contexto para los segmentos."""
-    periodos = {}
-    periodo_por_defecto = ''
-
-    def periodo(self):
-        return elegir_periodo(self.request.GET.get('periodo', self.periodo_por_defecto), self.periodos,
-                              self.periodo_por_defecto)
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        contexto['periodos'] = opciones_de_periodo(self.periodos)
-        contexto['periodo'] = self.periodo()[0]
-        return contexto
-
-
-class InicioVeterinarioView(VeterinarioRequeridoMixin, PeriodoMixin, TemplateView):
-    template_name = 'cuentas/panel/inicio_veterinario.html'
-    periodos = PERIODOS_VETERINARIO
-    periodo_por_defecto = '7d'
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        # ?semana= mueve "Mi semana" a otra semana (cualquier día sirve; una fecha inventada vuelve a la actual)
-        lunes = semana_pedida(self.request.GET.get('semana'))
-        contexto.update(PanelVeterinarioService.resumen(self.request.user, self.periodo()[1], lunes))
-        return contexto
-
-
-class InicioAdministradorView(AdministradorRequeridoMixin, PeriodoMixin, TemplateView):
-    template_name = 'cuentas/panel/inicio_administrador.html'
-    periodos = PERIODOS_ADMINISTRADOR
-    periodo_por_defecto = 'mes'
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        contexto.update(PanelAdministradorService.resumen(self.periodo()[1]))
-        return contexto
 
 
 class ReporteUsuariosView(AdministradorRequeridoMixin, View):
@@ -95,11 +41,6 @@ class ReporteUsuariosView(AdministradorRequeridoMixin, View):
         respuesta.write('﻿')   # para que Excel lea bien las tildes
         csv.writer(respuesta).writerows(UsuarioService.filas_del_reporte())
         return respuesta
-
-
-class BusquedaMixin:
-    def buscar(self):
-        return self.request.GET.get('q', '').strip()
 
 
 class UsuarioListView(AdministradorRequeridoMixin, BusquedaMixin, ListView):
@@ -121,25 +62,6 @@ class UsuarioListView(AdministradorRequeridoMixin, BusquedaMixin, ListView):
         return contexto
 
 
-class CuentaGestionableMixin:
-    """La cuenta de la URL, solo si quien la abre puede gestionarla (si no, 403). El formulario recibe al actor."""
-    context_object_name = 'persona'
-
-    def get_queryset(self):
-        return UsuarioService.todas()
-
-    def get_object(self, queryset=None):
-        persona = super().get_object(queryset)
-        if not PoliticaDeCuentas.puede_gestionar(self.request.user, persona):
-            raise PermissionDenied
-        return persona
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['actor'] = self.request.user
-        return kwargs
-
-
 class UsuarioEditarView(AdministradorRequeridoMixin, CuentaGestionableMixin, SuccessMessageMixin, UpdateView):
     """Cambiar el rol de una cuenta (por ejemplo, darle el rol de veterinario) o desactivarla."""
     form_class = UsuarioRolForm
@@ -151,31 +73,9 @@ class UsuarioEditarView(AdministradorRequeridoMixin, CuentaGestionableMixin, Suc
         return self.success_message % {'persona': self.object}
 
 
-class PanelView(LoginRequiredMixin, View):
-    """Después del login, manda a cada usuario a la portada de su rol. No dibuja nada: solo redirige."""
-
-    def get(self, request):
-        if request.user.es_veterinario:
-            return redirect('cuentas:inicio_veterinario')
-        if request.user.es_superadmin:
-            return redirect('cuentas:inicio_superadmin')
-        if request.user.es_administrador:
-            return redirect('cuentas:inicio_administrador')
-        return redirect('cuentas:inicio_cliente')  # el cliente es el rol por defecto
-
-
 # ---------------------------------------------------------------------------
 # Superadministrador: gestiona al equipo de la clínica (administradores y veterinarios)
 # ---------------------------------------------------------------------------
-class InicioSuperadminView(SuperadminRequeridoMixin, TemplateView):
-    template_name = 'cuentas/superadmin/inicio.html'
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        contexto.update(PanelSuperadminService.resumen())
-        return contexto
-
-
 class EquipoListView(SuperadminRequeridoMixin, BusquedaMixin, ListView):
     """El personal de la clínica con buscador y filtros por rol y por estado de la cuenta."""
     template_name = 'cuentas/superadmin/equipo.html'
@@ -239,8 +139,7 @@ class EquipoContrasenaView(SuperadminRequeridoMixin, FormView):
     @cached_property
     def persona(self):
         persona = get_object_or_404(UsuarioService.todas(), pk=self.kwargs['pk'])
-        if not PoliticaDeCuentas.puede_gestionar(self.request.user, persona):
-            raise PermissionDenied
+        PoliticaDeCuentas.exigir_gestion(self.request.user, persona)
         return persona
 
     def get_form_kwargs(self):
@@ -307,10 +206,7 @@ class LoginDosPasosView(LoginView):
         if not settings.DOBLE_FACTOR:
             return super().form_valid(form)
 
-        usuario = self.usuario_que_entra
-        self.request.session['pre_2fa_user'] = usuario.pk           # la sesión es JSON: se guarda el pk, no el objeto
-        self.request.session['pre_2fa_next'] = self.get_success_url()  # a dónde ir al terminar (respeta ?next=)
-        enviar_codigo(self.request, usuario)
+        iniciar_login_pendiente(self.request, self.usuario_que_entra, self.get_success_url())
         return redirect('cuentas:verificar')
 
 
@@ -332,10 +228,4 @@ class VerificarView(FormView):
             form.add_error('codigo', 'El código es incorrecto o ya venció.')
             return self.form_invalid(form)
 
-        # Se sacan de la sesión antes del login(), que cambia la llave de la sesión por seguridad
-        pk = self.request.session.pop('pre_2fa_user')
-        siguiente = self.request.session.pop('pre_2fa_next', '/')
-
-        usuario = UsuarioService.todas().get(pk=pk)
-        login(self.request, usuario)
-        return redirect(siguiente)
+        return redirect(completar_login(self.request))

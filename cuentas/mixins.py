@@ -2,6 +2,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 
 from .models import ROLES_DE_GESTION, Roles
+from .services.usuarios import PoliticaDeCuentas, UsuarioService
+
+# ---------------------------------------------------------------------------
+# Acceso por rol
+# ---------------------------------------------------------------------------
 
 
 class RolRequeridoMixin(LoginRequiredMixin):
@@ -30,3 +35,31 @@ class AdministradorRequeridoMixin(RolRequeridoMixin):
 class SuperadminRequeridoMixin(RolRequeridoMixin):
     """Gestión del personal (administradores y veterinarios): solo el superadministrador."""
     roles_permitidos = (Roles.SUPERADMIN,)
+
+
+# ---------------------------------------------------------------------------
+# Comportamiento que comparten varias vistas del panel
+# ---------------------------------------------------------------------------
+class BusquedaMixin:
+    """El texto del buscador (?q=), sin espacios de más."""
+
+    def buscar(self):
+        return self.request.GET.get('q', '').strip()
+
+
+class CuentaGestionableMixin:
+    """La cuenta de la URL, solo si quien la abre puede gestionarla (si no, 403). El formulario recibe al actor."""
+    context_object_name = 'persona'
+
+    def get_queryset(self):
+        return UsuarioService.todas()
+
+    def get_object(self, queryset=None):
+        persona = super().get_object(queryset)
+        PoliticaDeCuentas.exigir_gestion(self.request.user, persona)
+        return persona
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['actor'] = self.request.user
+        return kwargs

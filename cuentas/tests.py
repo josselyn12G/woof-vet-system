@@ -2,14 +2,16 @@ import re
 import time
 
 from django.core import mail
-from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AnonymousUser
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from .models import Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
-from .services.estadisticas import variacion
+from .services import PoliticaDeCuentas, completar_login, iniciar_login_pendiente
 
 
 def crear_usuario(**datos):
@@ -191,7 +193,7 @@ class DobleFactorTests(TestCase):
         codigo = self.pasar_contrasena()
         respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': codigo})
         # Sin ?next= va al panel, que a su vez lleva a la portada del rol (aquí, cliente)
-        self.assertRedirects(respuesta, reverse('cuentas:panel'), target_status_code=302)
+        self.assertRedirects(respuesta, reverse('panel:panel'), target_status_code=302)
         self.assertEqual(self.client.session['_auth_user_id'], str(self.usuario.pk))
         # Los datos del "login a medias" y el código se borran: no se pueden volver a usar
         for clave in ('pre_2fa_user', 'pre_2fa_next', 'codigo_2fa', 'codigo_2fa_vence'):
@@ -263,15 +265,15 @@ class AccesoPorRolTests(TestCase):
         self.administrador = usuario_con_rol('jefa', Roles.ADMINISTRADOR, 3)
         # Qué pantallas del panel puede abrir cada rol
         self.pantallas = {
-            'cuentas:inicio_cliente': {Roles.CLIENTE},
-            'cuentas:inicio_veterinario': {Roles.VETERINARIO},
-            'cuentas:inicio_administrador': {Roles.ADMINISTRADOR},
+            'panel:inicio_cliente': {Roles.CLIENTE},
+            'panel:inicio_veterinario': {Roles.VETERINARIO},
+            'panel:inicio_administrador': {Roles.ADMINISTRADOR},
             'cuentas:usuarios': {Roles.ADMINISTRADOR},
             'cuentas:reporte_usuarios': {Roles.ADMINISTRADOR},
         }
 
     def test_sin_sesion_redirige_al_login(self):
-        for nombre in [*self.pantallas, 'cuentas:panel']:
+        for nombre in [*self.pantallas, 'panel:panel']:
             with self.subTest(pantalla=nombre):
                 url = reverse(nombre)
                 respuesta = self.client.get(url)
@@ -294,39 +296,6 @@ class AccesoPorRolTests(TestCase):
         self.assertEqual(respuesta.status_code, 403)
         self.cliente.refresh_from_db()
         self.assertEqual(self.cliente.rol, Roles.CLIENTE)  # no pudo darse el rol de administrador
-
-
-class PanelTests(TestCase):
-    """/panel/ no dibuja nada: manda a cada usuario a la portada de su rol."""
-
-    def test_redirige_a_la_portada_de_cada_rol(self):
-        destinos = [
-            (Roles.CLIENTE, 'cuentas:inicio_cliente'),
-            (Roles.VETERINARIO, 'cuentas:inicio_veterinario'),
-            (Roles.ADMINISTRADOR, 'cuentas:inicio_administrador'),
-        ]
-        for numero, (rol, destino) in enumerate(destinos, start=1):
-            with self.subTest(rol=rol):
-                self.client.force_login(usuario_con_rol(f'persona{numero}', rol, numero))
-                respuesta = self.client.get(reverse('cuentas:panel'))
-                self.assertRedirects(respuesta, reverse(destino))
-
-    def test_periodo_inventado_vuelve_al_de_siempre(self):
-        # ?periodo= viene de la URL: un valor que no existe no rompe la página, usa el período por defecto
-        self.client.force_login(usuario_con_rol('jefa', Roles.ADMINISTRADOR, 1))
-        respuesta = self.client.get(reverse('cuentas:inicio_administrador'), {'periodo': 'nada'})
-        self.assertEqual(respuesta.context['periodo'], 'mes')
-
-        self.client.force_login(usuario_con_rol('dra.paredes', Roles.VETERINARIO, 2))
-        respuesta = self.client.get(reverse('cuentas:inicio_veterinario'), {'periodo': 'nada'})
-        self.assertEqual(respuesta.context['periodo'], '7d')
-
-    def test_variacion_no_inventa_porcentajes(self):
-        # Sin datos del período anterior no hay porcentaje que calcular
-        self.assertEqual(variacion(0, 0), {'texto': '—', 'tipo': 'neutro'})
-        self.assertEqual(variacion(3, 0), {'texto': '+3 nuevas', 'tipo': 'nuevo'})
-        self.assertEqual(variacion(15, 10), {'texto': '50,0%', 'tipo': 'sube'})
-        self.assertEqual(variacion(5, 10), {'texto': '50,0%', 'tipo': 'baja'})
 
 
 class GestionUsuariosTests(TestCase):
@@ -402,7 +371,7 @@ class LoginSinDobleFactorTests(TestCase):
     def test_entra_directo_al_panel_sin_enviar_correo(self):
         crear_usuario()
         respuesta = self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'Clave-segura-123'})
-        self.assertRedirects(respuesta, reverse('cuentas:panel'), target_status_code=302)
+        self.assertRedirects(respuesta, reverse('panel:panel'), target_status_code=302)
         self.assertIn('_auth_user_id', self.client.session)
         self.assertEqual(len(mail.outbox), 0)
 
@@ -440,10 +409,10 @@ class SuperadminTests(TestCase):
         self.assertTrue(persona.gestiona_clinica)
 
     def test_el_panel_lo_manda_a_su_portada(self):
-        self.assertRedirects(self.client.get(reverse('cuentas:panel')), reverse('cuentas:inicio_superadmin'))
+        self.assertRedirects(self.client.get(reverse('panel:panel')), reverse('panel:inicio_superadmin'))
 
     def test_tambien_entra_a_las_pantallas_del_administrador(self):
-        for nombre in ('cuentas:inicio_administrador', 'cuentas:usuarios', 'citas:servicios', 'citas:gestion_citas',
+        for nombre in ('panel:inicio_administrador', 'cuentas:usuarios', 'citas:servicios', 'citas:gestion_citas',
                        'citas:gestion_horarios', 'mascotas:gestion'):
             with self.subTest(pantalla=nombre):
                 self.assertEqual(self.client.get(reverse(nombre)).status_code, 200)
@@ -451,7 +420,7 @@ class SuperadminTests(TestCase):
     def test_solo_el_superadministrador_entra_al_equipo(self):
         for usuario in (self.administrador, self.veterinario, self.cliente):
             self.client.force_login(usuario)
-            for nombre in ('cuentas:inicio_superadmin', 'cuentas:equipo', 'cuentas:equipo_crear'):
+            for nombre in ('panel:inicio_superadmin', 'cuentas:equipo', 'cuentas:equipo_crear'):
                 with self.subTest(rol=usuario.rol, pantalla=nombre):
                     self.assertEqual(self.client.get(reverse(nombre)).status_code, 403)
 
@@ -562,7 +531,7 @@ class AdministradorYSuperadminTests(TestCase):
         self.assertEqual(usuarios, {'jefa': True, 'pablo': False, 'sara': False, 'ana': True})
 
     def test_la_portada_del_administrador_revisa_servicios_y_horarios(self):
-        pasos = self.client.get(reverse('cuentas:inicio_administrador')).context['pasos']
+        pasos = self.client.get(reverse('panel:inicio_administrador')).context['pasos']
         self.assertEqual([paso['hecho'] for paso in pasos], [False, False, False])
 
 
@@ -580,7 +549,7 @@ class DestinoDespuesDelLoginTests(TestCase):
     @override_settings(DOBLE_FACTOR=False)
     def test_el_veterinario_no_cae_en_mis_mascotas(self):
         respuesta = self.entrar(self.veterinario, reverse('mascotas:lista'))
-        self.assertRedirects(respuesta, reverse('cuentas:panel'), fetch_redirect_response=False)
+        self.assertRedirects(respuesta, reverse('panel:panel'), fetch_redirect_response=False)
 
     @override_settings(DOBLE_FACTOR=False)
     def test_el_cliente_si_vuelve_a_la_pagina_que_pidio(self):
@@ -594,13 +563,13 @@ class DestinoDespuesDelLoginTests(TestCase):
 
     def test_con_doble_factor_tambien_se_corrige_el_destino(self):
         self.entrar(self.veterinario, reverse('mascotas:lista'))
-        self.assertEqual(self.client.session['pre_2fa_next'], reverse('cuentas:panel'))
+        self.assertEqual(self.client.session['pre_2fa_next'], reverse('panel:panel'))
 
     def test_otro_rol_en_mis_mascotas_vuelve_a_su_panel(self):
         self.client.force_login(self.veterinario)
         for nombre in ('mascotas:lista', 'mascotas:crear'):
             with self.subTest(pantalla=nombre):
-                self.assertRedirects(self.client.get(reverse(nombre)), reverse('cuentas:panel'),
+                self.assertRedirects(self.client.get(reverse(nombre)), reverse('panel:panel'),
                                      fetch_redirect_response=False)
 
     def test_el_menu_de_la_portada_no_ofrece_mis_mascotas_al_veterinario(self):
@@ -608,3 +577,32 @@ class DestinoDespuesDelLoginTests(TestCase):
         respuesta = self.client.get(reverse('cuentas:inicio'))
         self.assertContains(respuesta, 'Mi panel')
         self.assertNotContains(respuesta, 'Mis mascotas</a>')
+
+
+class ServiciosDeCuentasTests(TestCase):
+    """Las reglas que salieron de las vistas, probadas directamente en los services."""
+
+    def peticion_con_sesion(self):
+        peticion = RequestFactory().get('/')
+        SessionMiddleware(lambda request: None).process_request(peticion)
+        peticion.user = AnonymousUser()
+        return peticion
+
+    def test_iniciar_y_completar_el_login_en_dos_pasos(self):
+        usuario = crear_usuario()
+        peticion = self.peticion_con_sesion()
+        iniciar_login_pendiente(peticion, usuario, '/mascotas/')
+        self.assertEqual(peticion.session['pre_2fa_user'], usuario.pk)
+        self.assertEqual(len(mail.outbox), 1)                     # se envió el código al correo
+
+        self.assertEqual(completar_login(peticion), '/mascotas/')  # devuelve a dónde ir
+        self.assertEqual(peticion.user, usuario)                   # login() dejó la sesión iniciada
+        self.assertNotIn('pre_2fa_user', peticion.session)
+
+    def test_exigir_gestion(self):
+        administrador = usuario_con_rol('admin', Roles.ADMINISTRADOR, 1)
+        superadmin = usuario_con_rol('jefa', Roles.SUPERADMIN, 2)
+        cliente = usuario_con_rol('luis', Roles.CLIENTE, 3)
+        PoliticaDeCuentas.exigir_gestion(administrador, cliente)    # el administrador gestiona clientes
+        with self.assertRaises(PermissionDenied):
+            PoliticaDeCuentas.exigir_gestion(administrador, superadmin)

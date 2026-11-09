@@ -428,7 +428,7 @@ class MiHorarioTests(TestCase):
 
     def test_la_portada_del_veterinario_cuenta_sus_servicios(self):
         crear_servicio().veterinarios.add(self.sofia)
-        respuesta = self.client.get(reverse('cuentas:inicio_veterinario'))
+        respuesta = self.client.get(reverse('panel:inicio_veterinario'))
         self.assertEqual(respuesta.context['servicios_que_atiendo'], 1)
         self.assertContains(respuesta, reverse('citas:horario'))
 
@@ -739,7 +739,7 @@ class EstadisticasVeterinarioTests(TestCase):
                                 fin=ayer + timedelta(minutes=30), precio=Decimal('25.00'), estado=estado)
 
         self.client.force_login(veterinario)
-        estadisticas = self.client.get(reverse('cuentas:inicio_veterinario')).context['estadisticas']
+        estadisticas = self.client.get(reverse('panel:inicio_veterinario')).context['estadisticas']
         self.assertEqual(estadisticas['citas'], 3)
         self.assertEqual(estadisticas['atendidas'], 2)
         self.assertEqual(estadisticas['no_asistio'], 1)
@@ -962,7 +962,7 @@ class MiSemanaTests(TestCase):
                                    inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'), **datos)
 
     def semana(self):
-        return self.client.get(reverse('cuentas:inicio_veterinario'), {'semana': self.manana.isoformat()}).context['semana']
+        return self.client.get(reverse('panel:inicio_veterinario'), {'semana': self.manana.isoformat()}).context['semana']
 
     def test_muestra_los_7_dias_con_el_horario(self):
         semana = self.semana()
@@ -984,7 +984,7 @@ class MiSemanaTests(TestCase):
 
     def test_el_detalle_de_la_cita_esta_en_la_pagina(self):
         cita = self.cita(time(10, 30), motivo='Tose mucho')
-        respuesta = self.client.get(reverse('cuentas:inicio_veterinario'), {'semana': self.manana.isoformat()})
+        respuesta = self.client.get(reverse('panel:inicio_veterinario'), {'semana': self.manana.isoformat()})
         # Pop-up nativo: el botón de la cita lo abre sin JavaScript y sin cambiar de página
         self.assertContains(respuesta, f'popovertarget="detalle-cita-{cita.pk}"')
         self.assertContains(respuesta, f'id="detalle-cita-{cita.pk}" popover')
@@ -993,7 +993,7 @@ class MiSemanaTests(TestCase):
         self.assertContains(respuesta, 'tel:+593991112233')
 
     def test_una_semana_inventada_vuelve_a_la_actual(self):
-        respuesta = self.client.get(reverse('cuentas:inicio_veterinario'), {'semana': 'nada'})
+        respuesta = self.client.get(reverse('panel:inicio_veterinario'), {'semana': 'nada'})
         self.assertTrue(respuesta.context['semana']['es_semana_actual'])
 
 

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'cuentas',
     'mascotas',
     'citas',
+    'panel',      # la portada de cada rol: depende de las otras apps, ninguna depende de ella
 ]
 
 MIDDLEWARE = [
@@ -167,7 +168,7 @@ AUTH_USER_MODEL = 'cuentas.Usuario'
 
 # Autenticación: a donde redirigir
 LOGIN_URL = 'cuentas:login'
-LOGIN_REDIRECT_URL = 'cuentas:panel'   # /panel/ reparte a cada usuario a la portada de su rol
+LOGIN_REDIRECT_URL = 'panel:panel'   # /panel/ reparte a cada usuario a la portada de su rol
 LOGOUT_REDIRECT_URL = 'cuentas:inicio'
 
 # Doble factor (código al correo) al iniciar sesión. Render (plan gratis) bloquea el SMTP,
