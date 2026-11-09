@@ -1,27 +1,16 @@
-from django.db import models
+"""El usuario propio de Woof (AUTH_USER_MODEL = "cuentas.Usuario") y su manager."""
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import RegexValidator
-from .validators import validar_cedula
+from django.db import models
+
+from ..validators import validar_cedula
+from .roles import ROLES_DE_GESTION, Roles
 
 # Validador del formato del telefono
 validar_telefono = RegexValidator(
     regex=r'^\+\d{8,15}$',
     message='Ingresa el número en formato internacional, por ejemplo +593987654321.',
 )
-
-
-# Opciones fijas para los roles ya definidos
-class Roles(models.TextChoices):
-    CLIENTE = 'cliente', 'Cliente'
-    VETERINARIO = 'veterinario', 'Veterinario'
-    ADMINISTRADOR = 'administrador', 'Administrador'
-    SUPERADMIN = 'superadmin', 'Superadministrador'
-
-
-# Roles que administran la clínica: el superadministrador puede todo lo que hace un administrador
-ROLES_DE_GESTION = (Roles.ADMINISTRADOR, Roles.SUPERADMIN)
-# Cuentas del personal (las que gestiona el superadministrador)
-ROLES_DEL_PERSONAL = (Roles.VETERINARIO, Roles.ADMINISTRADOR, Roles.SUPERADMIN)
 
 
 class UsuarioManager(UserManager):
