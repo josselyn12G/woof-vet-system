@@ -212,6 +212,8 @@ Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 woof-vet-system/
 ├── config/              configuración del proyecto (settings.py, urls.py)
 ├── cuentas/             portada, registro, login, doble factor, roles, mixins de acceso, usuarios y equipo (superadmin)
+│   ├── models/          roles y usuario (el Usuario propio y su manager)
+│   ├── views/           acceso (portada, registro y login en dos pasos), usuarios (administrador) y equipo (superadmin)
 │   ├── forms/           acceso (registro y código) y usuarios (rol y equipo)
 │   └── services/        doble factor y política de cuentas (quién gestiona a quién)
 ├── mascotas/            CRUD de mascotas, carnet y mascotas de la clínica
@@ -246,7 +248,7 @@ woof-vet-system/
 | `Guia_Git_y_CI_CD.docx` · [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Ramas, commits y el trabajo diario paso a paso |
 | `Guia_GitHub_Projects.docx` | Issues, tablero del equipo y cómo se conectan con ramas y PRs |
 | `Arquitectura_del_Proyecto.docx` | Qué es cada archivo y cómo crear un módulo nuevo |
-| Capas de cada app | `views` recibe la petición y dibuja la plantilla; `forms` valida lo que llega; `services` hace las consultas y aplica las reglas; `models` define las tablas (en citas y mascotas, cada una es una carpeta separada por tema) |
+| Capas de cada app | `views` recibe la petición y dibuja la plantilla; `forms` valida lo que llega; `services` hace las consultas y aplica las reglas; `models` define las tablas (en cuentas, citas y mascotas, cada una es una carpeta separada por tema) |
 | `Crear_un_Modulo_Mascotas.docx` | Tutorial: módulo de mascotas completo (modelo, vistas, URLs, plantillas y pruebas) |
 | `Entorno_Virtual_Python.docx` | Qué es el `.venv`, para qué sirve y cómo usarlo |
 | `Pruebas_y_CI_CD.docx` · [CI_CD.md](docs/CI_CD.md) | Cómo escribir pruebas y cómo las valida GitHub Actions |
