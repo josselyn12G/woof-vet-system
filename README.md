@@ -215,11 +215,13 @@ woof-vet-system/
 │   ├── forms/           acceso (registro y código) y usuarios (rol y equipo)
 │   └── services/        doble factor y política de cuentas (quién gestiona a quién)
 ├── mascotas/            CRUD de mascotas, carnet y mascotas de la clínica
+│   ├── models/          catalogo (especies y razas) y mascota
 │   ├── views/           mis_mascotas, gestion y catalogo (especies y razas)
 │   ├── forms/           los mismos temas que las vistas, más los límites comunes (foto, peso, edad)
 │   ├── mixins.py        acceso a las mascotas propias y formularios de gestión
 │   └── services/        fotos, consultas de mascotas y catálogo de especies
 ├── citas/               servicios, horario, agendar, Mis citas, agenda, pacientes y gestión de citas y horarios
+│   ├── models/          servicio, horario (del veterinario) y cita
 │   ├── views/           catalogo, horarios, agendar (cliente), agenda (veterinario) y gestion
 │   ├── forms/           los mismos temas que las vistas, más los campos que comparten
 │   ├── mixins.py        el horario del veterinario (y su versión para el superadministrador)
@@ -244,7 +246,7 @@ woof-vet-system/
 | `Guia_Git_y_CI_CD.docx` · [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Ramas, commits y el trabajo diario paso a paso |
 | `Guia_GitHub_Projects.docx` | Issues, tablero del equipo y cómo se conectan con ramas y PRs |
 | `Arquitectura_del_Proyecto.docx` | Qué es cada archivo y cómo crear un módulo nuevo |
-| Capas de cada app | `views.py` recibe la petición y dibuja la plantilla; `forms.py` valida lo que llega; `services/` hace las consultas y aplica las reglas; `models.py` define las tablas |
+| Capas de cada app | `views` recibe la petición y dibuja la plantilla; `forms` valida lo que llega; `services` hace las consultas y aplica las reglas; `models` define las tablas (en citas y mascotas, cada una es una carpeta separada por tema) |
 | `Crear_un_Modulo_Mascotas.docx` | Tutorial: módulo de mascotas completo (modelo, vistas, URLs, plantillas y pruebas) |
 | `Entorno_Virtual_Python.docx` | Qué es el `.venv`, para qué sirve y cómo usarlo |
 | `Pruebas_y_CI_CD.docx` · [CI_CD.md](docs/CI_CD.md) | Cómo escribir pruebas y cómo las valida GitHub Actions |
