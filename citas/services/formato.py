@@ -1,5 +1,8 @@
-"""Textos cortos que comparten las pantallas de citas (horario, agenda y Mi semana)."""
+"""Textos cortos que comparten las pantallas de citas (horario, agenda, Mi semana y la confirmación)."""
 from datetime import datetime
+
+from django.utils import timezone
+from django.utils.formats import date_format
 
 
 def minutos(bloque):
@@ -14,3 +17,18 @@ def texto_duracion(total):
     if not horas and resto:
         return f'{resto} min'
     return f'{horas} h' + (f' {resto} min' if resto else '')
+
+
+def plural(cantidad, palabra):
+    """plural(1, "bloque") -> "1 bloque"; plural(3, "bloque") -> "3 bloques"."""
+    return f'{cantidad} {palabra}{"s" if cantidad != 1 else ""}'
+
+
+def datos_de_confirmacion(cita):
+    """Lo que se ve en el pop-up de "cita agendada": mascota, servicio, día, hora y doctor."""
+    inicio = timezone.localtime(cita.inicio)
+    return {
+        'titulo': f'{cita.mascota} tiene cita.',
+        'detalle': f'{cita.servicio} con {cita.veterinario.get_full_name() or cita.veterinario.username}',
+        'cuando': date_format(inicio, r'l j \d\e F, H:i'),
+    }

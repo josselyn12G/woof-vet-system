@@ -1,33 +1,16 @@
-import re
+"""La ficha de una mascota que llena el cliente («Mis mascotas»)."""
 from datetime import date
-from decimal import Decimal
 
 from django import forms
 from django.core.validators import FileExtensionValidator
 from django.utils import timezone
-from django.utils.text import slugify
 
-from cuentas.forms import con_estilo_del_panel
-
-from .models import Especie, Mascota, Raza
-from .services import CatalogoService, MascotaService, preparar_foto
-
-TAMANO_MAXIMO_FOTO_MB = 5
-FORMATOS_FOTO = ['jpg', 'jpeg', 'png', 'webp']  # los que muestran todos los navegadores
-PESO_MAXIMO_KG = Decimal('150')
-EDAD_MAXIMA_ANIOS = 35
-# Letras (con tildes y ñ), espacios, guion, apóstrofo y punto: "Max", "Señor Bigotes", "Pastor Alemán"
-SOLO_LETRAS = re.compile(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ '.-]*$")
-
-# Campos que el modelo deja en blanco (para el admin y los datos viejos) pero que el cliente debe llenar
-CAMPOS_OBLIGATORIOS = ['nombre', 'especie', 'sexo', 'fecha_nacimiento', 'peso_kg']
-MENSAJES_OBLIGATORIOS = {
-    'nombre': 'Escribe el nombre de tu mascota.',
-    'especie': 'Elige la especie.',
-    'sexo': 'Elige si es macho o hembra.',
-    'fecha_nacimiento': 'Indica la fecha de nacimiento (si no la sabes exacta, pon una aproximada).',
-    'peso_kg': 'Indica el peso en kilogramos.',
-}
+from ..models import Mascota
+from ..services import CatalogoService, MascotaService, preparar_foto
+from .comunes import (
+    CAMPOS_OBLIGATORIOS, EDAD_MAXIMA_ANIOS, FORMATOS_FOTO, MENSAJES_OBLIGATORIOS, PESO_MAXIMO_KG, SOLO_LETRAS,
+    TAMANO_MAXIMO_FOTO_MB,
+)
 
 
 class MascotaForm(forms.ModelForm):
@@ -147,113 +130,3 @@ class MascotaForm(forms.ModelForm):
         for nombre in self.errors:
             if nombre in self.fields:
                 self.fields[nombre].widget.attrs['class'] += ' is-invalid'
-
-
-class DuenoOpcion(forms.ModelChoiceField):
-    """En el desplegable se ve el nombre del dueño y su cédula, no su id."""
-
-    def label_from_instance(self, dueno):
-        return f'{dueno.get_full_name() or dueno.username} · {dueno.cedula}'
-
-
-class MascotaGestionForm(MascotaForm):
-    """La ficha de una mascota para el superadministrador: los mismos datos que llena el cliente y, además,
-    el dueño (solo cuentas de cliente; al editar también se acepta el dueño que ya tiene)."""
-    dueno = DuenoOpcion(
-        label='Dueño',
-        queryset=MascotaService.duenos_posibles().none(),
-        empty_label='Elige al dueño',
-        error_messages={'required': 'Elige al dueño de la mascota.',
-                        'invalid_choice': 'Elige un cliente de la lista.'},
-    )
-
-    class Meta(MascotaForm.Meta):
-        fields = ['dueno'] + MascotaForm.Meta.fields
-
-    def __init__(self, *args, **kwargs):
-        # Sin dueño fijo: el repetido se revisa en clean() con el dueño elegido
-        super().__init__(*args, dueno=None, **kwargs)
-        self.fields['dueno'].queryset = MascotaService.duenos_posibles(self.instance.dueno_id)
-
-    def clean(self):
-        datos = super().clean()
-        dueno, nombre = datos.get('dueno'), datos.get('nombre')
-        if dueno and nombre and MascotaService.nombre_repetido(dueno, nombre, self.instance.pk):
-            self.add_error('nombre', f'{dueno} ya tiene una mascota llamada {nombre}.')
-        return datos
-
-
-# ---------------------------------------------------------------------------
-# Catálogo de especies y razas (superadministrador)
-# ---------------------------------------------------------------------------
-def sin_espacios_de_mas(texto):
-    return ' '.join(texto.split())
-
-
-class EspecieForm(forms.ModelForm):
-    """Una especie del catálogo. El código (para las URLs y el CSS) se arma solo con el nombre al crearla."""
-
-    class Meta:
-        model = Especie
-        fields = ['nombre', 'plural', 'orden', 'activa']
-        labels = {'nombre': 'Nombre', 'plural': 'Nombre en plural', 'orden': 'Orden', 'activa': 'Especie activa'}
-        help_texts = {
-            'plural': 'Se usa en los filtros y las cifras: "Conejos", "Peces".',
-            'activa': 'Si la desactivas ya no se ofrece al registrar una mascota; las que la tienen la conservan.',
-        }
-        widgets = {
-            'nombre': forms.TextInput(attrs={'placeholder': 'Ej.: Conejo'}),
-            'plural': forms.TextInput(attrs={'placeholder': 'Ej.: Conejos'}),
-            'orden': forms.NumberInput(attrs={'min': 0}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        con_estilo_del_panel(self)
-
-    def clean_nombre(self):
-        nombre = sin_espacios_de_mas(self.cleaned_data['nombre'])
-        if CatalogoService.especie_repetida(nombre, self.instance.pk):
-            raise forms.ValidationError('Ya existe una especie con ese nombre.')
-        if not self.instance.pk:
-            codigo = slugify(nombre)
-            if not codigo:
-                raise forms.ValidationError('El nombre debe tener letras.')
-            if CatalogoService.codigo_usado(codigo):
-                raise forms.ValidationError('Ya existe una especie con un nombre casi igual.')
-            self.instance.codigo = codigo
-        return nombre
-
-    def clean_plural(self):
-        return sin_espacios_de_mas(self.cleaned_data['plural'])
-
-
-class EspecieOpcion(forms.ModelChoiceField):
-    def label_from_instance(self, especie):
-        return especie.nombre if especie.activa else f'{especie.nombre} (desactivada)'
-
-
-class RazaForm(forms.ModelForm):
-    """Una raza del catálogo. No se repite el nombre dentro de la misma especie."""
-    especie = EspecieOpcion(label='Especie', queryset=CatalogoService.especies(), empty_label='Elige la especie')
-
-    class Meta:
-        model = Raza
-        fields = ['especie', 'nombre', 'activa']
-        labels = {'nombre': 'Nombre', 'activa': 'Raza activa'}
-        help_texts = {'activa': 'Si la desactivas ya no se ofrece al registrar; las mascotas que la tienen la conservan.'}
-        widgets = {'nombre': forms.TextInput(attrs={'placeholder': 'Ej.: Shar Pei'})}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        con_estilo_del_panel(self)
-
-    def clean_nombre(self):
-        return sin_espacios_de_mas(self.cleaned_data['nombre'])
-
-    def clean(self):
-        datos = super().clean()
-        especie, nombre = datos.get('especie'), datos.get('nombre')
-        if especie and nombre and CatalogoService.raza_repetida(especie, nombre, self.instance.pk):
-            self.add_error('nombre', f'{especie} ya tiene la raza {nombre}.')
-        return datos
