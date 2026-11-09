@@ -76,6 +76,8 @@
                   </dl>
                 </details>
                 {% if cita.estado == 'confirmada' and cita.inicio > ahora %}
+                  {# Reprogramar abre su página (GET); el cambio se hace con el POST de ese formulario #}
+                  <a class="boton-cita" href="{% url 'citas:reprogramar' cita.pk %}"><i class="bi bi-calendar2-week" aria-hidden="true"></i>Reprogramar</a>
                   {# Cancelar es POST con CSRF: un enlace (GET) nunca cambia datos #}
                   <form method="post" action="{% url 'citas:cancelar' cita.pk %}" data-cancelar-cita
                         data-mascota="{{ cita.mascota }}" data-servicio="{{ cita.servicio }}"

@@ -648,6 +648,145 @@ class AgendarVistasTests(TestCase):
         self.assertEqual(cita.estado, EstadoCita.CONFIRMADA)
 
 
+class ReprogramarTests(TestCase):
+    """
+    Reprogramar (t67): mover una cita a otro día u hora en una sola operación.
+    Si algo falla, la cita sigue en su hora de antes: nunca se pierde la reserva.
+    """
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.cliente = crear_usuario('ana')
+        self.mascota = crear_mascota(self.cliente)
+        self.cita = AgendaService.agendar(
+            mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio, inicio=self.hora(9),
+            motivo='Control',
+        )
+        self.url = reverse('citas:reprogramar', args=[self.cita.pk])
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+
+    def ocupar(self, inicio):
+        """Otra mascota toma ese turno con el mismo veterinario."""
+        return AgendaService.agendar(
+            mascota=crear_mascota(crear_usuario('luis'), nombre='Toby'), veterinario=self.veterinario,
+            servicio=self.servicio, inicio=inicio,
+        )
+
+    # ---------- El service ----------
+    def test_mueve_la_misma_cita_y_conserva_sus_datos(self):
+        cita = AgendaService.reprogramar(self.cita, self.hora(10))
+        self.assertEqual(cita.pk, self.cita.pk)
+        self.assertEqual(Cita.objects.count(), 1)           # no se creó otra fila
+        cita.refresh_from_db()
+        self.assertEqual(cita.inicio, self.hora(10))
+        self.assertEqual(cita.fin, self.hora(10, 30))
+        self.assertEqual((cita.precio, cita.motivo, cita.estado), (Decimal('25.00'), 'Control', EstadoCita.CONFIRMADA))
+
+    def test_su_propio_turno_no_cuenta_como_ocupado(self):
+        # 9:30 queda pegado a su turno actual (9:00-9:30): no choca consigo misma
+        AgendaService.reprogramar(self.cita, self.hora(9, 30))
+        self.cita.refresh_from_db()
+        self.assertEqual(self.cita.inicio, self.hora(9, 30))
+
+    def test_si_el_turno_esta_ocupado_la_cita_se_queda_en_su_hora(self):
+        self.ocupar(self.hora(10))
+        with self.assertRaisesMessage(ValidationError, TURNO_OCUPADO):
+            AgendaService.reprogramar(self.cita, self.hora(10))
+        self.cita.refresh_from_db()
+        self.assertEqual(self.cita.inicio, self.hora(9))
+        self.assertEqual(self.cita.estado, EstadoCita.CONFIRMADA)
+
+    def test_si_la_base_rechaza_el_cambio_se_deshace_todo(self):
+        # Simula el choque que atrapa la UniqueConstraint (dos pestañas a la vez): ROLLBACK
+        with patch.object(Cita, 'save', side_effect=IntegrityError):
+            with self.assertRaisesMessage(ValidationError, TURNO_OCUPADO):
+                AgendaService.reprogramar(self.cita, self.hora(10))
+        self.cita.refresh_from_db()
+        self.assertEqual(self.cita.inicio, self.hora(9))
+
+    def test_rechaza_una_hora_fuera_del_horario_o_que_no_es_turno(self):
+        for inicio in (self.hora(11), self.hora(9, 10)):
+            with self.subTest(inicio=inicio), self.assertRaisesMessage(ValidationError, TURNO_OCUPADO):
+                AgendaService.reprogramar(self.cita, inicio)
+
+    def test_rechaza_la_misma_hora_y_una_hora_pasada(self):
+        with self.assertRaisesMessage(ValidationError, 'Esa ya es la hora de la cita'):
+            AgendaService.reprogramar(self.cita, self.hora(9))
+        with self.assertRaisesMessage(ValidationError, 'todavía no haya pasado'):
+            AgendaService.reprogramar(self.cita, timezone.now() - timedelta(hours=1))
+
+    def test_una_cita_cancelada_o_que_ya_empezo_no_se_reprograma(self):
+        AgendaService.cancelar(self.cita)
+        with self.assertRaisesMessage(ValidationError, 'Solo se puede reprogramar'):
+            AgendaService.reprogramar(self.cita, self.hora(10))
+
+        empezada = Cita.objects.create(
+            mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+            inicio=timezone.now() - timedelta(minutes=10), fin=timezone.now() + timedelta(minutes=20), precio=25,
+        )
+        self.assertFalse(AgendaService.se_puede_reprogramar(empezada))
+
+    def test_las_horas_para_reprogramar_no_incluyen_la_actual(self):
+        horas = AgendaService.horas_para_reprogramar(self.cita, self.fecha)
+        self.assertEqual(horas, [self.hora(9, 30), self.hora(10), self.hora(10, 30)])
+        self.assertIn(self.fecha, AgendaService.dias_para_reprogramar(self.cita, self.fecha.year, self.fecha.month))
+
+    # ---------- Las vistas ----------
+    def test_reprogramar_por_post_mueve_la_cita_y_va_a_mis_citas(self):
+        self.client.force_login(self.cliente)
+        respuesta = self.client.post(self.url, {'fecha': self.fecha.isoformat(), 'hora': '10:30'})
+        self.assertRedirects(respuesta, reverse('citas:mis_citas'))
+        self.cita.refresh_from_db()
+        self.assertEqual(self.cita.inicio, self.hora(10, 30))
+
+    def test_con_turno_ocupado_muestra_el_error_y_no_cambia_nada(self):
+        self.ocupar(self.hora(10))
+        self.client.force_login(self.cliente)
+        respuesta = self.client.post(self.url, {'fecha': self.fecha.isoformat(), 'hora': '10:00'})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, TURNO_OCUPADO)
+        self.cita.refresh_from_db()
+        self.assertEqual(self.cita.inicio, self.hora(9))
+
+    def test_la_pagina_muestra_la_cita_y_mis_citas_enlaza_a_ella(self):
+        self.client.force_login(self.cliente)
+        self.assertContains(self.client.get(self.url), 'Tu cita ahora')
+        self.assertContains(self.client.get(reverse('citas:mis_citas')), self.url)
+
+    def test_una_cita_cancelada_vuelve_a_mis_citas_con_aviso(self):
+        AgendaService.cancelar(self.cita)
+        self.client.force_login(self.cliente)
+        self.assertRedirects(self.client.get(self.url), reverse('citas:mis_citas'))
+
+    def test_la_cita_de_otro_cliente_responde_404(self):
+        self.client.force_login(crear_usuario('luis'))
+        for url in (self.url, reverse('citas:reprogramar_horas', args=[self.cita.pk])):
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertEqual(self.client.post(self.url, {'fecha': self.fecha.isoformat(), 'hora': '10:00'}).status_code,
+                         404)
+
+    def test_otros_roles_reciben_403(self):
+        self.client.force_login(self.veterinario)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_json_de_dias_y_horas(self):
+        self.client.force_login(self.cliente)
+        horas = self.client.get(reverse('citas:reprogramar_horas', args=[self.cita.pk]), {'fecha': self.fecha.isoformat()})
+        self.assertEqual(horas.json(), {'horas': ['09:30', '10:00', '10:30']})
+        dias = self.client.get(reverse('citas:reprogramar_dias', args=[self.cita.pk]),
+                               {'mes': f'{self.fecha:%Y-%m}'})
+        self.assertIn(self.fecha.isoformat(), dias.json()['dias'])
+        self.assertEqual(self.client.get(reverse('citas:reprogramar_dias', args=[self.cita.pk]),
+                                         {'mes': 'inventado'}).json(), {'dias': []})
+
+
 class CalendarioYAgendaTests(TestCase):
     """Días con turnos libres (calendario), la agenda del veterinario y el cierre de cada cita."""
 

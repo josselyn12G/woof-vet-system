@@ -1,4 +1,4 @@
-"""Core del cliente: agendar una cita (con su calendario en JSON), ver Mis citas y cancelar."""
+"""Core del cliente: agendar una cita (con su calendario en JSON), ver Mis citas, cancelar y reprogramar."""
 from datetime import date
 
 from django.contrib import messages
@@ -12,7 +12,7 @@ from django.views.generic import FormView, TemplateView
 from cuentas.mixins import ClienteRequeridoMixin
 from mascotas.services import MascotaService
 
-from ..forms import AgendarCitaForm
+from ..forms import AgendarCitaForm, ReprogramarCitaForm
 from ..services import VISTAS_CITAS, AgendaService, CitaService, ServicioService
 from ..services.formato import datos_de_confirmacion
 from ..services.horarios import leer_fecha
@@ -72,6 +72,16 @@ def es_fetch(request):
 
 
 
+def mes_pedido(request):
+    """(anio, mes) de ?mes=2026-11, o None si falta o no es válido."""
+    try:
+        anio, mes = (int(parte) for parte in request.GET.get('mes', '').split('-'))
+        date(anio, mes, 1)
+    except ValueError:
+        return None
+    return anio, mes
+
+
 def servicio_pedido(request):
     """El servicio activo de ?servicio=<id>, o None."""
     return ServicioService.activo(request.GET.get('servicio'))
@@ -105,15 +115,10 @@ class DiasDisponiblesView(ClienteRequeridoMixin, View):
 
     def get(self, request):
         servicio = servicio_pedido(request)
-        try:
-            anio, mes = (int(parte) for parte in request.GET.get('mes', '').split('-'))
-            date(anio, mes, 1)
-        except ValueError:
-            anio = None
-
-        if not (servicio and anio):
+        mes = mes_pedido(request)
+        if not (servicio and mes):
             return JsonResponse({'dias': []})
-        dias = AgendaService.dias_del_servicio(servicio, anio, mes)
+        dias = AgendaService.dias_del_servicio(servicio, *mes)
         return JsonResponse({'dias': [dia.isoformat() for dia in dias]})
 
 
@@ -155,3 +160,76 @@ class CancelarCitaView(ClienteRequeridoMixin, View):
         else:
             messages.success(request, f'Se canceló la cita de {cita.mascota}. El horario quedó libre.')
         return redirect('citas:mis_citas')
+
+
+class CitaDelClienteMixin:
+    """La cita de la URL, solo si es de una mascota del cliente (si no, 404 como si no existiera)."""
+
+    def get_cita(self):
+        if not hasattr(self, 'cita'):
+            self.cita = get_object_or_404(
+                CitaService.de_las_mascotas_de(self.request.user).select_related('servicio', 'veterinario'),
+                pk=self.kwargs['pk'],
+            )
+        return self.cita
+
+
+class ReprogramarCitaView(ClienteRequeridoMixin, CitaDelClienteMixin, FormView):
+    """
+    Cambia el día y la hora de una cita (mismo veterinario y servicio). La vista no mueve nada:
+    AgendaService.reprogramar() lo hace en una sola transacción y, si falla, la cita sigue en su hora.
+    """
+    form_class = ReprogramarCitaForm
+    template_name = 'citas/reprogramar.html'
+
+    def get(self, request, *args, **kwargs):
+        if not AgendaService.se_puede_reprogramar(self.get_cita()):
+            messages.error(request, 'Solo se puede reprogramar una cita confirmada que todavía no empieza.')
+            return redirect('citas:mis_citas')
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['cita'] = self.get_cita()
+        return contexto
+
+    def form_valid(self, form):
+        cita = self.get_cita()
+        anterior = timezone.localtime(cita.inicio)
+        try:
+            cita = AgendaService.reprogramar(cita, form.cleaned_data['inicio'])
+        except ValidationError as error:
+            form.add_error(None, error)
+            return self.form_invalid(form)
+
+        nueva = timezone.localtime(cita.inicio)
+        messages.success(
+            self.request,
+            f'La cita de {cita.mascota} pasó del {anterior:%d/%m} a las {anterior:%H:%M} '
+            f'al {nueva:%d/%m} a las {nueva:%H:%M}.',
+        )
+        return redirect('citas:mis_citas')
+
+
+class ReprogramarDiasView(ClienteRequeridoMixin, CitaDelClienteMixin, View):
+    """Días del mes (?mes=2026-11) con turnos libres para mover la cita; el calendario los marca."""
+
+    def get(self, request, pk):
+        mes = mes_pedido(request)
+        cita = self.get_cita()
+        if not (mes and AgendaService.se_puede_reprogramar(cita)):
+            return JsonResponse({'dias': []})
+        dias = AgendaService.dias_para_reprogramar(cita, *mes)
+        return JsonResponse({'dias': [dia.isoformat() for dia in dias]})
+
+
+class ReprogramarHorasView(ClienteRequeridoMixin, CitaDelClienteMixin, View):
+    """Horas libres de un día (?fecha=2026-11-20) para mover la cita, sin su hora actual."""
+
+    def get(self, request, pk):
+        fecha = leer_fecha(request.GET.get('fecha'))
+        cita = self.get_cita()
+        if not (fecha and AgendaService.se_puede_reprogramar(cita)):
+            return JsonResponse({'horas': []})
+        horas = AgendaService.horas_para_reprogramar(cita, fecha)
+        return JsonResponse({'horas': [f'{timezone.localtime(inicio):%H:%M}' for inicio in horas]})
