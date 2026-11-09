@@ -57,3 +57,24 @@ class AgendarCitaForm(forms.Form):
         if datos.get('fecha') and datos.get('hora'):
             datos['inicio'] = timezone.make_aware(datetime.combine(datos['fecha'], datos['hora']))
         return datos
+
+
+class ReprogramarCitaForm(forms.Form):
+    """
+    La nueva fecha y hora de una cita. Solo valida la entrada; si el turno sigue libre
+    lo decide AgendaService.reprogramar() dentro de su transacción.
+    """
+    fecha = forms.DateField(label='Nueva fecha', widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
+    hora = forms.TimeField(label='Nueva hora', input_formats=['%H:%M'])
+
+    def clean_fecha(self):
+        fecha = self.cleaned_data['fecha']
+        if fecha < timezone.localdate():
+            raise forms.ValidationError('Ese día ya pasó: elige hoy o una fecha futura.')
+        return fecha
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get('fecha') and datos.get('hora'):
+            datos['inicio'] = timezone.make_aware(datetime.combine(datos['fecha'], datos['hora']))
+        return datos

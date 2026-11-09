@@ -19,24 +19,23 @@ class AgendaService:
     """
 
     @staticmethod
-    def espacios_disponibles(veterinario, servicio, fecha):
+    def espacios_disponibles(veterinario, servicio, fecha, excluir=None):
         """
         Devuelve las horas de inicio libres del veterinario para ese servicio en esa fecha.
 
         Corta cada bloque de su horario en turnos del largo del servicio y quita
-        los que ya pasaron o se cruzan con una cita activa.
+        los que ya pasaron o se cruzan con una cita activa. Al reprogramar, excluir es la cita
+        que se va a mover: su turno actual no cuenta como ocupado.
         """
         duracion = timedelta(minutes=servicio.duracion_min)
         zona = timezone.get_current_timezone()
         ahora = timezone.now()
 
-        # Citas que ocupan tiempo ese día: todas menos las canceladas
-        ocupadas = list(
-            Cita.objects
-            .filter(veterinario=veterinario, inicio__date=fecha)
-            .exclude(estado=EstadoCita.CANCELADA)
-            .values_list('inicio', 'fin')
-        )
+        # Citas que ocupan tiempo ese día: todas menos las canceladas (y la que se reprograma)
+        citas = Cita.objects.filter(veterinario=veterinario, inicio__date=fecha).exclude(estado=EstadoCita.CANCELADA)
+        if excluir is not None:
+            citas = citas.exclude(pk=excluir.pk)
+        ocupadas = list(citas.values_list('inicio', 'fin'))
 
         espacios = []
         for bloque in HorarioVeterinario.objects.filter(veterinario=veterinario, fecha=fecha):
@@ -53,7 +52,7 @@ class AgendaService:
         return espacios
 
     @staticmethod
-    def dias_disponibles(veterinario, servicio, anio, mes):
+    def dias_disponibles(veterinario, servicio, anio, mes, excluir=None):
         """
         Devuelve los días del mes en que el veterinario tiene al menos un turno libre para el servicio.
 
@@ -64,7 +63,7 @@ class AgendaService:
             .filter(veterinario=veterinario, fecha__year=anio, fecha__month=mes, fecha__gte=timezone.localdate())
             .values_list('fecha', flat=True)
         ))
-        return [fecha for fecha in fechas if AgendaService.espacios_disponibles(veterinario, servicio, fecha)]
+        return [fecha for fecha in fechas if AgendaService.espacios_disponibles(veterinario, servicio, fecha, excluir)]
 
     @staticmethod
     def dias_del_servicio(servicio, anio, mes):
@@ -139,6 +138,65 @@ class AgendaService:
 
         cita.estado = EstadoCita.CANCELADA
         cita.save(update_fields=['estado'])
+        return cita
+
+    @staticmethod
+    def se_puede_reprogramar(cita):
+        """Solo una cita confirmada que todavía no empieza (igual que para cancelarla)."""
+        return cita.estado == EstadoCita.CONFIRMADA and cita.inicio > timezone.now()
+
+    @staticmethod
+    def dias_para_reprogramar(cita, anio, mes):
+        """Días del mes con algún turno libre para la cita, con su mismo veterinario y servicio."""
+        return AgendaService.dias_disponibles(cita.veterinario, cita.servicio, anio, mes, excluir=cita)
+
+    @staticmethod
+    def horas_para_reprogramar(cita, fecha):
+        """Horas libres de ese día para mover la cita (sin su hora actual: moverla ahí no cambia nada)."""
+        espacios = AgendaService.espacios_disponibles(cita.veterinario, cita.servicio, fecha, excluir=cita)
+        return [inicio for inicio in espacios if inicio != cita.inicio]
+
+    @staticmethod
+    def reprogramar(cita, nuevo_inicio):
+        """
+        Mueve una cita confirmada a otro día u hora, con el mismo veterinario y el mismo servicio.
+
+        Es una sola operación: dentro de una transacción, con el veterinario y la cita bloqueados, se revisa
+        el turno nuevo y se actualizan el inicio y el fin de la MISMA fila (no se cancela una y se crea otra).
+        Si algo falla, la transacción se deshace y la cita sigue en su hora de antes: nunca se pierde la reserva.
+        """
+        if nuevo_inicio <= timezone.now():
+            raise ValidationError('Elige una hora que todavía no haya pasado.')
+
+        with transaction.atomic():
+            # Primero el veterinario, como en agendar(): nadie más reserva con él hasta que esto termine.
+            # Después la propia cita: otra pestaña no puede cancelarla ni moverla al mismo tiempo
+            get_user_model().objects.select_for_update().get(pk=cita.veterinario_id)
+            cita = Cita.objects.select_for_update().select_related('servicio', 'veterinario').get(pk=cita.pk)
+
+            # Las reglas se revisan con la cita ya bloqueada (pudo cambiar desde que se abrió la página)
+            if not AgendaService.se_puede_reprogramar(cita):
+                raise ValidationError('Solo se puede reprogramar una cita confirmada que todavía no empieza.')
+            if nuevo_inicio == cita.inicio:
+                raise ValidationError('Esa ya es la hora de la cita. Elige otra.')
+            if not cita.servicio.activo:
+                raise ValidationError('Ese servicio ya no se ofrece.')
+            if not cita.servicio.veterinarios.filter(pk=cita.veterinario_id).exists():
+                raise ValidationError('El veterinario ya no atiende este servicio.')
+
+            fecha = timezone.localtime(nuevo_inicio).date()
+            if nuevo_inicio not in AgendaService.espacios_disponibles(cita.veterinario, cita.servicio, fecha,
+                                                                       excluir=cita):
+                raise ValidationError(TURNO_OCUPADO)
+
+            # La misma fila: cambia la hora, se conservan la mascota, el veterinario, el precio y el motivo
+            cita.inicio = nuevo_inicio
+            cita.fin = nuevo_inicio + timedelta(minutes=cita.servicio.duracion_min)
+            try:
+                cita.save(update_fields=['inicio', 'fin'])
+            except IntegrityError:
+                # La UniqueConstraint atrapó un choque que se coló: ROLLBACK, la cita queda en su hora anterior
+                raise ValidationError(TURNO_OCUPADO)
         return cita
 
     @staticmethod

@@ -23,6 +23,9 @@ urlpatterns = [
     path('agendar/dias/', views.DiasDisponiblesView.as_view(), name='dias_disponibles'),
     path('mis-citas/', views.MisCitasView.as_view(), name='mis_citas'),
     path('mis-citas/<int:pk>/cancelar/', views.CancelarCitaView.as_view(), name='cancelar'),
+    path('mis-citas/<int:pk>/reprogramar/', views.ReprogramarCitaView.as_view(), name='reprogramar'),
+    path('mis-citas/<int:pk>/reprogramar/dias/', views.ReprogramarDiasView.as_view(), name='reprogramar_dias'),
+    path('mis-citas/<int:pk>/reprogramar/horas/', views.ReprogramarHorasView.as_view(), name='reprogramar_horas'),
     # Core: la agenda del veterinario (solo sus citas)
     path('agenda/', views.AgendaVeterinarioView.as_view(), name='agenda'),
     path('agenda/<int:pk>/resultado/', views.ResultadoCitaView.as_view(), name='resultado'),

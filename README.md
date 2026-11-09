@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-282%20pasan-2e7d32" alt="282 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-297%20pasan-2e7d32" alt="297 pruebas pasan">
 </p>
 
 <p align="center">
@@ -89,7 +89,7 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 - **Agendar (cliente):** en un pop-up dentro de Mis citas: mascota, servicio, calendario con los días que tienen horas libres y las horas agrupadas por doctor.
   - Los turnos se calculan cortando el horario del veterinario en bloques del largo del servicio.
   - Dos clientes no pueden ganar el mismo turno: la reserva se guarda en una transacción con la fila del veterinario bloqueada, y la base tiene un índice único como respaldo.
-- **Mis citas (cliente):** próximas, pasadas y canceladas; cancelar con confirmación, lo que libera el turno.
+- **Mis citas (cliente):** próximas, pasadas y canceladas; cancelar con confirmación, lo que libera el turno; reprogramar a otro día u hora con el mismo veterinario y servicio, en una sola operación: si el nuevo turno ya no está libre, la cita se queda en su hora.
 - **Mi semana (inicio del veterinario):** los 7 días en columnas, con su horario de fondo y las citas reservadas encima; al tocar una cita se abre un pop-up con la mascota, el servicio, la hora, el motivo y el dueño (con botón para llamar).
 - **Agenda (veterinario):** las citas del día y el cierre de cada una como «atendida» o «no asistió».
 - **Pacientes (veterinario):** mascotas con su dueño, buscador por nombre, cédula o teléfono, y filtro «mis pacientes».
@@ -183,13 +183,13 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-282 pruebas:
+297 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
 | `cuentas` | 63 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo (superadministrador), destino correcto después del login y services de cuentas |
 | `mascotas` | 84 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos y gestión de mascotas de la clínica |
-| `citas` | 132 | Servicios, horario en columnas, Mi semana y agenda del veterinario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes, gestión de citas y horarios, y acceso por rol |
+| `citas` | 147 | Servicios, horario en columnas, Mi semana y agenda del veterinario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, reprogramar (sin perder la reserva si falla), agenda, pacientes, gestión de citas y horarios, y acceso por rol |
 | `panel` | 3 | Redirección a la portada de cada rol, períodos inventados en la URL y cálculo de variaciones |
 
 Durante las pruebas no se envían correos reales: Django los guarda en memoria.
@@ -223,7 +223,7 @@ woof-vet-system/
 │   ├── views/           catalogo, horarios, agendar (cliente), agenda (veterinario) y gestion
 │   ├── forms/           los mismos temas que las vistas, más los campos que comparten
 │   ├── mixins.py        el horario del veterinario (y su versión para el superadministrador)
-│   └── services/        AgendaService (turnos, agendar, cancelar), catálogo, horarios y consultas de citas
+│   └── services/        AgendaService (turnos, agendar, cancelar, reprogramar), catálogo, horarios y consultas de citas
 ├── panel/               la portada de cada rol después del login (depende de las otras apps; ninguna depende de ella)
 │   └── services/        cifras de cada portada y períodos de las estadísticas
 ├── templates/           plantillas comunes (base.html y panel_base.html)

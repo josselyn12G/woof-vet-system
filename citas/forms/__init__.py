@@ -5,16 +5,16 @@ con significado (¿lo atiende?, ¿se repite el nombre?) se las piden a los servi
 - campos: campos que comparten varios formularios (veterinario en casillas o desplegable, selector de hora).
 - catalogo: un servicio de la clínica.
 - horarios: un bloque de Mi horario y los servicios que atiende el veterinario.
-- agendar: la reserva del cliente.
+- agendar: la reserva del cliente y la nueva hora al reprogramarla.
 - gestion: los filtros de la gestión de citas.
 """
-from .agendar import AgendarCitaForm
+from .agendar import AgendarCitaForm, ReprogramarCitaForm
 from .campos import SelectorHora, VeterinarioCasillas, VeterinarioOpcion
 from .catalogo import ServicioForm
 from .gestion import FiltroCitasForm
 from .horarios import HorarioForm, MisServiciosForm
 
 __all__ = [
-    'AgendarCitaForm', 'FiltroCitasForm', 'HorarioForm', 'MisServiciosForm', 'SelectorHora', 'ServicioForm',
+    'AgendarCitaForm', 'FiltroCitasForm', 'HorarioForm', 'MisServiciosForm', 'ReprogramarCitaForm', 'SelectorHora', 'ServicioForm',
     'VeterinarioCasillas', 'VeterinarioOpcion',
 ]
