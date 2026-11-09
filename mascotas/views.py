@@ -24,7 +24,7 @@ class MascotasDelUsuarioMixin(LoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.user.rol not in self.roles_permitidos:
-            return redirect('cuentas:panel')
+            return redirect('panel:panel')
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):

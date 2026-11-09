@@ -2,6 +2,7 @@ import secrets
 import time
 from email.mime.image import MIMEImage
 
+from django.contrib.auth import get_user_model, login
 from django.contrib.staticfiles import finders
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -59,6 +60,24 @@ def verificar_codigo(request, codigo_escrito):
     del request.session['codigo_2fa']
     del request.session['codigo_2fa_vence']
     return True
+
+
+def iniciar_login_pendiente(request, usuario, siguiente):
+    """Primer paso: recuerda en la sesión quién pasó la contraseña y a dónde iba, y le envía el código."""
+    request.session['pre_2fa_user'] = usuario.pk   # la sesión es JSON: se guarda el pk, no el objeto
+    request.session['pre_2fa_next'] = siguiente    # a dónde ir al terminar (respeta ?next=)
+    enviar_codigo(request, usuario)
+
+
+def completar_login(request):
+    """Segundo paso, con el código ya verificado: inicia la sesión y devuelve a dónde ir.
+
+    Los datos se sacan de la sesión antes del login(), que cambia la llave de la sesión por seguridad.
+    """
+    pk = request.session.pop('pre_2fa_user')
+    siguiente = request.session.pop('pre_2fa_next', '/')
+    login(request, get_user_model().objects.get(pk=pk))
+    return siguiente
 
 
 def hay_login_pendiente(request):

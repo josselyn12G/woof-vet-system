@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-249%20pasan-2e7d32" alt="249 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-282%20pasan-2e7d32" alt="282 pruebas pasan">
 </p>
 
 <p align="center">
@@ -183,13 +183,14 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-249 pruebas:
+282 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 63 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo (superadministrador) y destino correcto después del login |
-| `mascotas` | 64 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos y gestión de mascotas de la clínica |
-| `citas` | 122 | Servicios, horario en columnas, Mi semana y agenda del veterinario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes, gestión de citas y horarios, y acceso por rol |
+| `cuentas` | 63 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo (superadministrador), destino correcto después del login y services de cuentas |
+| `mascotas` | 84 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos y gestión de mascotas de la clínica |
+| `citas` | 132 | Servicios, horario en columnas, Mi semana y agenda del veterinario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, agenda, pacientes, gestión de citas y horarios, y acceso por rol |
+| `panel` | 3 | Redirección a la portada de cada rol, períodos inventados en la URL y cálculo de variaciones |
 
 Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 
@@ -210,12 +211,14 @@ Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 ```
 woof-vet-system/
 ├── config/              configuración del proyecto (settings.py, urls.py)
-├── cuentas/             portada, registro, login, doble factor, roles, panel de cada rol y equipo (superadmin)
-│   └── services/        doble factor, política de cuentas (quién gestiona a quién) y cifras de cada portada
+├── cuentas/             portada, registro, login, doble factor, roles, mixins de acceso, usuarios y equipo (superadmin)
+│   └── services/        doble factor y política de cuentas (quién gestiona a quién)
 ├── mascotas/            CRUD de mascotas, carnet y mascotas de la clínica
 │   └── services/        fotos y consultas de mascotas
 ├── citas/               servicios, horario, agendar, Mis citas, agenda, pacientes y gestión de citas y horarios
 │   └── services/        AgendaService (turnos, agendar, cancelar), catálogo, horarios y consultas de citas
+├── panel/               la portada de cada rol después del login (depende de las otras apps; ninguna depende de ella)
+│   └── services/        cifras de cada portada y períodos de las estadísticas
 ├── templates/           plantillas comunes (base.html y panel_base.html)
 ├── static/              CSS, JavaScript e imágenes comunes
 ├── docs/                guías del equipo, historias de usuario y modelo de datos
