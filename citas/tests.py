@@ -1337,3 +1337,47 @@ class BloqueConCitasTests(TestCase):
                                      follow=True)
         self.assertTrue(HorarioVeterinario.objects.filter(pk=self.bloque.pk).exists())
         self.assertContains(respuesta, 'Este bloque tiene 1 cita confirmada.')
+
+    def editar(self, inicio, fin, fecha=None):
+        return self.client.post(reverse('citas:horario_editar', args=[self.bloque.pk]), {
+            'fecha': (fecha or self.manana).isoformat(), 'hora_inicio': inicio, 'hora_fin': fin,
+        })
+
+    def assertBloqueIntacto(self):
+        self.bloque.refresh_from_db()
+        self.assertEqual((self.bloque.fecha, self.bloque.hora_inicio, self.bloque.hora_fin),
+                         (self.manana, time(9), time(13)))
+
+    def test_recortar_dejando_fuera_una_cita_confirmada_falla(self):
+        respuesta = self.editar('09:00', '11:00')
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Con este cambio, 1 cita confirmada quedaría fuera del bloque.')
+        self.assertBloqueIntacto()
+
+    def test_mover_el_bloque_a_otro_dia_falla(self):
+        self.editar('09:00', '13:00', fecha=self.manana + timedelta(days=1))
+        self.assertBloqueIntacto()
+
+    def test_recortar_sin_dejar_fuera_la_cita_si_se_puede(self):
+        self.editar('11:00', '12:30')
+        self.bloque.refresh_from_db()
+        self.assertEqual((self.bloque.hora_inicio, self.bloque.hora_fin), (time(11), time(12, 30)))
+
+    def test_ampliar_el_bloque_si_se_puede(self):
+        self.editar('08:00', '15:00')
+        self.bloque.refresh_from_db()
+        self.assertEqual((self.bloque.hora_inicio, self.bloque.hora_fin), (time(8), time(15)))
+
+    def test_recortar_con_la_cita_cancelada_o_atendida_si_se_puede(self):
+        for estado in (EstadoCita.CANCELADA, EstadoCita.ATENDIDA):
+            with self.subTest(estado=estado):
+                Cita.objects.filter(pk=self.cita.pk).update(estado=estado)
+                HorarioVeterinario.objects.filter(pk=self.bloque.pk).update(hora_fin=time(13))
+                self.editar('09:00', '11:00')
+                self.bloque.refresh_from_db()
+                self.assertEqual(self.bloque.hora_fin, time(11))
+
+    def test_validar_cambio_cuenta_las_citas_que_quedan_fuera(self):
+        with self.assertRaisesMessage(ValidationError, 'Reprográmala o cancélala primero.'):
+            HorarioService.validar_cambio(self.bloque, self.manana, time(9), time(12, 15))
+        HorarioService.validar_cambio(self.bloque, self.manana, time(12), time(12, 30))   # cabe justo

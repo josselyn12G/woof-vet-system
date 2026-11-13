@@ -72,6 +72,26 @@ class HorarioService:
                 f'Reprográma{pronombre} o cancéla{pronombre} primero.')
 
     @staticmethod
+    def validar_cambio(bloque, fecha, hora_inicio, hora_fin):
+        """Al editar (recortar o mover) un bloque guardado: si alguna de sus citas confirmadas queda fuera
+        del nuevo día u horario, no se permite el cambio (RF-09). Ampliar el bloque sí se puede."""
+        fuera = 0
+        for cita in HorarioService.citas_dentro(bloque):
+            inicio, fin = timezone.localtime(cita.inicio), timezone.localtime(cita.fin)
+            if not (inicio.date() == fecha and inicio.time() >= hora_inicio and fin.time() <= hora_fin):
+                fuera += 1
+        if fuera:
+            raise ValidationError(HorarioService.aviso_citas_fuera(fuera))
+
+    @staticmethod
+    def aviso_citas_fuera(cantidad):
+        """"Con este cambio, 2 citas confirmadas quedarían fuera del bloque. Reprográmalas o cancélalas primero." """
+        confirmadas = '1 cita confirmada quedaría' if cantidad == 1 else f'{cantidad} citas confirmadas quedarían'
+        pronombre = 'la' if cantidad == 1 else 'las'
+        return (f'Con este cambio, {confirmadas} fuera del bloque. '
+                f'Reprográma{pronombre} o cancéla{pronombre} primero.')
+
+    @staticmethod
     def quitar_bloque(bloque):
         """Borra el bloque y devuelve su fecha (para volver a esa semana). Si tiene citas confirmadas no se
         borra: quedarían fuera del horario (RF-09)."""
