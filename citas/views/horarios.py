@@ -74,12 +74,16 @@ class HorarioEditarView(HorarioDelVeterinarioMixin, SuccessMessageMixin, UpdateV
 
 
 class HorarioEliminarView(HorarioDelVeterinarioMixin, DeleteView):
-    """Solo POST (el botón pide confirmación en el navegador). Cuando exista Cita, aquí se debe impedir
-    quitar un bloque que ya tiene citas reservadas (HU-26)."""
+    """Solo POST (el botón pide confirmación en el navegador). Un bloque con citas confirmadas no se quita:
+    se avisa y el bloque queda como estaba (RF-09)."""
     http_method_names = ['post']
 
     def form_valid(self, form):
-        fecha = HorarioService.quitar_bloque(self.object)
+        try:
+            fecha = HorarioService.quitar_bloque(self.object)
+        except ValidationError as error:
+            messages.error(self.request, error.messages[0])
+            return redirect(self.url_semana(self.object.fecha))
         messages.success(self.request, f'Se quitó el bloque de {self.el_horario}.')
         return redirect(self.url_semana(fecha))
 
