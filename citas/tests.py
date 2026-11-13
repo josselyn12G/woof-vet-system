@@ -1279,3 +1279,61 @@ class GestionHorarioVeterinarioTests(TestCase):
         self.assertContains(self.client.get(reverse('citas:gestion_horarios')), enlace)
         self.client.force_login(crear_usuario('laura', rol=Roles.ADMINISTRADOR))
         self.assertNotContains(self.client.get(reverse('citas:gestion_horarios')), enlace)
+
+
+class BloqueConCitasTests(TestCase):
+    """RF-09: un bloque con citas confirmadas no se puede quitar; las atendidas, no asistió y canceladas
+    no lo impiden. Sofía atiende mañana de 09:00 a 13:00 y Milo tiene una consulta a las 12:00."""
+
+    def setUp(self):
+        self.sofia = crear_veterinario()
+        self.client.force_login(self.sofia)
+        self.manana = timezone.localdate() + timedelta(days=1)
+        self.bloque = crear_horario(self.sofia, time(9), time(13), fecha=self.manana)
+        self.cita = Cita.objects.create(
+            mascota=crear_mascota(crear_usuario('ana')), veterinario=self.sofia, servicio=crear_servicio(),
+            inicio=self.hora(12), fin=self.hora(12, 30), precio=Decimal('25.00'),
+        )
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.manana, time(horas, minutos)))
+
+    def quitar(self):
+        return self.client.post(reverse('citas:horario_eliminar', args=[self.bloque.pk]), follow=True)
+
+    def test_citas_dentro_solo_cuenta_las_confirmadas_del_bloque(self):
+        # Una cita de otro día y otra de otro veterinario no son de este bloque
+        Cita.objects.create(mascota=self.cita.mascota, veterinario=self.sofia, servicio=self.cita.servicio,
+                            inicio=self.hora(12) + timedelta(days=1), fin=self.hora(12, 30) + timedelta(days=1),
+                            precio=Decimal('25.00'))
+        Cita.objects.create(mascota=self.cita.mascota, veterinario=crear_veterinario('mateo'),
+                            servicio=self.cita.servicio, inicio=self.hora(10), fin=self.hora(10, 30),
+                            precio=Decimal('25.00'))
+        self.assertEqual(list(HorarioService.citas_dentro(self.bloque)), [self.cita])
+
+    def test_quitar_bloque_con_una_cita_confirmada_lo_rechaza(self):
+        aviso = 'Este bloque tiene 1 cita confirmada. Reprográmala o cancélala primero.'
+        with self.assertRaisesMessage(ValidationError, aviso):
+            HorarioService.quitar_bloque(self.bloque)
+        self.assertTrue(HorarioVeterinario.objects.filter(pk=self.bloque.pk).exists())
+
+    def test_borrar_desde_la_vista_deja_el_bloque_y_muestra_el_error(self):
+        respuesta = self.quitar()
+        self.assertTrue(HorarioVeterinario.objects.filter(pk=self.bloque.pk).exists())
+        self.assertContains(respuesta, 'Este bloque tiene 1 cita confirmada.')
+        self.assertNotContains(respuesta, 'Se quitó el bloque')
+
+    def test_con_la_cita_cancelada_atendida_o_no_asistio_si_se_puede_quitar(self):
+        for estado in (EstadoCita.CANCELADA, EstadoCita.ATENDIDA, EstadoCita.NO_ASISTIO):
+            with self.subTest(estado=estado):
+                Cita.objects.filter(pk=self.cita.pk).update(estado=estado)
+                self.assertEqual(HorarioService.citas_dentro(self.bloque).count(), 0)
+        self.assertContains(self.quitar(), 'Se quitó el bloque')
+        self.assertFalse(HorarioVeterinario.objects.exists())
+
+    def test_el_superadministrador_tampoco_puede_quitarlo(self):
+        self.client.force_login(crear_usuario('sara', rol=Roles.SUPERADMIN))
+        respuesta = self.client.post(reverse('citas:gestion_horario_eliminar', args=[self.sofia.pk, self.bloque.pk]),
+                                     follow=True)
+        self.assertTrue(HorarioVeterinario.objects.filter(pk=self.bloque.pk).exists())
+        self.assertContains(respuesta, 'Este bloque tiene 1 cita confirmada.')

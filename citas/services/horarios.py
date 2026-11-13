@@ -55,8 +55,29 @@ class HorarioService:
         return HorarioVeterinario.objects.values_list('fecha', flat=True).get(pk=bloque.pk)
 
     @staticmethod
+    def citas_dentro(bloque):
+        """Las citas confirmadas del veterinario que caen dentro del bloque: ese día, desde su hora de
+        inicio y hasta su hora de fin. Las atendidas, no asistió y canceladas no cuentan (RF-09)."""
+        return Cita.objects.filter(
+            veterinario_id=bloque.veterinario_id, estado=EstadoCita.CONFIRMADA, inicio__date=bloque.fecha,
+            inicio__time__gte=bloque.hora_inicio, fin__time__lte=bloque.hora_fin,
+        )
+
+    @staticmethod
+    def aviso_citas_dentro(cantidad):
+        """"Este bloque tiene 2 citas confirmadas. Reprográmalas o cancélalas primero." """
+        confirmadas = 'cita confirmada' if cantidad == 1 else 'citas confirmadas'
+        pronombre = 'la' if cantidad == 1 else 'las'
+        return (f'Este bloque tiene {cantidad} {confirmadas}. '
+                f'Reprográma{pronombre} o cancéla{pronombre} primero.')
+
+    @staticmethod
     def quitar_bloque(bloque):
-        """Borra el bloque y devuelve su fecha (para volver a esa semana)."""
+        """Borra el bloque y devuelve su fecha (para volver a esa semana). Si tiene citas confirmadas no se
+        borra: quedarían fuera del horario (RF-09)."""
+        cantidad = HorarioService.citas_dentro(bloque).count()
+        if cantidad:
+            raise ValidationError(HorarioService.aviso_citas_dentro(cantidad))
         fecha = bloque.fecha
         bloque.delete()
         return fecha
