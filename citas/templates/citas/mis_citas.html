@@ -60,7 +60,7 @@
                 <span class="tarjeta-cita__icono" aria-hidden="true"><i class="bi {{ cita.servicio.icono }}"></i></span>
                 <span>
                   <strong>{{ cita.servicio }}</strong>
-                  <span class="tarjeta-cita__detalle"><i class="bi bi-person" aria-hidden="true"></i>{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</span>
+                  <a class="tarjeta-cita__detalle tarjeta-cita__vet" href="{% url 'citas:perfil_veterinario' cita.veterinario.pk %}"><i class="bi bi-person" aria-hidden="true"></i>{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</a>
                 </span>
               </div>
 
@@ -75,6 +75,11 @@
                     <div><dt>Agendada el</dt><dd>{{ cita.creado|date:'j \d\e F, H:i' }}</dd></div>
                   </dl>
                 </details>
+                {% if cita.por_calificar %}
+                  <a class="boton-cita boton-cita--acento" href="{% url 'citas:calificar' cita.pk %}"><i class="bi bi-star" aria-hidden="true"></i>Calificar</a>
+                {% elif cita.calificacion %}
+                  <span class="tarjeta-cita__calificada" aria-label="La calificaste con {{ cita.calificacion.estrellas }} de 5 estrellas">{% for n in '12345' %}<i class="bi {% if forloop.counter <= cita.calificacion.estrellas %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</span>
+                {% endif %}
                 {% if cita.estado == 'confirmada' and cita.inicio > ahora %}
                   {# Reprogramar abre su página (GET); el cambio se hace con el POST de ese formulario #}
                   <a class="boton-cita" href="{% url 'citas:reprogramar' cita.pk %}"><i class="bi bi-calendar2-week" aria-hidden="true"></i>Reprogramar</a>
@@ -150,6 +155,16 @@
           </span>
         </a>
       {% endif %}
+
+      {# Calificación promedio que el cliente ha dado (wireframe 2) #}
+      <section class="lado-cita" aria-labelledby="lado-calificacion">
+        <h2 class="lado-cita__cabecera" id="lado-calificacion"><i class="bi bi-star" aria-hidden="true"></i><span class="lado-cita__titulo">Tu calificación promedio</span></h2>
+        {% if promedio_dado is not None %}
+          <p class="lado-calificacion"><strong>{{ promedio_dado|floatformat:1 }}</strong><i class="bi bi-star-fill" aria-hidden="true"></i><span>de 5, en las citas que calificaste</span></p>
+        {% else %}
+          <p class="lado-calificacion lado-calificacion--vacio">Aún no calificas ninguna cita. Cuando una cita quede atendida, podrás calificarla.</p>
+        {% endif %}
+      </section>
 
       <section class="lado-cita lado-cita--lista" aria-labelledby="lado-mascotas">
         <h2 class="lado-cita__cabecera" id="lado-mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="lado-cita__titulo">Mascotas</span></h2>

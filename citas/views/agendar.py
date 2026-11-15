@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import FormView, TemplateView
@@ -13,7 +14,7 @@ from cuentas.mixins import ClienteRequeridoMixin
 from mascotas.services import MascotaService
 
 from ..forms import AgendarCitaForm, ReprogramarCitaForm
-from ..services import VISTAS_CITAS, AgendaService, CitaService, ServicioService
+from ..services import VISTAS_CITAS, AgendaService, CalificacionService, CitaService, ServicioService
 from ..services.formato import datos_de_confirmacion
 from ..services.horarios import leer_fecha
 
@@ -103,6 +104,7 @@ class TurnosDelDiaView(ClienteRequeridoMixin, View):
             {
                 'veterinario': veterinario.pk,
                 'nombre': veterinario.get_full_name() or veterinario.username,
+                'perfil': reverse('citas:perfil_veterinario', args=[veterinario.pk]),
                 'horas': [f'{timezone.localtime(inicio):%H:%M}' for inicio in espacios],
             }
             for veterinario, espacios in AgendaService.turnos_del_dia(servicio, fecha)
@@ -144,6 +146,8 @@ class MisCitasView(ClienteRequeridoMixin, TemplateView):
             'mascotas': MascotaService.del_dueno(self.request.user).order_by('nombre'),
             'hoy': timezone.localdate(),
             'ahora': timezone.now(),
+            # El indicador "Calificación promedio" del wireframe 2: lo que el cliente ha dado
+            'promedio_dado': CalificacionService.promedio_dado_por(self.request.user),
         })
         return contexto
 

@@ -7,14 +7,16 @@ con significado (¿lo atiende?, ¿se repite el nombre?) se las piden a los servi
 - horarios: un bloque de Mi horario y los servicios que atiende el veterinario.
 - agendar: la reserva del cliente y la nueva hora al reprogramarla.
 - gestion: los filtros de la gestión de citas.
+- calificar: las estrellas y el comentario del cliente sobre una cita atendida.
 """
 from .agendar import AgendarCitaForm, ReprogramarCitaForm
+from .calificar import CalificarCitaForm
 from .campos import SelectorHora, VeterinarioCasillas, VeterinarioOpcion
 from .catalogo import ServicioForm
 from .gestion import FiltroCitasForm
 from .horarios import HorarioForm, MisServiciosForm
 
 __all__ = [
-    'AgendarCitaForm', 'FiltroCitasForm', 'HorarioForm', 'MisServiciosForm', 'ReprogramarCitaForm', 'SelectorHora', 'ServicioForm',
-    'VeterinarioCasillas', 'VeterinarioOpcion',
+    'AgendarCitaForm', 'CalificarCitaForm', 'FiltroCitasForm', 'HorarioForm', 'MisServiciosForm', 'ReprogramarCitaForm',
+    'SelectorHora', 'ServicioForm', 'VeterinarioCasillas', 'VeterinarioOpcion',
 ]

@@ -1,0 +1,20 @@
+{# La reputación de un veterinario: promedio, cuántas opiniones y la distribución por estrellas. Recibe "reputacion" #}
+<div class="reputacion">
+  {% if reputacion.total %}
+    <p class="reputacion__promedio">
+      <strong>{{ reputacion.promedio|floatformat:1 }}</strong>
+      <span>/ 5 · {{ reputacion.total }} {% if reputacion.total == 1 %}opinión{% else %}opiniones{% endif %}</span>
+    </p>
+    <ul class="reputacion__barras" aria-label="Opiniones por cantidad de estrellas">
+      {% for fila in reputacion.distribucion %}
+        <li>
+          <span class="reputacion__etiqueta">{{ fila.estrellas }} <i class="bi bi-star-fill" aria-hidden="true"></i><span class="visually-hidden">estrellas</span></span>
+          <span class="reputacion__barra" aria-hidden="true"><span style="width: {{ fila.porcentaje }}%"></span></span>
+          <span class="reputacion__cifra">{{ fila.porcentaje }} %</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="reputacion__vacio">Todavía nadie lo ha calificado.</p>
+  {% endif %}
+</div>

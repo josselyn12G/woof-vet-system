@@ -1,0 +1,57 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}{{ veterinario.get_full_name|default:veterinario.username }} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-person-badge{% endblock %}
+{% block panel_seccion %}Veterinario{% endblock %}
+{% block panel_titulo %}{{ veterinario.get_full_name|default:veterinario.username }}{% endblock %}
+{% block panel_subtitulo %}{{ perfil.especialidad|default:'Veterinario de la clínica' }}{% if perfil.anios_experiencia %} · {{ perfil.anios_experiencia }} año{{ perfil.anios_experiencia|pluralize }} de experiencia{% endif %}{% endblock %}
+{% block panel_acciones %}
+  {% if user.es_cliente %}<a class="boton-panel" href="{% url 'citas:agendar' %}"><i class="bi bi-calendar-plus" aria-hidden="true"></i>Agendar cita</a>{% endif %}
+{% endblock %}
+
+{% block panel_contenido %}
+  <div class="perfil-vet">
+    <div class="perfil-vet__principal">
+      <section class="bloque-panel perfil-vet__ficha" aria-label="Sobre el veterinario">
+        <span class="inicial inicial--veterinario calificar__avatar" aria-hidden="true">{{ veterinario.first_name|default:veterinario.username|slice:':1'|upper }}{{ veterinario.last_name|slice:':1'|upper }}</span>
+        <div>
+          <h2 class="bloque-panel__titulo">Sobre {{ veterinario.first_name|default:veterinario.username }}</h2>
+          <p class="calificar__detalle">{{ perfil.descripcion|default:'Todavía no agregó una descripción.'|linebreaksbr }}</p>
+          {% if servicios %}
+            <ul class="perfil-vet__servicios" aria-label="Servicios que atiende">
+              {% for servicio in servicios %}<li><i class="bi {{ servicio.icono }}" aria-hidden="true"></i>{{ servicio }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="bloque-panel" aria-labelledby="opiniones-titulo">
+        <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio" id="opiniones-titulo">Opiniones recientes</h2>
+        {% for opinion in reputacion.recientes %}
+          <article class="opinion">
+            <p class="opinion__cabecera">
+              {# Solo el nombre y la inicial del apellido del dueño: no se expone a quién más atendió #}
+              <strong>{{ opinion.cita.mascota.dueno.first_name|default:'Cliente' }}{% if opinion.cita.mascota.dueno.last_name %} {{ opinion.cita.mascota.dueno.last_name|slice:':1' }}.{% endif %}</strong>
+              <span class="opinion__estrellas" aria-label="{{ opinion.estrellas }} de 5 estrellas">{% for n in '12345' %}<i class="bi {% if forloop.counter <= opinion.estrellas %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</span>
+              <span class="opinion__fecha">{{ opinion.cita.servicio }} · {{ opinion.creado|date:'j M Y' }}</span>
+            </p>
+            {% if opinion.comentario %}<p class="opinion__texto">{{ opinion.comentario }}</p>{% endif %}
+          </article>
+        {% empty %}
+          <p class="reputacion__vacio">Cuando sus pacientes califiquen la atención, sus opiniones aparecerán aquí.</p>
+        {% endfor %}
+      </section>
+    </div>
+
+    <aside class="bloque-panel perfil-vet__lado" aria-label="Calificación">
+      <h2 class="bloque-panel__titulo">Calificación</h2>
+      {% include 'citas/_reputacion.html' %}
+    </aside>
+  </div>
+{% endblock %}

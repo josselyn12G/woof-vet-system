@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from citas.models import Cita, EstadoCita, HorarioVeterinario
+from citas.models import ESTRELLAS_MAX, ESTRELLAS_MIN, Calificacion, Cita, EstadoCita, HorarioVeterinario
 from cuentas.services import VERIFICADO, PerfilVeterinarioService
 
 TURNO_OCUPADO = 'Ese horario ya no está disponible. Elige otra hora.'
@@ -206,6 +206,29 @@ class AgendaService:
                 # La UniqueConstraint atrapó un choque que se coló: ROLLBACK, la cita queda en su hora anterior
                 raise ValidationError(TURNO_OCUPADO)
         return cita
+
+    @staticmethod
+    def calificar(cita, cliente, estrellas, comentario=''):
+        """
+        El cliente califica una cita atendida de una de sus mascotas, de 1 a 5 estrellas, una sola vez (RF-21).
+
+        Si dos envíos llegan a la vez, el OneToOne de la base deja pasar solo uno; el otro recibe el mismo aviso.
+        """
+        if cita.mascota.dueno_id != cliente.pk:
+            raise ValidationError('Solo puedes calificar las citas de tus mascotas.')
+        if cita.estado != EstadoCita.ATENDIDA:
+            raise ValidationError('Solo se puede calificar una cita atendida.')
+        if not (isinstance(estrellas, int) and ESTRELLAS_MIN <= estrellas <= ESTRELLAS_MAX):
+            raise ValidationError('Elige de 1 a 5 estrellas.')
+
+        ya_calificada = ValidationError('Ya calificaste esta cita: solo se califica una vez.')
+        if Calificacion.objects.filter(cita=cita).exists():
+            raise ya_calificada
+        try:
+            with transaction.atomic():
+                return Calificacion.objects.create(cita=cita, estrellas=estrellas, comentario=comentario.strip())
+        except IntegrityError:
+            raise ya_calificada
 
     @staticmethod
     def registrar_resultado(cita, estado):

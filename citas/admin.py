@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import HorarioVeterinario, Servicio
+from .models import Calificacion, HorarioVeterinario, Servicio
 
 
 @admin.register(Servicio)
@@ -19,3 +19,11 @@ class HorarioVeterinarioAdmin(admin.ModelAdmin):
     search_fields = ['veterinario__username', 'veterinario__first_name', 'veterinario__last_name']
     list_select_related = ['veterinario']
     date_hierarchy = 'fecha'
+
+
+@admin.register(Calificacion)
+class CalificacionAdmin(admin.ModelAdmin):
+    list_display = ['cita', 'estrellas', 'creado']
+    list_filter = ['estrellas']
+    search_fields = ['cita__mascota__nombre', 'cita__veterinario__first_name', 'cita__veterinario__last_name']
+    list_select_related = ['cita', 'cita__mascota']

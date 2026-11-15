@@ -5,9 +5,11 @@ Django los encuentra porque se importan aquí; el resto del código sigue usando
 - servicio: los servicios de la clínica y los veterinarios que los atienden.
 - horario: los bloques de Mi horario del veterinario.
 - cita: la reserva y sus estados (confirmada, atendida, no asistió, cancelada).
+- calificacion: las estrellas y el comentario del cliente sobre una cita atendida.
 """
+from .calificacion import ESTRELLAS_MAX, ESTRELLAS_MIN, Calificacion
 from .cita import Cita, EstadoCita
 from .horario import HorarioVeterinario
 from .servicio import Servicio
 
-__all__ = ['Cita', 'EstadoCita', 'HorarioVeterinario', 'Servicio']
+__all__ = ['Calificacion', 'Cita', 'ESTRELLAS_MAX', 'ESTRELLAS_MIN', 'EstadoCita', 'HorarioVeterinario', 'Servicio']
