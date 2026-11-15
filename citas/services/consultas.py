@@ -39,8 +39,12 @@ class CitaService:
         """
         ahora = timezone.now()
         citas = con_foto_de_la_mascota(
-            Cita.objects.filter(mascota__dueno=cliente).select_related('mascota', 'servicio', 'veterinario')
+            Cita.objects.filter(mascota__dueno=cliente)
+            .select_related('mascota', 'servicio', 'veterinario', 'calificacion')
         )
+        for cita in citas:
+            # Atendida y sin calificación: la tarjeta muestra el botón "Calificar"
+            cita.por_calificar = cita.estado == EstadoCita.ATENDIDA and not hasattr(cita, 'calificacion')
         proximas = [c for c in citas if c.estado == EstadoCita.CONFIRMADA and c.inicio > ahora]
         canceladas = sorted((c for c in citas if c.estado == EstadoCita.CANCELADA), key=lambda c: c.inicio, reverse=True)
         pasadas = sorted((c for c in citas if c not in proximas and c not in canceladas), key=lambda c: c.inicio, reverse=True)

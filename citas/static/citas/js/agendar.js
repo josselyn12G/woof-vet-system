@@ -170,6 +170,16 @@
       inicial.setAttribute('aria-hidden', 'true');
       inicial.textContent = grupo.nombre.split(' ').slice(0, 2).map((parte) => parte[0]).join('').toUpperCase();
       nombre.append(inicial, grupo.nombre);
+      if (grupo.perfil) {
+        const perfil = document.createElement('a');
+        perfil.className = 'turnos-vet__perfil';
+        perfil.href = grupo.perfil;
+        perfil.target = '_blank';
+        perfil.rel = 'noopener';
+        perfil.textContent = 'Ver perfil';
+        perfil.setAttribute('aria-label', `Ver el perfil de ${grupo.nombre} (se abre en otra pestaña)`);
+        nombre.appendChild(perfil);
+      }
 
       const lista = document.createElement('div');
       lista.className = 'turnos-vet__horas';
