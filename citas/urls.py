@@ -31,6 +31,8 @@ urlpatterns = [
     path('agenda/', views.AgendaVeterinarioView.as_view(), name='agenda'),
     path('agenda/<int:pk>/resultado/', views.ResultadoCitaView.as_view(), name='resultado'),
     path('pacientes/', views.PacientesView.as_view(), name='pacientes'),
+    # Los avisos de las citas (la campana del panel, cualquiera con sesión)
+    path('notificaciones/', views.NotificacionesView.as_view(), name='notificaciones'),
     # El perfil del veterinario con su calificación (cualquiera con sesión)
     path('veterinarios/<int:pk>/', views.PerfilVeterinarioView.as_view(), name='perfil_veterinario'),
     # Gestión de la clínica: administrador y superadministrador (403 para los demás)

@@ -102,7 +102,7 @@
           <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
         </nav>
         <div class="nav-arriba__lado">
-          <span class="panel-barra__boton" aria-label="Notificaciones (pronto)" title="Notificaciones: pronto"><i class="bi bi-bell" aria-hidden="true"></i></span>
+          <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
           <span class="panel-menu__avatar nav-arriba__avatar" title="{{ user.get_full_name|default:user.username }}" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
           <form method="post" action="{% url 'cuentas:logout' %}">
             {% csrf_token %}
@@ -129,7 +129,7 @@
           </form>
         {% endif %}
 
-        <span class="panel-barra__boton" aria-label="Notificaciones (pronto)" title="Notificaciones: pronto"><i class="bi bi-bell" aria-hidden="true"></i></span>
+        <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
         <span class="panel-menu__avatar panel-barra__avatar" title="{{ user.get_full_name|default:user.username }}" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
       </header>
       {% endif %}
