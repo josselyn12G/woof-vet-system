@@ -7,10 +7,11 @@ from .campos import VeterinarioCasillas
 
 
 class ServicioForm(forms.ModelForm):
-    # Solo veterinarios con la cuenta activa: un cliente o una cuenta desactivada no aparecen ni se aceptan
+    # Solo veterinarios activos y verificados: un cliente, una cuenta desactivada o un veterinario sin verificar
+    # no aparecen ni se aceptan
     veterinarios = VeterinarioCasillas(
         label='Veterinarios que lo atienden',
-        queryset=CitaService.veterinarios(activos=True),
+        queryset=CitaService.veterinarios(activos=True, verificados=True),
         widget=forms.CheckboxSelectMultiple,
         required=False,
     )
@@ -26,6 +27,15 @@ class ServicioForm(forms.ModelForm):
             'duracion_min': forms.NumberInput(attrs={'min': 1, 'step': 5}),
             'precio': forms.NumberInput(attrs={'min': '0.01', 'step': '0.01'}),
         }
+
+    def clean_veterinarios(self):
+        # Los que ya lo atendían pero no salen en las casillas (sin verificar o desactivados) se conservan:
+        # guardar el servicio no debe quitárselo a nadie sin que el administrador lo vea
+        elegidos = self.cleaned_data['veterinarios']
+        if not self.instance.pk:
+            return elegidos
+        ocultos = self.instance.veterinarios.exclude(pk__in=self.fields['veterinarios'].queryset)
+        return list(elegidos) + list(ocultos)
 
     def clean_nombre(self):
         # "Vacunación" y "vacunación" son el mismo servicio aunque la base los vea distintos

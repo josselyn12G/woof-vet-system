@@ -36,6 +36,15 @@
         <p class="formulario-panel__ayuda">{{ form.is_active.help_text }}</p>
       </div>
 
+      {# Solo en cuentas de veterinario: su especialidad y si ya está verificado #}
+      {% if perfil_form %}
+        <h2 class="bloque-panel__titulo bloque-panel__titulo--espacio">Perfil del veterinario</h2>
+        {% with campo=perfil_form.verificado %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=perfil_form.especialidad %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=perfil_form.anios_experiencia %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=perfil_form.descripcion %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+      {% endif %}
+
       <div class="formulario-panel__acciones">
         <button type="submit" class="boton-panel">Guardar cambios</button>
         <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:usuarios' %}">Cancelar</a>

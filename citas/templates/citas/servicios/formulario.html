@@ -71,7 +71,7 @@
           </div>
           <p class="formulario-panel__ayuda">Solo los veterinarios marcados aparecen cuando el cliente agenda este servicio.</p>
         {% else %}
-          <p class="bloque-panel__vacio">Todavía no hay veterinarios. Dale el rol de veterinario a una cuenta desde <a class="bloque-panel__enlace" href="{% url 'cuentas:usuarios' %}">Usuarios</a>.</p>
+          <p class="bloque-panel__vacio">Todavía no hay veterinarios verificados. Dale el rol de veterinario a una cuenta y márcalo como verificado desde <a class="bloque-panel__enlace" href="{% url 'cuentas:usuarios' %}">Usuarios</a>.</p>
         {% endif %}
         {% for error in form.veterinarios.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
       </fieldset>

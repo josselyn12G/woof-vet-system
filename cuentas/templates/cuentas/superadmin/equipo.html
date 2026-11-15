@@ -69,7 +69,10 @@
                   </span>
                 </span>
               </td>
-              <td><span class="estado estado--rol-{{ persona.rol }}">{{ persona.get_rol_display }}</span></td>
+              <td>
+                <span class="estado estado--rol-{{ persona.rol }}">{{ persona.get_rol_display }}</span>
+                {% if persona.es_veterinario and not persona.perfil_veterinario.verificado %}<span class="estado estado--pendiente">Sin verificar</span>{% endif %}
+              </td>
               <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.telefono|default:'—' }}</td>
               <td class="tabla-panel__num tabla-panel__ocultable">{% if persona.last_login %}{{ persona.last_login|date:'j M Y, H:i' }}{% else %}<span class="tabla-panel__secundario">Nunca</span>{% endif %}</td>
               <td>

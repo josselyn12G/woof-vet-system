@@ -9,7 +9,7 @@ from django.db import IntegrityError
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from .models import Roles, Usuario
+from .models import PerfilVeterinario, Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
 from .services import PoliticaDeCuentas, completar_login, iniciar_login_pendiente
 
@@ -606,3 +606,61 @@ class ServiciosDeCuentasTests(TestCase):
         PoliticaDeCuentas.exigir_gestion(administrador, cliente)    # el administrador gestiona clientes
         with self.assertRaises(PermissionDenied):
             PoliticaDeCuentas.exigir_gestion(administrador, superadmin)
+
+
+class PerfilVeterinarioTests(TestCase):
+    """El administrador verifica al veterinario y edita su especialidad desde Usuarios o Equipo."""
+
+    def setUp(self):
+        self.administrador = usuario_con_rol('jefa', Roles.ADMINISTRADOR, 1)
+        self.veterinario = usuario_con_rol('dra.paredes', Roles.VETERINARIO, 2)
+        self.cliente = usuario_con_rol('ana', Roles.CLIENTE, 3)
+        self.client.force_login(self.administrador)
+
+    def url(self, persona):
+        return reverse('cuentas:usuario_editar', args=[persona.pk])
+
+    def test_un_veterinario_sin_perfil_no_esta_verificado(self):
+        respuesta = self.client.get(self.url(self.veterinario))
+        self.assertFalse(respuesta.context['perfil_form'].initial.get('verificado', False))
+        self.assertFalse(PerfilVeterinario.objects.exists())   # abrir la página no crea nada
+
+    def test_la_cuenta_de_un_cliente_no_trae_perfil(self):
+        self.assertIsNone(self.client.get(self.url(self.cliente)).context['perfil_form'])
+
+    def test_el_administrador_verifica_y_pone_la_especialidad(self):
+        respuesta = self.client.post(self.url(self.veterinario), {
+            'rol': Roles.VETERINARIO, 'is_active': 'on',
+            'perfil-verificado': 'on', 'perfil-especialidad': 'Medicina general', 'perfil-anios_experiencia': '8',
+        })
+        self.assertRedirects(respuesta, reverse('cuentas:usuarios'))
+        perfil = PerfilVeterinario.objects.get(usuario=self.veterinario)
+        self.assertTrue(perfil.verificado)
+        self.assertEqual((perfil.especialidad, perfil.anios_experiencia), ('Medicina general', 8))
+
+    def test_un_perfil_invalido_no_guarda_tampoco_la_cuenta(self):
+        respuesta = self.client.post(self.url(self.veterinario), {
+            'rol': Roles.VETERINARIO, 'perfil-anios_experiencia': '-3',
+        })
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('anios_experiencia', respuesta.context['perfil_form'].errors)
+        self.veterinario.refresh_from_db()
+        self.assertTrue(self.veterinario.is_active)
+        self.assertFalse(PerfilVeterinario.objects.exists())
+
+    def test_la_lista_marca_a_los_veterinarios_sin_verificar(self):
+        self.assertContains(self.client.get(reverse('cuentas:usuarios')), 'Sin verificar')
+        PerfilVeterinario.objects.create(usuario=self.veterinario, verificado=True)
+        self.assertNotContains(self.client.get(reverse('cuentas:usuarios')), 'Sin verificar')
+
+    def test_el_superadministrador_lo_verifica_desde_equipo(self):
+        self.client.force_login(usuario_con_rol('sara', Roles.SUPERADMIN, 4))
+        respuesta = self.client.post(reverse('cuentas:equipo_editar', args=[self.veterinario.pk]), {
+            'first_name': 'Sofía', 'last_name': 'Paredes', 'email': self.veterinario.email,
+            'telefono': '+593987654321', 'cedula': self.veterinario.cedula, 'sector': '',
+            'rol': Roles.VETERINARIO, 'is_active': 'on',
+            'perfil-verificado': 'on', 'perfil-especialidad': 'Cirugía',
+        })
+        self.assertRedirects(respuesta, reverse('cuentas:equipo'))
+        perfil = PerfilVeterinario.objects.get(usuario=self.veterinario)
+        self.assertEqual((perfil.verificado, perfil.especialidad), (True, 'Cirugía'))

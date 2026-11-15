@@ -87,7 +87,7 @@ class UsuarioService:
 
     @staticmethod
     def buscar(texto='', rol=''):
-        usuarios = get_user_model().objects.order_by('-date_joined')
+        usuarios = get_user_model().objects.select_related('perfil_veterinario').order_by('-date_joined')
         if texto:
             usuarios = usuarios.filter(filtro_de_busqueda(texto))
         if rol in Roles.values:  # un rol inventado en la URL se ignora
@@ -97,7 +97,8 @@ class UsuarioService:
     @staticmethod
     def personal(texto='', rol='', estado=''):
         """El equipo de la clínica (veterinarios, administradores y superadministradores)."""
-        personas = get_user_model().objects.filter(rol__in=ROLES_DEL_PERSONAL).order_by('rol', 'first_name', 'last_name')
+        personas = (get_user_model().objects.filter(rol__in=ROLES_DEL_PERSONAL).select_related('perfil_veterinario')
+                    .order_by('rol', 'first_name', 'last_name'))
         if texto:
             personas = personas.filter(filtro_de_busqueda(texto))
         if rol in ROLES_DEL_PERSONAL:

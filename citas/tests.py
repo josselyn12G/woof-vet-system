@@ -10,15 +10,18 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from cuentas.models import Roles
+from cuentas.models import PerfilVeterinario, Roles
 from mascotas.tests import crear_mascota, crear_usuario
 
 from .models import Cita, EstadoCita, HorarioVeterinario, Servicio
-from .services import TURNO_OCUPADO, AgendaService, EstadisticasService, HorarioService
+from .services import TURNO_OCUPADO, AgendaService, EstadisticasService, HorarioService, ServicioService
 
 
-def crear_veterinario(username='sofia', **datos):
-    return crear_usuario(username, rol=Roles.VETERINARIO, **datos)
+def crear_veterinario(username='sofia', verificado=True, **datos):
+    """Un veterinario ya verificado (como los de la demo); con verificado=False, uno recién creado."""
+    veterinario = crear_usuario(username, rol=Roles.VETERINARIO, **datos)
+    PerfilVeterinario.objects.create(usuario=veterinario, verificado=verificado)
+    return veterinario
 
 
 def crear_servicio(**datos):
@@ -1381,3 +1384,89 @@ class BloqueConCitasTests(TestCase):
         with self.assertRaisesMessage(ValidationError, 'Reprográmala o cancélala primero.'):
             HorarioService.validar_cambio(self.bloque, self.manana, time(9), time(12, 15))
         HorarioService.validar_cambio(self.bloque, self.manana, time(12), time(12, 30))   # cabe justo
+
+
+# ---------------------------------------------------------------------------
+# Solo veterinarios verificados (RF-05, §2.1 paso a)
+# ---------------------------------------------------------------------------
+class VeterinarioVerificadoTests(TestCase):
+    """Sofía está verificada; Mateo atiende el mismo servicio pero todavía no lo verificaron."""
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.servicio = crear_servicio()
+        self.sofia = crear_veterinario('sofia')
+        self.mateo = crear_veterinario('mateo', verificado=False)
+        for veterinario in (self.sofia, self.mateo):
+            self.servicio.veterinarios.add(veterinario)
+            crear_horario(veterinario, time(9, 0), time(10, 0), fecha=self.fecha)
+        self.cliente = crear_usuario('ana')
+        self.mascota = crear_mascota(self.cliente)
+        self.client.force_login(self.cliente)
+
+    def inicio(self):
+        return timezone.make_aware(datetime.combine(self.fecha, time(9, 0)))
+
+    def veterinarios_con_turnos(self):
+        return [veterinario for veterinario, _ in AgendaService.turnos_del_dia(self.servicio, self.fecha)]
+
+    def test_el_no_verificado_no_aparece_en_los_turnos(self):
+        self.assertEqual(self.veterinarios_con_turnos(), [self.sofia])
+        respuesta = self.client.get(reverse('citas:turnos_del_dia'),
+                                    {'servicio': self.servicio.pk, 'fecha': self.fecha.isoformat()})
+        self.assertEqual([turno['veterinario'] for turno in respuesta.json()['turnos']], [self.sofia.pk])
+
+    def test_sus_dias_no_se_marcan_en_el_calendario(self):
+        otro_dia = self.fecha + timedelta(days=1)
+        crear_horario(self.mateo, time(9, 0), time(10, 0), fecha=otro_dia)
+        dias = AgendaService.dias_del_servicio(self.servicio, otro_dia.year, otro_dia.month)
+        self.assertNotIn(otro_dia, dias)
+
+    def test_no_se_puede_agendar_con_el_por_el_servicio(self):
+        with self.assertRaises(ValidationError):
+            AgendaService.agendar(mascota=self.mascota, veterinario=self.mateo, servicio=self.servicio,
+                                  inicio=self.inicio())
+        self.assertFalse(Cita.objects.exists())
+
+    def test_no_se_puede_agendar_con_el_por_post(self):
+        respuesta = self.client.post(reverse('citas:agendar'), {
+            'mascota': self.mascota.pk, 'servicio': self.servicio.pk, 'veterinario': self.mateo.pk,
+            'fecha': self.fecha.isoformat(), 'hora': '09:00',
+        })
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('veterinario', respuesta.context['form'].errors)
+        self.assertFalse(Cita.objects.exists())
+
+    def test_al_verificarlo_aparece(self):
+        PerfilVeterinario.objects.filter(usuario=self.mateo).update(verificado=True)
+        self.assertEqual(set(self.veterinarios_con_turnos()), {self.sofia, self.mateo})
+        cita = AgendaService.agendar(mascota=self.mascota, veterinario=self.mateo, servicio=self.servicio,
+                                     inicio=self.inicio())
+        self.assertEqual(cita.veterinario, self.mateo)
+
+    def test_un_veterinario_sin_perfil_tampoco_aparece(self):
+        nuevo = crear_usuario('lucia', rol=Roles.VETERINARIO)   # por ejemplo, recién le dieron el rol
+        self.servicio.veterinarios.add(nuevo)
+        crear_horario(nuevo, time(9, 0), time(10, 0), fecha=self.fecha)
+        self.assertNotIn(nuevo, self.veterinarios_con_turnos())
+
+    def test_un_servicio_que_solo_atiende_un_no_verificado_no_se_puede_agendar(self):
+        solo_mateo = crear_servicio(nombre='Peluquería')
+        solo_mateo.veterinarios.add(self.mateo)
+        agendables = list(ServicioService.agendables())
+        self.assertIn(self.servicio, agendables)
+        self.assertNotIn(solo_mateo, agendables)
+
+    def test_el_catalogo_solo_ofrece_casillas_de_verificados(self):
+        self.client.force_login(crear_usuario('laura', rol=Roles.ADMINISTRADOR))
+        respuesta = self.client.get(reverse('citas:servicio_crear'))
+        self.assertEqual(list(respuesta.context['form'].fields['veterinarios'].queryset), [self.sofia])
+        respuesta = self.client.post(reverse('citas:servicio_crear'),
+                                     datos_servicio(veterinarios=[self.mateo.pk]))
+        self.assertIn('veterinarios', respuesta.context['form'].errors)
+
+    def test_editar_el_servicio_no_le_quita_el_servicio_al_no_verificado(self):
+        self.client.force_login(crear_usuario('laura', rol=Roles.ADMINISTRADOR))
+        self.client.post(reverse('citas:servicio_editar', args=[self.servicio.pk]),
+                         datos_servicio(nombre='Consulta general', veterinarios=[self.sofia.pk]))
+        self.assertEqual(set(self.servicio.veterinarios.all()), {self.sofia, self.mateo})

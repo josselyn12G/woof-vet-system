@@ -10,7 +10,9 @@ from django.views import View
 from django.views.generic import CreateView, FormView, ListView, UpdateView
 
 from ..forms import NuevaContrasenaForm, PersonalCreacionForm, PersonalForm
-from ..mixins import BusquedaMixin, CuentaGestionableMixin, SuperadminRequeridoMixin
+from ..mixins import (
+    BusquedaMixin, CuentaGestionableMixin, PerfilVeterinarioEnFormularioMixin, SuperadminRequeridoMixin,
+)
 from ..models import ROLES_DEL_PERSONAL, Roles
 from ..services import PoliticaDeCuentas, UsuarioService
 from ..services.usuarios import ESTADOS_CUENTA
@@ -57,7 +59,8 @@ class EquipoCrearView(SuperadminRequeridoMixin, SuccessMessageMixin, CreateView)
         return f'Se creó la cuenta de {self.object} como {self.object.get_rol_display().lower()}.'
 
 
-class EquipoEditarView(SuperadminRequeridoMixin, CuentaGestionableMixin, SuccessMessageMixin, UpdateView):
+class EquipoEditarView(SuperadminRequeridoMixin, CuentaGestionableMixin, PerfilVeterinarioEnFormularioMixin,
+                       SuccessMessageMixin, UpdateView):
     """Datos, rol y estado de una cuenta (el superadministrador también corrige la de un cliente:
     la abre desde Usuarios y vuelve ahí)."""
     form_class = PersonalForm
