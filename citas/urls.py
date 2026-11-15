@@ -26,10 +26,13 @@ urlpatterns = [
     path('mis-citas/<int:pk>/reprogramar/', views.ReprogramarCitaView.as_view(), name='reprogramar'),
     path('mis-citas/<int:pk>/reprogramar/dias/', views.ReprogramarDiasView.as_view(), name='reprogramar_dias'),
     path('mis-citas/<int:pk>/reprogramar/horas/', views.ReprogramarHorasView.as_view(), name='reprogramar_horas'),
+    path('mis-citas/<int:pk>/calificar/', views.CalificarCitaView.as_view(), name='calificar'),
     # Core: la agenda del veterinario (solo sus citas)
     path('agenda/', views.AgendaVeterinarioView.as_view(), name='agenda'),
     path('agenda/<int:pk>/resultado/', views.ResultadoCitaView.as_view(), name='resultado'),
     path('pacientes/', views.PacientesView.as_view(), name='pacientes'),
+    # El perfil del veterinario con su calificación (cualquiera con sesión)
+    path('veterinarios/<int:pk>/', views.PerfilVeterinarioView.as_view(), name='perfil_veterinario'),
     # Gestión de la clínica: administrador y superadministrador (403 para los demás)
     path('gestion/', views.GestionCitasView.as_view(), name='gestion_citas'),
     path('gestion/<int:pk>/cancelar/', views.GestionCancelarCitaView.as_view(), name='gestion_cancelar'),

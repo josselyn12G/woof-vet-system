@@ -7,14 +7,18 @@ o las reglas a los services y responden; urls.py las sigue usando como views.<Vi
 - agendar: el Core del cliente (agendar, calendario en JSON, Mis citas, cancelar y reprogramar).
 - agenda: el Core del veterinario (agenda del día, cerrar citas y pacientes).
 - gestion: todas las citas y los horarios de la clínica.
+- calificaciones: el cliente califica una cita atendida.
+- perfil: el perfil del veterinario con su reputación.
 """
 from .agenda import AgendaVeterinarioView, PacientesView, ResultadoCitaView
 from .agendar import (
     AgendarCitaView, CancelarCitaView, DiasDisponiblesView, MisCitasView, ReprogramarCitaView, ReprogramarDiasView,
     ReprogramarHorasView, TurnosDelDiaView,
 )
+from .calificaciones import CalificarCitaView
 from .catalogo import ServicioCreateView, ServicioDeleteView, ServicioEstadoView, ServicioListView, ServicioUpdateView
 from .gestion import GestionCancelarCitaView, GestionCitasView, GestionHorariosView
+from .perfil import PerfilVeterinarioView
 from .horarios import (
     CopiarSemanaView, GestionCopiarSemanaView, GestionHorarioEditarView, GestionHorarioEliminarView,
     GestionHorarioView, GestionServiciosVeterinarioView, HorarioEditarView, HorarioEliminarView, MiHorarioView,
@@ -31,6 +35,10 @@ __all__ = [
     # agendar
     'AgendarCitaView', 'TurnosDelDiaView', 'DiasDisponiblesView', 'MisCitasView', 'CancelarCitaView',
     'ReprogramarCitaView', 'ReprogramarDiasView', 'ReprogramarHorasView',
+    # calificaciones
+    'CalificarCitaView',
+    # perfil
+    'PerfilVeterinarioView',
     # agenda
     'AgendaVeterinarioView', 'ResultadoCitaView', 'PacientesView',
     # gestion

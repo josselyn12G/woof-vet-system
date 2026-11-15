@@ -3500,3 +3500,366 @@ button.cal-cita {
     transform: none;
   }
 }
+
+
+/* ==========================================================================
+   Calificar la atención (F7): la cita, las estrellas y la reputación del veterinario
+   ========================================================================== */
+.calificar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.calificar__principal {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.calificar__cita {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.calificar__cita > span:last-child {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+}
+
+.calificar__fecha {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--p-radio-control);
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  line-height: 1.1;
+}
+
+.calificar__fecha strong {
+  font-size: 1.3rem;
+}
+
+.calificar__fecha span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.calificar__detalle {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+.calificar__lado {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.calificar__avatar {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.2rem;
+}
+
+/* Estrellas: los radios van de 5 a 1 y la fila se invierte, así "~" pinta la elegida y las de su izquierda */
+.estrellas {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  text-align: center;
+}
+
+.estrellas__pregunta {
+  margin-bottom: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.estrellas__opciones {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  gap: 0.35rem;
+}
+
+.estrellas__radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.estrellas__estrella {
+  color: var(--p-control);
+  font-size: 2.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.estrellas__radio:checked ~ .estrellas__estrella,
+.estrellas__estrella:hover,
+.estrellas__estrella:hover ~ .estrellas__estrella {
+  color: var(--p-acento);
+}
+
+.estrellas__estrella:active {
+  transform: scale(0.92);
+}
+
+.estrellas__radio:focus-visible + .estrellas__estrella {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Reputación: promedio y barras por estrellas (también en el perfil del veterinario) */
+.reputacion {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.reputacion__promedio {
+  margin: 0;
+  color: var(--p-texto-2);
+}
+
+.reputacion__promedio strong {
+  margin-right: 0.25rem;
+  color: var(--p-texto);
+  font-size: 1.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.reputacion__barras {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reputacion__barras li {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) 2.8rem;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+}
+
+.reputacion__etiqueta {
+  color: var(--p-texto-2);
+  text-align: left;
+}
+
+.reputacion__etiqueta i {
+  color: var(--p-acento);
+}
+
+.reputacion__barra {
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--p-linea);
+}
+
+.reputacion__barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--p-acento);
+}
+
+.reputacion__cifra {
+  color: var(--p-texto-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.reputacion__vacio {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .calificar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .estrellas__estrella {
+    transition: none;
+  }
+
+  .estrellas__estrella:active {
+    transform: none;
+  }
+}
+
+
+/* ==========================================================================
+   Perfil del veterinario (F7): ficha, servicios, opiniones y calificación
+   ========================================================================== */
+.perfil-vet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.perfil-vet__principal {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.perfil-vet__ficha {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
+}
+
+.perfil-vet__ficha .calificar__avatar {
+  flex: none;
+}
+
+.perfil-vet__servicios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.perfil-vet__servicios li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.perfil-vet__lado {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.opinion {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.opinion:last-child {
+  border-bottom: 0;
+}
+
+.opinion__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+}
+
+.opinion__estrellas {
+  color: var(--p-acento);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.opinion__fecha {
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+}
+
+.opinion__texto {
+  margin: 0.4rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 900px) {
+  .perfil-vet {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* ==========================================================================
+   Calificaciones en Mis citas y en la reserva (F7)
+   ========================================================================== */
+.boton-cita--acento {
+  color: var(--p-acento-texto);
+  text-decoration: none;
+  background: var(--p-acento-tinte);
+  border-color: #f8dfbf;
+}
+
+.boton-cita--acento:hover {
+  color: var(--p-acento-texto);
+  background: #fbe6cc;
+}
+
+/* El nombre del doctor en la tarjeta enlaza a su perfil */
+.tarjeta-cita__vet {
+  text-decoration: none;
+}
+
+.tarjeta-cita__vet:hover {
+  color: var(--p-acento-texto);
+  text-decoration: underline;
+}
+
+.tarjeta-cita__calificada {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  color: var(--p-acento);
+  font-size: 0.9rem;
+}
+
+.lado-calificacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+.lado-calificacion strong {
+  color: var(--p-texto);
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lado-calificacion i {
+  color: var(--p-acento);
+}
+
+.lado-calificacion--vacio {
+  display: block;
+}
+
+.turnos-vet__perfil {
+  margin-left: auto;
+  color: var(--p-acento-texto);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
