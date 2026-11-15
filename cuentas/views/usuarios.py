@@ -9,7 +9,9 @@ from django.views import View
 from django.views.generic import ListView, UpdateView
 
 from ..forms import UsuarioRolForm
-from ..mixins import AdministradorRequeridoMixin, BusquedaMixin, CuentaGestionableMixin
+from ..mixins import (
+    AdministradorRequeridoMixin, BusquedaMixin, CuentaGestionableMixin, PerfilVeterinarioEnFormularioMixin,
+)
 from ..models import Roles
 from ..services import UsuarioService
 
@@ -44,8 +46,10 @@ class UsuarioListView(AdministradorRequeridoMixin, BusquedaMixin, ListView):
         return contexto
 
 
-class UsuarioEditarView(AdministradorRequeridoMixin, CuentaGestionableMixin, SuccessMessageMixin, UpdateView):
-    """Cambiar el rol de una cuenta (por ejemplo, darle el rol de veterinario) o desactivarla."""
+class UsuarioEditarView(AdministradorRequeridoMixin, CuentaGestionableMixin, PerfilVeterinarioEnFormularioMixin,
+                        SuccessMessageMixin, UpdateView):
+    """Cambiar el rol de una cuenta (por ejemplo, darle el rol de veterinario) o desactivarla.
+    Si es de un veterinario, también su especialidad y si está verificado."""
     form_class = UsuarioRolForm
     template_name = 'cuentas/panel/usuario_editar.html'
     success_url = reverse_lazy('cuentas:usuarios')

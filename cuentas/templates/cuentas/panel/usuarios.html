@@ -58,6 +58,7 @@
               <td>
                 <span class="estado{% if persona.rol != 'cliente' %} estado--acento{% endif %}">{{ persona.get_rol_display }}</span>
                 {% if not persona.is_active %}<span class="estado">Desactivada</span>{% endif %}
+                {% if persona.es_veterinario and not persona.perfil_veterinario.verificado %}<span class="estado estado--pendiente">Sin verificar</span>{% endif %}
               </td>
               <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.cedula|default:'—' }}</td>
               <td class="tabla-panel__num tabla-panel__ocultable">{{ persona.date_joined|date:'j M Y' }}</td>

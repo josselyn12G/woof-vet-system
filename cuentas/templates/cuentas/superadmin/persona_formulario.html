@@ -67,6 +67,19 @@
         {% if form.is_active %}{% with campo=form.is_active %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}{% endif %}
       </fieldset>
 
+      {# Solo en cuentas de veterinario: su especialidad y si ya está verificado #}
+      {% if perfil_form %}
+        <fieldset class="formulario-equipo__grupo">
+          <legend class="formulario-equipo__titulo"><i class="bi bi-patch-check" aria-hidden="true"></i>Perfil del veterinario</legend>
+          {% with campo=perfil_form.verificado %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+          <div class="formulario-servicio__par">
+            {% with campo=perfil_form.especialidad %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+            {% with campo=perfil_form.anios_experiencia %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+          </div>
+          {% with campo=perfil_form.descripcion %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        </fieldset>
+      {% endif %}
+
       <div class="formulario-panel__acciones">
         <button type="submit" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>{% if persona %}Guardar cambios{% else %}Crear la cuenta{% endif %}</button>
         <a class="boton-panel boton-panel--secundario" href="{% if persona.es_cliente %}{% url 'cuentas:usuarios' %}{% else %}{% url 'cuentas:equipo' %}{% endif %}">Cancelar</a>
