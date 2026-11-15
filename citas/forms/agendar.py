@@ -26,7 +26,8 @@ class AgendarCitaForm(forms.Form):
     )
     veterinario = VeterinarioOpcion(
         label='Veterinario',
-        queryset=CitaService.veterinarios(activos=True),
+        # Solo verificados: uno sin verificar no se acepta aunque alguien mande su id por POST
+        queryset=CitaService.veterinarios(activos=True, verificados=True),
         empty_label='Elige primero el servicio',
     )
     fecha = forms.DateField(label='Fecha', widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))

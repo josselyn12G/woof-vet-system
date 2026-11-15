@@ -7,6 +7,7 @@ from django.utils import timezone
 from citas.models import Cita, EstadoCita, HorarioVeterinario
 from citas.services.formato import minutos, texto_duracion
 from cuentas.models import Roles
+from cuentas.services import VERIFICADO
 
 # Pestañas de Mis citas (cliente): valor en la URL (?vista=) -> nombre que se muestra
 VISTAS_CITAS = {'proximas': 'Próximas', 'pasadas': 'Pasadas', 'canceladas': 'Canceladas'}
@@ -176,14 +177,17 @@ class CitaService:
         return cuentas
 
     @staticmethod
-    def veterinarios(activos=False):
+    def veterinarios(activos=False, verificados=False):
         """
         Los veterinarios por nombre. Para la gestión van también los desactivados (sus citas y su horario
-        siguen ahí); con activos=True, solo los que pueden atender (agendar y asignar servicios).
+        siguen ahí); con activos=True, solo los que tienen la cuenta activa. Con verificados=True, además,
+        solo los que el administrador verificó: los únicos que se ofrecen al agendar y en el catálogo.
         """
         veterinarios = get_user_model().objects.filter(rol=Roles.VETERINARIO)
         if activos:
             veterinarios = veterinarios.filter(is_active=True)
+        if verificados:
+            veterinarios = veterinarios.filter(VERIFICADO)
         return veterinarios.order_by('first_name', 'last_name', 'username')
 
     # ---------- Una cita de la URL (las vistas responden 404 si no está en la consulta) ----------

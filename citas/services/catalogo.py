@@ -61,5 +61,8 @@ class ServicioService:
 
     @staticmethod
     def agendables():
-        """Servicios activos que algún veterinario atiende: los únicos que el cliente puede agendar."""
-        return Servicio.objects.filter(activo=True, veterinarios__isnull=False).distinct()
+        """Servicios activos que atiende algún veterinario activo y verificado: los únicos que se pueden agendar."""
+        # Las dos condiciones van en el mismo filter(): las tiene que cumplir el mismo veterinario
+        return Servicio.objects.filter(
+            activo=True, veterinarios__is_active=True, veterinarios__perfil_veterinario__verificado=True,
+        ).distinct()

@@ -6,6 +6,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario
+from cuentas.services import VERIFICADO, PerfilVeterinarioService
 
 TURNO_OCUPADO = 'Ese horario ya no está disponible. Elige otra hora.'
 
@@ -66,10 +67,15 @@ class AgendaService:
         return [fecha for fecha in fechas if AgendaService.espacios_disponibles(veterinario, servicio, fecha, excluir)]
 
     @staticmethod
+    def veterinarios_que_atienden(servicio):
+        """Los veterinarios del servicio que se ofrecen al cliente: cuenta activa y verificados (§2.1 paso a)."""
+        return servicio.veterinarios.filter(VERIFICADO, is_active=True)
+
+    @staticmethod
     def dias_del_servicio(servicio, anio, mes):
         """Días del mes en que algún veterinario del servicio tiene un turno libre (el calendario los resalta)."""
         dias = set()
-        for veterinario in servicio.veterinarios.filter(is_active=True):
+        for veterinario in AgendaService.veterinarios_que_atienden(servicio):
             dias.update(AgendaService.dias_disponibles(veterinario, servicio, anio, mes))
         return sorted(dias)
 
@@ -81,7 +87,7 @@ class AgendaService:
         Así el cliente elige la hora y, con ella, el doctor que lo atiende.
         """
         turnos = []
-        for veterinario in servicio.veterinarios.filter(is_active=True).order_by('first_name', 'last_name'):
+        for veterinario in AgendaService.veterinarios_que_atienden(servicio).order_by('first_name', 'last_name'):
             espacios = AgendaService.espacios_disponibles(veterinario, servicio, fecha)
             if espacios:
                 turnos.append((veterinario, espacios))
@@ -99,6 +105,8 @@ class AgendaService:
             raise ValidationError('Ese servicio ya no se ofrece.')
         if not servicio.veterinarios.filter(pk=veterinario.pk).exists():
             raise ValidationError('Ese veterinario no atiende este servicio.')
+        if not PerfilVeterinarioService.esta_verificado(veterinario):
+            raise ValidationError('Ese veterinario todavía no está verificado por la clínica.')
         if inicio <= timezone.now():
             raise ValidationError('Elige una hora que todavía no haya pasado.')
 
