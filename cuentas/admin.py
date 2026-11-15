@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Usuario
+from .models import PerfilVeterinario, Usuario
 
 
 @admin.register(Usuario)
@@ -15,3 +15,10 @@ class UsuarioAdmin(UserAdmin):
     list_display = ['username', 'email', 'first_name', 'last_name', 'rol', 'is_staff']
     list_filter = UserAdmin.list_filter + ('rol',)
     search_fields = ['username', 'first_name', 'last_name', 'email', 'telefono', 'cedula']
+
+
+@admin.register(PerfilVeterinario)
+class PerfilVeterinarioAdmin(admin.ModelAdmin):
+    list_display = ['usuario', 'especialidad', 'anios_experiencia', 'verificado']
+    list_filter = ['verificado']
+    search_fields = ['usuario__first_name', 'usuario__last_name', 'usuario__username', 'especialidad']
