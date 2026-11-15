@@ -13,8 +13,10 @@ from django.utils import timezone
 from cuentas.models import PerfilVeterinario, Roles
 from mascotas.tests import crear_mascota, crear_usuario
 
-from .models import Cita, EstadoCita, HorarioVeterinario, Servicio
-from .services import TURNO_OCUPADO, AgendaService, EstadisticasService, HorarioService, ServicioService
+from .models import Calificacion, Cita, EstadoCita, HorarioVeterinario, Servicio
+from .services import (
+    TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService, HorarioService, ServicioService,
+)
 
 
 def crear_veterinario(username='sofia', verificado=True, **datos):
@@ -1470,3 +1472,227 @@ class VeterinarioVerificadoTests(TestCase):
         self.client.post(reverse('citas:servicio_editar', args=[self.servicio.pk]),
                          datos_servicio(nombre='Consulta general', veterinarios=[self.sofia.pk]))
         self.assertEqual(set(self.servicio.veterinarios.all()), {self.sofia, self.mateo})
+
+
+# ---------------------------------------------------------------------------
+# F7: calificar la atención (RF-21, RF-22)
+# ---------------------------------------------------------------------------
+def crear_cita_pasada(mascota, veterinario, servicio, estado=EstadoCita.ATENDIDA, dias=1):
+    """Una cita de hace unos días, ya cerrada con ese estado."""
+    inicio = timezone.now() - timedelta(days=dias)
+    return Cita.objects.create(mascota=mascota, veterinario=veterinario, servicio=servicio, inicio=inicio,
+                               fin=inicio + timedelta(minutes=servicio.duracion_min), precio=servicio.precio,
+                               estado=estado)
+
+
+class CalificarServiceTests(TestCase):
+    """AgendaService.calificar() y la reputación del veterinario."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.cliente = crear_usuario('ana')
+        self.mascota = crear_mascota(self.cliente)
+        self.cita = crear_cita_pasada(self.mascota, self.veterinario, self.servicio)
+
+    def test_califica_una_cita_atendida(self):
+        calificacion = AgendaService.calificar(self.cita, self.cliente, 5, '  Muy amable  ')
+        self.assertEqual((calificacion.estrellas, calificacion.comentario), (5, 'Muy amable'))
+        self.assertFalse(CalificacionService.puede_calificar(self.cita))
+
+    def test_calificar_dos_veces_se_rechaza(self):
+        AgendaService.calificar(self.cita, self.cliente, 4)
+        with self.assertRaises(ValidationError):
+            AgendaService.calificar(self.cita, self.cliente, 2)
+        self.assertEqual(Calificacion.objects.get().estrellas, 4)
+
+    def test_la_base_tambien_rechaza_una_segunda_calificacion(self):
+        Calificacion.objects.create(cita=self.cita, estrellas=4)
+        with self.assertRaises(IntegrityError):
+            Calificacion.objects.create(cita=self.cita, estrellas=2)
+
+    def test_una_cita_confirmada_cancelada_o_no_asistida_no_se_califica(self):
+        for dias, estado in enumerate((EstadoCita.CONFIRMADA, EstadoCita.CANCELADA, EstadoCita.NO_ASISTIO), 2):
+            with self.subTest(estado=estado):
+                cita = crear_cita_pasada(self.mascota, self.veterinario, self.servicio, estado=estado, dias=dias)
+                self.assertFalse(CalificacionService.puede_calificar(cita))
+                with self.assertRaises(ValidationError):
+                    AgendaService.calificar(cita, self.cliente, 5)
+        self.assertFalse(Calificacion.objects.exists())
+
+    def test_no_se_califica_la_cita_de_otro_cliente(self):
+        with self.assertRaises(ValidationError):
+            AgendaService.calificar(self.cita, crear_usuario('luis'), 5)
+
+    def test_las_estrellas_van_de_1_a_5(self):
+        for estrellas in (0, 6):
+            with self.subTest(estrellas=estrellas), self.assertRaises(ValidationError):
+                AgendaService.calificar(self.cita, self.cliente, estrellas)
+        with self.assertRaises(IntegrityError):
+            Calificacion.objects.create(cita=self.cita, estrellas=6)
+
+    def test_el_promedio_y_la_distribucion_se_calculan_bien(self):
+        for dias, estrellas in ((1, 5), (2, 4), (3, 4), (4, 2)):
+            cita = self.cita if dias == 1 else crear_cita_pasada(self.mascota, self.veterinario, self.servicio,
+                                                                 dias=dias)
+            AgendaService.calificar(cita, self.cliente, estrellas)
+        resumen = CalificacionService.resumen_del_veterinario(self.veterinario)
+        self.assertEqual(resumen['promedio'], 3.8)   # (5 + 4 + 4 + 2) / 4 = 3.75
+        self.assertEqual(resumen['total'], 4)
+        self.assertEqual([fila['cantidad'] for fila in resumen['distribucion']], [1, 2, 0, 1, 0])
+        self.assertEqual(resumen['distribucion'][1]['porcentaje'], 50)
+        self.assertEqual(CalificacionService.promedio_dado_por(self.cliente), 3.8)
+
+    def test_sin_opiniones_no_hay_promedio(self):
+        resumen = CalificacionService.resumen_del_veterinario(self.veterinario)
+        self.assertIsNone(resumen['promedio'])
+        self.assertEqual(resumen['total'], 0)
+        self.assertIsNone(CalificacionService.promedio_dado_por(self.cliente))
+
+
+class CalificarVistaTests(TestCase):
+    """La página Calificar la atención (/citas/mis-citas/<pk>/calificar/)."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario(first_name='Valeria', last_name='Ruiz')
+        self.servicio = crear_servicio()
+        self.cliente = crear_usuario('ana')
+        self.mascota = crear_mascota(self.cliente)
+        self.cita = crear_cita_pasada(self.mascota, self.veterinario, self.servicio)
+        self.url = reverse('citas:calificar', args=[self.cita.pk])
+        self.client.force_login(self.cliente)
+
+    def test_muestra_la_cita_y_al_veterinario(self):
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, '¿Cómo fue la atención de Valeria Ruiz?')
+        self.assertContains(respuesta, 'name="estrellas"', count=5)
+
+    def test_calificar_guarda_y_vuelve_a_mis_citas(self):
+        respuesta = self.client.post(self.url, {'estrellas': '4', 'comentario': 'Explicó todo muy bien'})
+        self.assertRedirects(respuesta, reverse('citas:mis_citas'))
+        calificacion = Calificacion.objects.get(cita=self.cita)
+        self.assertEqual((calificacion.estrellas, calificacion.comentario), (4, 'Explicó todo muy bien'))
+
+    def test_la_cita_de_otro_cliente_responde_404(self):
+        self.client.force_login(crear_usuario('luis'))
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+        self.assertEqual(self.client.post(self.url, {'estrellas': '1'}).status_code, 404)
+        self.assertFalse(Calificacion.objects.exists())
+
+    def test_solo_el_cliente_entra(self):
+        self.client.force_login(self.veterinario)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_calificar_dos_veces_se_rechaza(self):
+        self.client.post(self.url, {'estrellas': '5'})
+        respuesta = self.client.post(self.url, {'estrellas': '1'})
+        self.assertRedirects(respuesta, reverse('citas:mis_citas'))
+        self.assertEqual(Calificacion.objects.get().estrellas, 5)
+
+    def test_una_cita_confirmada_no_se_califica(self):
+        self.cita.estado = EstadoCita.CONFIRMADA
+        self.cita.save(update_fields=['estado'])
+        self.assertRedirects(self.client.get(self.url), reverse('citas:mis_citas'))
+        self.client.post(self.url, {'estrellas': '5'})
+        self.assertFalse(Calificacion.objects.exists())
+
+    def test_sin_estrellas_o_fuera_de_rango_muestra_el_error(self):
+        for datos in ({}, {'estrellas': '9'}):
+            with self.subTest(datos=datos):
+                respuesta = self.client.post(self.url, datos)
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertIn('estrellas', respuesta.context['form'].errors)
+        self.assertFalse(Calificacion.objects.exists())
+
+
+class PerfilVeterinarioVistaTests(TestCase):
+    """El perfil del veterinario (/citas/veterinarios/<pk>/): especialidad, promedio y opiniones."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario(first_name='Valeria', last_name='Ruiz')
+        PerfilVeterinario.objects.filter(usuario=self.veterinario).update(especialidad='Cirugía', anios_experiencia=8)
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        self.cliente = crear_usuario('ana', first_name='Carlos', last_name='Mena')
+        self.mascota = crear_mascota(self.cliente)
+        self.url = reverse('citas:perfil_veterinario', args=[self.veterinario.pk])
+        self.client.force_login(self.cliente)
+
+    def calificar(self, estrellas, comentario='', dias=1):
+        cita = crear_cita_pasada(self.mascota, self.veterinario, self.servicio, dias=dias)
+        return AgendaService.calificar(cita, self.cliente, estrellas, comentario)
+
+    def test_muestra_especialidad_promedio_y_opiniones(self):
+        self.calificar(5, 'Excelente trato', dias=1)
+        self.calificar(4, dias=2)
+        self.client.force_login(crear_usuario('luis'))   # otro cliente mira el perfil antes de agendar
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Cirugía · 8 años de experiencia')
+        self.assertContains(respuesta, 'Consulta general')
+        self.assertEqual(respuesta.context['reputacion']['promedio'], 4.5)
+        self.assertContains(respuesta, '2 opiniones')
+        self.assertContains(respuesta, 'Excelente trato')
+        self.assertContains(respuesta, 'Carlos M.')
+        self.assertNotContains(respuesta, 'Mena')   # del dueño solo se ve la inicial del apellido
+
+    def test_sin_opiniones_lo_dice(self):
+        self.assertContains(self.client.get(self.url), 'Todavía nadie lo ha calificado.')
+
+    def test_un_id_que_no_es_de_un_veterinario_responde_404(self):
+        self.assertEqual(self.client.get(reverse('citas:perfil_veterinario', args=[self.cliente.pk])).status_code, 404)
+
+    def test_pide_iniciar_sesion(self):
+        self.client.logout()
+        self.assertIn(reverse('cuentas:login'), self.client.get(self.url).url)
+
+
+class CalificacionEnMisCitasTests(TestCase):
+    """Mis citas: el botón Calificar, el promedio que dio el cliente y los enlaces al perfil del doctor."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        self.cliente = crear_usuario('ana')
+        self.mascota = crear_mascota(self.cliente)
+        self.atendida = crear_cita_pasada(self.mascota, self.veterinario, self.servicio, dias=1)
+        self.client.force_login(self.cliente)
+
+    def pasadas(self):
+        return self.client.get(reverse('citas:mis_citas'), {'vista': 'pasadas'})
+
+    def test_una_atendida_sin_calificar_muestra_el_boton(self):
+        self.assertContains(self.pasadas(), reverse('citas:calificar', args=[self.atendida.pk]))
+
+    def test_una_ya_calificada_muestra_sus_estrellas_y_no_el_boton(self):
+        AgendaService.calificar(self.atendida, self.cliente, 4)
+        respuesta = self.pasadas()
+        self.assertNotContains(respuesta, reverse('citas:calificar', args=[self.atendida.pk]))
+        self.assertContains(respuesta, 'La calificaste con 4 de 5 estrellas')
+
+    def test_una_no_asistida_no_se_puede_calificar(self):
+        no_asistio = crear_cita_pasada(self.mascota, self.veterinario, self.servicio,
+                                       estado=EstadoCita.NO_ASISTIO, dias=2)
+        self.assertNotContains(self.pasadas(), reverse('citas:calificar', args=[no_asistio.pk]))
+
+    def test_muestra_la_calificacion_promedio_que_dio(self):
+        self.assertIsNone(self.pasadas().context['promedio_dado'])
+        AgendaService.calificar(self.atendida, self.cliente, 5)
+        AgendaService.calificar(crear_cita_pasada(self.mascota, self.veterinario, self.servicio, dias=3),
+                                self.cliente, 4)
+        respuesta = self.pasadas()
+        self.assertEqual(respuesta.context['promedio_dado'], 4.5)
+        self.assertContains(respuesta, 'Tu calificación promedio')
+
+    def test_el_doctor_de_la_tarjeta_enlaza_a_su_perfil(self):
+        self.assertContains(self.pasadas(), reverse('citas:perfil_veterinario', args=[self.veterinario.pk]))
+
+    def test_los_turnos_de_agendar_traen_el_perfil_del_doctor(self):
+        fecha = timezone.localdate() + timedelta(days=7)
+        crear_horario(self.veterinario, time(9, 0), time(10, 0), fecha=fecha)
+        respuesta = self.client.get(reverse('citas:turnos_del_dia'),
+                                    {'servicio': self.servicio.pk, 'fecha': fecha.isoformat()})
+        self.assertEqual(respuesta.json()['turnos'][0]['perfil'],
+                         reverse('citas:perfil_veterinario', args=[self.veterinario.pk]))
