@@ -155,6 +155,7 @@ Abre http://127.0.0.1:8000/ · Panel de administración: http://127.0.0.1:8000/a
 | `DATABASE_URL` | Conexión a PostgreSQL en Neon | No: sin ella usa SQLite |
 | `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS` | Configuración para producción | Solo en producción |
 | `DJANGO_DOBLE_FACTOR` | `False` apaga el código por correo al iniciar sesión | No: por defecto `True` |
+| `DJANGO_CORREO_AVISOS` | `False` apaga los correos de las citas (los avisos se siguen viendo en la campana) | No: por defecto `True` |
 
 > [!WARNING]
 > El archivo `.env` tiene contraseñas: nunca lo subas a Git. Ya está en `.gitignore`.
@@ -171,7 +172,8 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 | Build Command: `./build.sh` | Instala dependencias, ejecuta `collectstatic` y aplica las migraciones (`migrate`) |
 | Start Command: `gunicorn config.wsgi:application` | Arranca Django |
 | Estáticos | Los sirve WhiteNoise, comprimidos y con caché |
-| Variables | `DATABASE_URL`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `DJANGO_DOBLE_FACTOR=False` (el plan gratuito bloquea el SMTP) |
+| Variables | `DATABASE_URL`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `DJANGO_DOBLE_FACTOR=False` y `DJANGO_CORREO_AVISOS=False` (el plan gratuito bloquea el SMTP) |
+| Recordatorios de 24 h | *Cron Job* con el mismo repositorio y variables: Build `./build.sh`, Command `python manage.py enviar_recordatorios`, Schedule `0 * * * *` (cada hora) |
 | Publicar cambios | *Manual Deploy* → *Deploy latest commit* después de fusionar el PR |
 
 > [!WARNING]
