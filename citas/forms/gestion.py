@@ -53,7 +53,7 @@ class IndicadoresForm(forms.Form):
     hasta = forms.DateField(widget=forms.DateInput(attrs={'type': 'date', 'class': 'control-panel'}, format='%Y-%m-%d'))
     veterinario = VeterinarioOpcion(required=False, queryset=CitaService.veterinarios().none(),
                                     empty_label='Todos los veterinarios',
-                                    widget=forms.Select(attrs={'class': 'control-panel filtros__rol'}))
+                                    widget=forms.Select(attrs={'class': 'control-panel'}))
 
     def __init__(self, *args, veterinarios, **kwargs):
         super().__init__(*args, **kwargs)

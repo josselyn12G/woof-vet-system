@@ -42,9 +42,9 @@ class PrescripcionForm(forms.ModelForm):
         widgets = {
             'medicamento': texto('Ej.: Amoxicilina 250 mg'),
             'dosis': texto('Ej.: 1 tableta, 5 ml'),
-            'frecuencia_horas': forms.NumberInput(attrs={'class': 'control-panel', 'min': '1', 'placeholder': '12',
+            'frecuencia_horas': forms.NumberInput(attrs={'class': 'control-panel', 'min': '1', 'placeholder': 'Ej.: 12',
                                                          'data-frecuencia': ''}),
-            'duracion_dias': forms.NumberInput(attrs={'class': 'control-panel', 'min': '1', 'placeholder': '7',
+            'duracion_dias': forms.NumberInput(attrs={'class': 'control-panel', 'min': '1', 'placeholder': 'Ej.: 7',
                                                       'data-duracion': ''}),
             'indicaciones': texto('Ej.: con comida'),
         }
