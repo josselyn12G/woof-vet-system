@@ -18,8 +18,8 @@ from mascotas.tests import crear_mascota, crear_usuario
 
 from .models import Calificacion, Cita, EstadoCita, HorarioVeterinario, Notificacion, Servicio, TipoNotificacion
 from .services import (
-    TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService, HorarioService, NotificacionService,
-    ServicioService,
+    ANTICIPACION_MINIMA, SIN_ANTICIPACION, TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService,
+    HorarioService, NotificacionService, ServicioService,
 )
 
 
@@ -515,7 +515,7 @@ class AgendaServiceTests(TestCase):
             self.agendar(self.hora(9))
 
     def test_hora_pasada_no_se_agenda(self):
-        with self.assertRaisesMessage(ValidationError, 'todavía no haya pasado'):
+        with self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
             self.agendar(timezone.now() - timedelta(hours=1))
 
     def test_el_precio_queda_copiado(self):
@@ -727,7 +727,7 @@ class ReprogramarTests(TestCase):
     def test_rechaza_la_misma_hora_y_una_hora_pasada(self):
         with self.assertRaisesMessage(ValidationError, 'Esa ya es la hora de la cita'):
             AgendaService.reprogramar(self.cita, self.hora(9))
-        with self.assertRaisesMessage(ValidationError, 'todavía no haya pasado'):
+        with self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
             AgendaService.reprogramar(self.cita, timezone.now() - timedelta(hours=1))
 
     def test_una_cita_cancelada_o_que_ya_empezo_no_se_reprograma(self):
@@ -794,6 +794,70 @@ class ReprogramarTests(TestCase):
         self.assertIn(self.fecha.isoformat(), dias.json()['dias'])
         self.assertEqual(self.client.get(reverse('citas:reprogramar_dias', args=[self.cita.pk]),
                                          {'mes': 'inventado'}).json(), {'dias': []})
+
+
+class AnticipacionMinimaTests(TestCase):
+    """
+    RF-12 (§2.1 paso d.1): un turno nuevo se reserva con al menos 1 hora de anticipación.
+    El reloj se congela con patch para reproducir el ejemplo del documento: Ana entra a las 08:20.
+    """
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.mascota = crear_mascota(crear_usuario('ana'))
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+
+    def a_las(self, horas, minutos=0):
+        """Hace que timezone.now() devuelva esa hora del día de la cita mientras dure el with."""
+        return patch('django.utils.timezone.now', return_value=self.hora(horas, minutos))
+
+    def agendar(self, inicio):
+        return AgendaService.agendar(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                     inicio=inicio)
+
+    def espacios(self):
+        return AgendaService.espacios_disponibles(self.veterinario, self.servicio, self.fecha)
+
+    def test_la_anticipacion_es_de_una_hora(self):
+        self.assertEqual(ANTICIPACION_MINIMA, timedelta(hours=1))
+
+    def test_a_las_8_20_no_se_ofrece_el_turno_de_las_9(self):
+        # Ejemplo del documento: a las 9:00 le faltan solo 40 minutos, así que se descarta
+        with self.a_las(8, 20):
+            self.assertEqual(self.espacios(), [self.hora(9, 30), self.hora(10), self.hora(10, 30)])
+
+    def test_si_falta_exactamente_una_hora_el_turno_se_ofrece(self):
+        with self.a_las(8, 0):
+            self.assertIn(self.hora(9), self.espacios())
+
+    def test_agendar_a_40_minutos_se_rechaza(self):
+        with self.a_las(8, 20), self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
+            self.agendar(self.hora(9))
+        self.assertFalse(Cita.objects.exists())
+
+    def test_agendar_con_mas_de_una_hora_se_acepta(self):
+        with self.a_las(8, 20):
+            self.assertEqual(self.agendar(self.hora(9, 30)).estado, EstadoCita.CONFIRMADA)
+
+    def test_reprogramar_a_menos_de_una_hora_se_rechaza_y_la_cita_conserva_su_hora(self):
+        cita = self.agendar(self.hora(10, 30))
+        with self.a_las(9, 50), self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
+            AgendaService.reprogramar(cita, self.hora(10))
+        cita.refresh_from_db()
+        self.assertEqual(cita.inicio, self.hora(10, 30))
+
+    def test_cancelar_sigue_permitido_hasta_la_hora_de_inicio(self):
+        # La anticipación es para elegir un turno nuevo; una cita que ya existe se cancela hasta que empieza
+        cita = self.agendar(self.hora(9, 30))
+        with self.a_las(9, 0):
+            AgendaService.cancelar(cita)
+        self.assertEqual(cita.estado, EstadoCita.CANCELADA)
 
 
 class CalendarioYAgendaTests(TestCase):

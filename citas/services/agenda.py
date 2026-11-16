@@ -10,6 +10,16 @@ from cuentas.services import VERIFICADO, PerfilVeterinarioService
 
 TURNO_OCUPADO = 'Ese horario ya no está disponible. Elige otra hora.'
 
+# Un turno se reserva con al menos esta anticipación (§2.1 paso d.1, RF-12): a las 08:20 ya no se ofrece el de 09:00
+ANTICIPACION_MINIMA = timedelta(hours=1)
+SIN_ANTICIPACION = 'Agenda con al menos 1 hora de anticipación.'
+
+
+def primer_inicio_permitido():
+    """La hora más temprana a la que puede empezar un turno nuevo: ahora más la anticipación mínima.
+    Solo vale para turnos que se eligen (agendar y reprogramar); cancelar o cerrar una cita usan su hora de inicio."""
+    return timezone.now() + ANTICIPACION_MINIMA
+
 
 class AgendaService:
     """
@@ -24,13 +34,13 @@ class AgendaService:
         """
         Devuelve las horas de inicio libres del veterinario para ese servicio en esa fecha.
 
-        Corta cada bloque de su horario en turnos del largo del servicio y quita
-        los que ya pasaron o se cruzan con una cita activa. Al reprogramar, excluir es la cita
+        Corta cada bloque de su horario en turnos del largo del servicio y quita los que empiezan
+        antes de una hora desde ahora o se cruzan con una cita activa. Al reprogramar, excluir es la cita
         que se va a mover: su turno actual no cuenta como ocupado.
         """
         duracion = timedelta(minutes=servicio.duracion_min)
         zona = timezone.get_current_timezone()
-        ahora = timezone.now()
+        desde = primer_inicio_permitido()
 
         # Citas que ocupan tiempo ese día: todas menos las canceladas (y la que se reprograma)
         citas = Cita.objects.filter(veterinario=veterinario, inicio__date=fecha).exclude(estado=EstadoCita.CANCELADA)
@@ -47,7 +57,8 @@ class AgendaService:
                 fin = inicio + duracion
                 # Dos turnos se cruzan si uno empieza antes de que el otro termine (igual que en el horario)
                 cruzado = any(otra_inicio < fin and otra_fin > inicio for otra_inicio, otra_fin in ocupadas)
-                if inicio > ahora and not cruzado:
+                # >=: si falta exactamente una hora, el turno todavía se ofrece
+                if inicio >= desde and not cruzado:
                     espacios.append(inicio)
                 inicio = fin
         return espacios
@@ -107,8 +118,8 @@ class AgendaService:
             raise ValidationError('Ese veterinario no atiende este servicio.')
         if not PerfilVeterinarioService.esta_verificado(veterinario):
             raise ValidationError('Ese veterinario todavía no está verificado por la clínica.')
-        if inicio <= timezone.now():
-            raise ValidationError('Elige una hora que todavía no haya pasado.')
+        if inicio < primer_inicio_permitido():
+            raise ValidationError(SIN_ANTICIPACION)
 
         with transaction.atomic():
             # select_for_update: nadie más agenda con este veterinario hasta que termine la transacción
@@ -173,8 +184,8 @@ class AgendaService:
         el turno nuevo y se actualizan el inicio y el fin de la MISMA fila (no se cancela una y se crea otra).
         Si algo falla, la transacción se deshace y la cita sigue en su hora de antes: nunca se pierde la reserva.
         """
-        if nuevo_inicio <= timezone.now():
-            raise ValidationError('Elige una hora que todavía no haya pasado.')
+        if nuevo_inicio < primer_inicio_permitido():
+            raise ValidationError(SIN_ANTICIPACION)
 
         with transaction.atomic():
             # Primero el veterinario, como en agendar(): nadie más reserva con él hasta que esto termine.
