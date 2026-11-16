@@ -2010,3 +2010,114 @@ class FiltroPorMascotaTests(TestCase):
 
     def test_con_varias_mascotas_se_muestran_los_chips(self):
         self.assertContains(self.mis_citas(), 'Filtrar por mascota')
+
+
+class IndicadoresTests(TestCase):
+    """
+    RF-25 y §2.5: el ejemplo del documento. El martes 13/10/2026 la Dra. Paredes tiene el bloque 09:00-13:00
+    (240 min) y las citas de Luna (30), Kira (30), Simba (20) y Toby (30, cancelada): 80 ÷ 240 = 33,3 %.
+    """
+    FECHA = date(2026, 10, 13)
+
+    def setUp(self):
+        self.paredes = crear_veterinario('paredes', first_name='Sofía', last_name='Paredes')
+        self.consulta = crear_servicio()
+        self.desparasitacion = crear_servicio(nombre='Desparasitación', duracion_min=20, precio=Decimal('15.00'))
+        crear_horario(self.paredes, time(9, 0), time(13, 0), fecha=self.FECHA)
+        dueno = crear_usuario('ana')
+        self.luna = self.cita('Luna', dueno, 9, 30, estado=EstadoCita.ATENDIDA)
+        self.kira = self.cita('Kira', dueno, 10, 0, estado=EstadoCita.NO_ASISTIO)
+        self.simba = self.cita('Simba', dueno, 12, 0, servicio=self.desparasitacion)
+        self.toby = self.cita('Toby', dueno, 11, 0, estado=EstadoCita.CANCELADA)
+        self.admin = crear_usuario('laura', rol=Roles.ADMINISTRADOR)
+        self.client.force_login(self.admin)
+        self.url = reverse('citas:indicadores')
+
+    def cita(self, nombre, dueno, horas, minutos, servicio=None, estado=EstadoCita.CONFIRMADA, veterinario=None):
+        servicio = servicio or self.consulta
+        inicio = timezone.make_aware(datetime.combine(self.FECHA, time(horas, minutos)))
+        return Cita.objects.create(mascota=crear_mascota(dueno, nombre=nombre), veterinario=veterinario or self.paredes,
+                                   servicio=servicio, inicio=inicio, fin=inicio + timedelta(minutes=servicio.duracion_min),
+                                   precio=servicio.precio, estado=estado)
+
+    def indicadores(self, veterinario=None):
+        return EstadisticasService.indicadores(self.FECHA, self.FECHA, veterinario)
+
+    # ---------- El service ----------
+    def test_la_ocupacion_del_ejemplo_es_33_3(self):
+        fila = self.indicadores()['filas'][0]
+        self.assertEqual((fila['minutos_citas'], fila['minutos_horario']), (80, 240))
+        self.assertEqual(fila['ocupacion'], 33.3)
+
+    def test_con_la_cita_de_ana_sube_a_45_8(self):
+        self.cita('Milo', crear_usuario('ana2'), 10, 30)
+        self.assertEqual(self.indicadores()['filas'][0]['ocupacion'], 45.8)
+        self.assertEqual(self.indicadores()['ocupacion'], 45.8)
+
+    def test_cuenta_las_citas_por_estado(self):
+        por_estado = {valor: cantidad for valor, _, cantidad in self.indicadores()['por_estado']}
+        self.assertEqual(por_estado, {EstadoCita.CONFIRMADA: 1, EstadoCita.ATENDIDA: 1,
+                                      EstadoCita.NO_ASISTIO: 1, EstadoCita.CANCELADA: 1})
+        fila = self.indicadores()['filas'][0]
+        self.assertEqual((fila['citas'], fila['canceladas']), (3, 1))
+
+    def test_los_ingresos_son_solo_de_las_atendidas(self):
+        self.assertEqual(self.indicadores()['ingresos'], Decimal('25.00'))  # Luna; Kira no asistió, Toby se canceló
+
+    def test_filtra_por_veterinario(self):
+        leon = crear_veterinario('leon', first_name='Mateo', last_name='León')
+        crear_horario(leon, time(9, 0), time(11, 0), fecha=self.FECHA)
+        self.cita('Rocky', crear_usuario('carlos'), 9, 0, veterinario=leon, estado=EstadoCita.ATENDIDA)
+        todos = self.indicadores()
+        self.assertEqual([fila['veterinario'] for fila in todos['filas']], [leon, self.paredes])
+        # Clínica: (30 + 80) ÷ (120 + 240) = 30,6 %
+        self.assertEqual(todos['ocupacion'], 30.6)
+        solo_leon = self.indicadores(leon)
+        self.assertEqual([fila['veterinario'] for fila in solo_leon['filas']], [leon])
+        self.assertEqual(solo_leon['ocupacion'], 25.0)
+        self.assertEqual(solo_leon['total_citas'], 1)
+
+    def test_fuera_del_rango_no_cuenta(self):
+        otro_dia = EstadisticasService.indicadores(self.FECHA + timedelta(days=1), self.FECHA + timedelta(days=7))
+        self.assertEqual((otro_dia['total_citas'], otro_dia['filas'], otro_dia['ocupacion']), (0, [], 0))
+
+    def test_sin_horario_la_ocupacion_es_cero_y_la_barra_no_pasa_de_100(self):
+        HorarioVeterinario.objects.all().delete()
+        fila = self.indicadores()['filas'][0]
+        self.assertEqual((fila['ocupacion'], fila['barra']), (0, 0))
+
+    # ---------- La vista ----------
+    def test_solo_la_abre_la_gestion_de_la_clinica(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+        for usuario in (self.paredes, crear_usuario('cliente')):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_muestra_la_ocupacion_y_los_ingresos_del_rango(self):
+        respuesta = self.client.get(self.url, {'desde': '2026-10-13', 'hasta': '2026-10-13'})
+        self.assertContains(respuesta, 'Sofía Paredes')
+        self.assertContains(respuesta, '33,3 %')
+        self.assertContains(respuesta, '$25,00')
+
+    def test_filtra_por_veterinario_en_la_vista(self):
+        leon = crear_veterinario('leon', first_name='Mateo', last_name='León')
+        respuesta = self.client.get(self.url, {'desde': '2026-10-13', 'hasta': '2026-10-13', 'veterinario': leon.pk})
+        self.assertEqual(respuesta.context['veterinario'], leon)
+        # Paredes sigue en el desplegable, pero no en el reporte
+        self.assertEqual(respuesta.context['filas'], [])
+        self.assertEqual(respuesta.context['total_citas'], 0)
+
+    def test_sin_parametros_muestra_los_ultimos_30_dias(self):
+        respuesta = self.client.get(self.url)
+        hoy = timezone.localdate()
+        self.assertEqual((respuesta.context['desde'], respuesta.context['hasta']), (hoy - timedelta(days=29), hoy))
+
+    def test_un_rango_al_reves_avisa_y_vuelve_a_30_dias(self):
+        respuesta = self.client.get(self.url, {'desde': '2026-10-20', 'hasta': '2026-10-13'})
+        self.assertContains(respuesta, 'debe ser anterior o igual')
+        self.assertEqual(respuesta.context['hasta'], timezone.localdate())
+
+    def test_un_rango_de_mas_de_un_ano_no_se_acepta(self):
+        respuesta = self.client.get(self.url, {'desde': '2025-01-01', 'hasta': '2026-10-13'})
+        self.assertContains(respuesta, 'un año como máximo')

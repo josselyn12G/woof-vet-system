@@ -4002,4 +4002,52 @@ button.cal-cita {
   color: var(--p-texto-2);
   font-size: 0.92rem;
   line-height: 1.5;
+
+
+/* ==========================================================================
+   Indicadores de la agenda (RF-25): filtros por rango y la ocupación de cada veterinario
+   ========================================================================== */
+.filtros--indicadores {
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.filtros--indicadores .formulario-panel__campo {
+  flex: 1 1 11rem;
+}
+
+.indicadores__estado {
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.ocupacion {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 10rem;
+}
+
+.ocupacion__barra {
+  position: relative;
+  flex: 1 1 auto;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--p-linea);
+}
+
+.ocupacion__barra span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--p-acento);
+}
+
+.ocupacion__valor {
+  min-width: 3.5rem;
+  color: var(--p-texto);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
