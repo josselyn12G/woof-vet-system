@@ -261,7 +261,7 @@ Criterios de aceptación:
 **Como** cliente **quiero** agendar una cita eligiendo la mascota, el tipo de servicio, el veterinario, la fecha y la hora **para** que atiendan a mi mascota.
 - Solo se ofrecen horas libres dentro del horario del veterinario (HU-26) y según la duración del servicio.
 - Un horario reservado deja de aparecer para los demás clientes. Si dos clientes confirman el mismo horario al mismo tiempo, solo uno lo consigue; el otro ve un aviso para elegir otra hora.
-- No se puede agendar en una fecha u hora pasada.
+- No se puede agendar en una fecha u hora pasada ni con menos de 1 hora de anticipación (RF-12).
 - Al confirmar veo el resumen (servicio, veterinario, fecha, hora y precio) y recibo una confirmación.
 
 #### HU-17 · Ver mis citas
@@ -270,7 +270,7 @@ Criterios de aceptación:
 
 #### HU-29 · Reprogramar una cita
 **Como** cliente **quiero** cambiar la fecha u hora de mi cita **para** adaptarla si me surge un imprevisto.
-- Solo con al menos 24 horas de anticipación (regla a confirmar).
+- Solo una cita confirmada y antes de su hora de inicio; la nueva hora necesita al menos 1 hora de anticipación (RF-12, RF-16).
 - El horario anterior queda libre para otros clientes.
 
 #### HU-30 · Cancelar una cita
