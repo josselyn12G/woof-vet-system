@@ -54,9 +54,10 @@ class PanelTests(TestCase):
 class CargarDemoTests(TestCase):
     """python manage.py cargar_demo: los datos del ejemplo del Documento de Análisis, relativos a hoy."""
 
-    def cargar(self, **opciones):
+    def cargar(self, confirmar=True):
+        # La base de pruebas se borra al terminar: se confirma para que también corra sobre PostgreSQL (CI)
         salida = StringIO()
-        call_command('cargar_demo', stdout=salida, **opciones)
+        call_command('cargar_demo', stdout=salida, confirmar=confirmar)
         return salida.getvalue()
 
     def test_carga_la_agenda_de_la_figura_1(self):
@@ -88,5 +89,5 @@ class CargarDemoTests(TestCase):
     def test_en_una_base_que_no_es_sqlite_pide_confirmar(self):
         with patch.object(connection, 'vendor', 'postgresql'):
             with self.assertRaisesMessage(CommandError, '--confirmar'):
-                self.cargar()
+                self.cargar(confirmar=False)
         self.assertFalse(get_user_model().objects.filter(username='paredes').exists())
