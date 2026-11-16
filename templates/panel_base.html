@@ -97,7 +97,7 @@
         <a class="nav-arriba__marca" href="{% url 'panel:panel' %}"><img src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel"></a>
         <nav class="nav-arriba__opciones" aria-label="Menú del panel">
           <a class="nav-arriba__opcion{% if ruta == 'panel:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'panel:inicio_veterinario' %}"{% if ruta == 'panel:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
-          <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda</a>
+          <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' or ruta == 'historial:consulta' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda</a>
           <a class="nav-arriba__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"{% if ruta == 'citas:horario' %} aria-current="page"{% endif %}>Mi horario</a>
           <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
         </nav>

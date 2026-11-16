@@ -1,0 +1,153 @@
+/* ==========================================================================
+   Registrar consulta (RF-20, wireframe 5): ficha del paciente arriba, los datos de la
+   consulta a la izquierda y la receta y las vacunas a la derecha. Lo común viene de panel.css
+   ========================================================================== */
+.consulta {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.consulta__columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.consulta__datos,
+.consulta__lado {
+  display: grid;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.consulta__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9rem;
+  gap: 1rem;
+}
+
+/* Los textarea del panel crecen con su contenido (control-panel trae alto fijo para inputs) */
+.consulta textarea.control-panel {
+  height: auto;
+  min-height: 6.5rem;
+  padding: 0.7rem 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.consulta__filas {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.consulta__agregar {
+  justify-self: start;
+  margin-top: 0.75rem;
+}
+
+.consulta__acciones {
+  justify-content: flex-start;
+}
+
+/* Ficha del paciente */
+.ficha-paciente {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+.ficha-paciente__foto {
+  width: 3.75rem;
+  height: 3.75rem;
+  flex: none;
+  border-radius: 50%;
+}
+
+.ficha-paciente__nombre {
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+
+.ficha-paciente__rasgos {
+  margin: 0.15rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+.ficha-paciente__datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  margin: 0;
+}
+
+.ficha-paciente__datos dt {
+  color: var(--p-texto-2);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.ficha-paciente__datos dd {
+  margin: 0;
+  color: var(--p-texto);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Una fila de la receta o de las vacunas: tarjeta con tinte */
+.fila-historial {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+  background: var(--p-acento-tinte);
+}
+
+.fila-historial__ancho,
+.fila-historial__pie {
+  grid-column: 1 / -1;
+}
+
+.fila-historial__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fila-historial__tomas {
+  margin: 0;
+  color: var(--p-acento-texto);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fila-historial__tomas:empty {
+  display: none;
+}
+
+.fila-historial__quitar {
+  margin-left: auto;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 991.98px) {
+  .consulta__columnas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .consulta__fila,
+  .fila-historial {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,114 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}{% if es_nueva %}Registrar consulta{% else %}Editar consulta{% endif %} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-clipboard2-pulse{% endblock %}
+{% block panel_seccion %}Agenda{% endblock %}
+{% block panel_titulo %}{% if es_nueva %}Registrar consulta{% else %}Editar consulta{% endif %}{% endblock %}
+{% block panel_subtitulo %}Cita atendida · {{ cita.inicio|date:'l j/m/Y' }} · {{ cita.inicio|date:'H:i' }} – {{ cita.fin|date:'H:i' }}{% endblock %}
+
+{% block panel_contenido %}
+  <form class="consulta" method="post" novalidate>
+    {% csrf_token %}
+
+    {# Ficha del paciente: la mascota, su dueño, el último peso y el servicio de la cita (wireframe 5) #}
+    <section class="bloque-panel ficha-paciente" aria-label="Paciente">
+      <span class="ficha-paciente__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
+      <div class="ficha-paciente__nombre">
+        <h2 class="bloque-panel__titulo">{{ mascota }}</h2>
+        <p class="ficha-paciente__rasgos">{{ mascota.especie }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}</p>
+      </div>
+      <dl class="ficha-paciente__datos">
+        <div><dt>Dueño</dt><dd>{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}</dd></div>
+        <div><dt>Último peso</dt><dd>{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}Sin registrar{% endif %}</dd></div>
+        <div><dt>Servicio</dt><dd>{{ cita.servicio }}</dd></div>
+      </dl>
+    </section>
+
+    {% if form.errors or recetas.total_error_count or vacunas.total_error_count %}
+      <p class="panel-aviso panel-aviso--error" role="alert">Revisa los campos marcados: la consulta todavía no se guardó.</p>
+    {% endif %}
+    {% for error in form.non_field_errors %}<p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>{% endfor %}
+
+    <div class="consulta__columnas">
+      {# ================= Datos de la consulta ================= #}
+      <section class="bloque-panel consulta__datos" aria-labelledby="titulo-datos">
+        <h2 class="bloque-panel__titulo" id="titulo-datos">Datos de la consulta</h2>
+
+        <div class="consulta__fila">
+          <div class="formulario-panel__campo">
+            <label class="formulario-panel__etiqueta" for="{{ form.motivo.id_for_label }}">{{ form.motivo.label|capfirst }}</label>
+            {{ form.motivo }}
+            {% for error in form.motivo.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+          </div>
+          <div class="formulario-panel__campo consulta__peso">
+            <label class="formulario-panel__etiqueta" for="{{ form.peso_kg.id_for_label }}">{{ form.peso_kg.label }}</label>
+            {{ form.peso_kg }}
+            {% for error in form.peso_kg.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <div class="formulario-panel__campo">
+          <label class="formulario-panel__etiqueta" for="{{ form.diagnostico.id_for_label }}">{{ form.diagnostico.label|capfirst }}</label>
+          {{ form.diagnostico }}
+          {% for error in form.diagnostico.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="formulario-panel__campo">
+          <label class="formulario-panel__etiqueta" for="{{ form.indicaciones.id_for_label }}">{{ form.indicaciones.label|capfirst }}</label>
+          {{ form.indicaciones }}
+          {% for error in form.indicaciones.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+          <p class="formulario-panel__ayuda">El dueño las verá en la historia clínica de {{ mascota }}.</p>
+        </div>
+      </section>
+
+      <div class="consulta__lado">
+        {# ================= Receta ================= #}
+        <section class="bloque-panel" aria-labelledby="titulo-receta" data-formset="recetas">
+          <div class="bloque-panel__cabecera">
+            <h2 class="bloque-panel__titulo" id="titulo-receta">Receta y tratamiento</h2>
+            <span class="bloque-panel__meta">Opcional</span>
+          </div>
+          {{ recetas.management_form }}
+          {% for error in recetas.non_form_errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+          <div class="consulta__filas" data-filas>
+            {% for receta in recetas %}{% include 'historial/_fila_receta.html' with form=receta %}{% endfor %}
+          </div>
+          <template data-modelo>{% include 'historial/_fila_receta.html' with form=recetas.empty_form %}</template>
+          <button type="button" class="boton-panel boton-panel--secundario consulta__agregar" data-agregar hidden><i class="bi bi-plus-lg" aria-hidden="true"></i>Agregar medicamento</button>
+        </section>
+
+        {# ================= Vacunas aplicadas ================= #}
+        <section class="bloque-panel" aria-labelledby="titulo-vacunas" data-formset="vacunas">
+          <div class="bloque-panel__cabecera">
+            <h2 class="bloque-panel__titulo" id="titulo-vacunas">Vacunas aplicadas hoy</h2>
+            <span class="bloque-panel__meta">Opcional</span>
+          </div>
+          {{ vacunas.management_form }}
+          {% for error in vacunas.non_form_errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+          <div class="consulta__filas" data-filas>
+            {% for vacuna in vacunas %}{% include 'historial/_fila_vacuna.html' with form=vacuna %}{% endfor %}
+          </div>
+          <template data-modelo>{% include 'historial/_fila_vacuna.html' with form=vacunas.empty_form %}</template>
+          <button type="button" class="boton-panel boton-panel--secundario consulta__agregar" data-agregar hidden><i class="bi bi-plus-lg" aria-hidden="true"></i>Agregar vacuna</button>
+          <p class="formulario-panel__ayuda">Solo aparecen las vacunas para {{ mascota.especie|lower }}. La próxima dosis se calcula sola.</p>
+        </section>
+      </div>
+    </div>
+
+    <div class="formulario-panel__acciones consulta__acciones">
+      <button type="submit" class="boton-panel"><i class="bi bi-check2-circle" aria-hidden="true"></i>{% if es_nueva %}Guardar consulta{% else %}Guardar cambios{% endif %}</button>
+      <a class="boton-panel boton-panel--secundario" href="{{ volver }}">Cancelar</a>
+    </div>
+  </form>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'historial/js/consulta.js' %}" defer></script>
+{% endblock %}

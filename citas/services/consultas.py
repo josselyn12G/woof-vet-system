@@ -81,13 +81,15 @@ class CitaService:
         hoy = timezone.localdate()
         citas = con_foto_de_la_mascota(
             Cita.objects.filter(veterinario=veterinario, inicio__date=fecha)
-            .select_related('mascota', 'mascota__dueno', 'servicio')
+            .select_related('mascota', 'mascota__dueno', 'servicio', 'consulta')
             .order_by('inicio')
         )
         for cita in citas:
             cita.duracion = texto_duracion(int((cita.fin - cita.inicio).total_seconds() // 60))
             # Confirmada y ya empezó: el veterinario la cierra como atendida o no asistió
             cita.puede_cerrarse = cita.estado == EstadoCita.CONFIRMADA and cita.inicio <= ahora
+            # Atendida: el botón dice "Registrar consulta" o, si ya la tiene, "Ver consulta" (RF-20)
+            cita.tiene_consulta = hasattr(cita, 'consulta')
 
         bloques = list(HorarioVeterinario.objects.filter(veterinario=veterinario, fecha=fecha))
         for bloque in bloques:

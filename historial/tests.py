@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import ProtectedError
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from citas.models import EstadoCita
@@ -204,3 +205,146 @@ class HistorialServiceTests(HistorialBaseTests):
         confirmada = crear_cita_pasada(self.milo, self.veterinario, self.servicio,
                                        estado=EstadoCita.CONFIRMADA, dias=3)
         self.assertFalse(HistorialService.puede_registrar_consulta(confirmada))
+
+
+class RegistrarConsultaVistaTests(HistorialBaseTests):
+    """RF-20: el veterinario registra la consulta, la receta y las vacunas desde una cita atendida suya."""
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse('historial:consulta', args=[self.cita.pk])
+        self.client.force_login(self.veterinario)
+
+    def datos(self, recetas=(), vacunas=(), **consulta):
+        """El POST como lo manda el navegador: la consulta y los dos formsets con su formulario de gestión."""
+        valores = {'motivo': 'Tos desde hace 3 días', 'peso_kg': '12.60', 'diagnostico': 'Traqueobronquitis leve.',
+                   'indicaciones': 'Reposo 5 días.'}
+        valores.update(consulta)
+        for prefijo, filas in (('recetas', recetas), ('vacunas', vacunas)):
+            valores.update({f'{prefijo}-TOTAL_FORMS': str(len(filas)), f'{prefijo}-INITIAL_FORMS': '0',
+                            f'{prefijo}-MIN_NUM_FORMS': '0', f'{prefijo}-MAX_NUM_FORMS': '1000'})
+            for i, fila in enumerate(filas):
+                valores.update({f'{prefijo}-{i}-{campo}': valor for campo, valor in fila.items()})
+        return valores
+
+    def receta(self, **datos):
+        valores = {'medicamento': 'Amoxicilina 250 mg', 'dosis': '1 tableta', 'frecuencia_horas': '12',
+                   'duracion_dias': '7'}
+        valores.update(datos)
+        return valores
+
+    # ---------- Quién la abre ----------
+    def test_el_veterinario_de_la_cita_ve_el_formulario(self):
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Registrar consulta')
+        self.assertContains(respuesta, 'Milo')
+        self.assertContains(respuesta, 'Rabia')            # vacunas de perro
+        self.assertNotContains(respuesta, 'Triple felina')  # y no las de gato
+
+    def test_otro_veterinario_recibe_404(self):
+        self.client.force_login(crear_veterinario('mario'))
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_un_cliente_recibe_403(self):
+        self.client.force_login(self.cliente)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_sin_sesion_va_al_login(self):
+        self.client.logout()
+        self.assertRedirects(self.client.get(self.url), f"{reverse('cuentas:login')}?next={self.url}",
+                             fetch_redirect_response=False)
+
+    def test_una_cita_que_no_esta_atendida_vuelve_a_la_agenda(self):
+        self.cita.estado = EstadoCita.CONFIRMADA
+        self.cita.save()
+        for respuesta in (self.client.get(self.url), self.client.post(self.url, self.datos())):
+            self.assertEqual(respuesta.status_code, 302)
+            self.assertIn(reverse('citas:agenda'), respuesta.url)
+        self.assertFalse(Consulta.objects.exists())
+
+    # ---------- Guardar ----------
+    def test_guarda_la_consulta_con_su_receta_y_sus_vacunas(self):
+        respuesta = self.client.post(self.url, self.datos(
+            recetas=[self.receta(), self.receta(medicamento='Jarabe', dosis='5 ml', frecuencia_horas='8',
+                                                duracion_dias='5')],
+            vacunas=[{'vacuna': self.rabia_perro().pk, 'lote': 'L-01'}],
+        ))
+        self.assertEqual(respuesta.status_code, 302)
+        consulta = Consulta.objects.get(cita=self.cita)
+        self.assertEqual((consulta.mascota, consulta.veterinario), (self.milo, self.veterinario))
+        self.assertEqual(consulta.prescripciones.count(), 2)
+        aplicada = consulta.vacunas_aplicadas.get()
+        self.assertEqual((aplicada.mascota, aplicada.veterinario, aplicada.lote), (self.milo, self.veterinario, 'L-01'))
+        self.assertEqual(aplicada.fecha_aplicacion, timezone.localtime(self.cita.inicio).date())
+        self.assertIsNotNone(aplicada.proxima_dosis)
+
+    def test_el_peso_de_la_consulta_pasa_a_la_mascota(self):
+        self.client.post(self.url, self.datos())
+        self.milo.refresh_from_db()
+        self.assertEqual(self.milo.peso_kg, Decimal('12.60'))
+
+    def test_las_filas_vacias_se_ignoran(self):
+        self.client.post(self.url, self.datos(recetas=[{}], vacunas=[{}]))
+        consulta = Consulta.objects.get(cita=self.cita)
+        self.assertFalse(consulta.prescripciones.exists())
+        self.assertFalse(consulta.vacunas_aplicadas.exists())
+
+    def test_si_la_receta_tiene_un_error_no_se_guarda_nada(self):
+        respuesta = self.client.post(self.url, self.datos(recetas=[self.receta(frecuencia_horas='0')]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'la consulta todavía no se guardó')
+        self.assertFalse(Consulta.objects.exists())
+        self.milo.refresh_from_db()
+        self.assertIsNone(self.milo.peso_kg)
+
+    def test_sin_diagnostico_no_se_guarda(self):
+        respuesta = self.client.post(self.url, self.datos(diagnostico=''))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(Consulta.objects.exists())
+
+    def test_no_acepta_una_vacuna_de_otra_especie(self):
+        triple = Vacuna.objects.get(nombre='Triple felina')
+        respuesta = self.client.post(self.url, self.datos(vacunas=[{'vacuna': triple.pk}]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(Consulta.objects.exists())
+
+    def test_vuelve_a_la_agenda_del_dia_de_la_cita(self):
+        respuesta = self.client.post(self.url, self.datos())
+        fecha = timezone.localtime(self.cita.inicio).date()
+        self.assertRedirects(respuesta, f"{reverse('citas:agenda')}?fecha={fecha.isoformat()}",
+                             fetch_redirect_response=False)
+
+    # ---------- Editar ----------
+    def test_si_ya_tiene_consulta_se_edita_la_misma(self):
+        self.client.post(self.url, self.datos(recetas=[self.receta()]))
+        consulta = Consulta.objects.get()
+        receta = consulta.prescripciones.get()
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, 'Editar consulta')
+        self.assertContains(respuesta, 'Traqueobronquitis leve.')
+
+        datos = self.datos(diagnostico='Bronquitis, mejorando.')
+        datos.update({'recetas-TOTAL_FORMS': '1', 'recetas-INITIAL_FORMS': '1', 'recetas-0-id': receta.pk,
+                      'recetas-0-consulta': consulta.pk, 'recetas-0-DELETE': 'on',
+                      **{f'recetas-0-{campo}': valor for campo, valor in self.receta().items()}})
+        self.client.post(self.url, datos)
+        self.assertEqual(Consulta.objects.count(), 1)
+        consulta.refresh_from_db()
+        self.assertEqual(consulta.diagnostico, 'Bronquitis, mejorando.')
+        self.assertFalse(consulta.prescripciones.exists())   # se quitó de la receta
+
+    # ---------- La agenda ----------
+    def test_la_agenda_muestra_registrar_y_luego_ver_consulta(self):
+        agenda = reverse('citas:agenda') + f'?fecha={timezone.localtime(self.cita.inicio).date().isoformat()}'
+        self.assertContains(self.client.get(agenda), 'Registrar consulta')
+        self.client.post(self.url, self.datos())
+        respuesta = self.client.get(agenda)
+        self.assertContains(respuesta, 'Ver consulta')
+        self.assertNotContains(respuesta, 'Registrar consulta')
+
+    def test_una_cita_confirmada_no_muestra_el_boton(self):
+        self.cita.estado = EstadoCita.CONFIRMADA
+        self.cita.save()
+        agenda = reverse('citas:agenda') + f'?fecha={timezone.localtime(self.cita.inicio).date().isoformat()}'
+        self.assertNotContains(self.client.get(agenda), self.url)
