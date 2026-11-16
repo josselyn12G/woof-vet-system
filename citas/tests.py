@@ -1,12 +1,15 @@
+import threading
+import time as time_module
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from unittest import skipUnless
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, connection
 from django.db.models import ProtectedError
 from django.forms import modelform_factory
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -1696,3 +1699,134 @@ class CalificacionEnMisCitasTests(TestCase):
                                     {'servicio': self.servicio.pk, 'fecha': fecha.isoformat()})
         self.assertEqual(respuesta.json()['turnos'][0]['perfil'],
                          reverse('citas:perfil_veterinario', args=[self.veterinario.pk]))
+
+
+class EjemploDelDocumentoTests(TestCase):
+    """
+    Casos del plan de pruebas (§3.5) con el ejemplo del §2.1: la Dra. Paredes atiende de 09:00 a 13:00 y ya tiene
+    a Luna (09:30), Kira (10:00), Simba (12:00, desparasitación de 20 min) y a Toby (11:00, cancelada).
+    """
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.paredes = crear_veterinario('paredes')
+        self.consulta = crear_servicio()
+        self.desparasitacion = crear_servicio(nombre='Desparasitación', duracion_min=20, precio=Decimal('15.00'))
+        self.consulta.veterinarios.add(self.paredes)
+        crear_horario(self.paredes, time(9, 0), time(13, 0), fecha=self.fecha)
+        self.dueno = crear_usuario('ana')
+        for nombre, horas, minutos, servicio, estado in (
+            ('Luna', 9, 30, self.consulta, EstadoCita.CONFIRMADA),
+            ('Kira', 10, 0, self.consulta, EstadoCita.CONFIRMADA),
+            ('Simba', 12, 0, self.desparasitacion, EstadoCita.CONFIRMADA),
+            ('Toby', 11, 0, self.consulta, EstadoCita.CANCELADA),
+        ):
+            inicio = self.hora(horas, minutos)
+            Cita.objects.create(mascota=crear_mascota(self.dueno, nombre=nombre), veterinario=self.paredes,
+                                servicio=servicio, inicio=inicio, fin=inicio + timedelta(minutes=servicio.duracion_min),
+                                precio=servicio.precio, estado=estado)
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+
+    def test_espacios_libres_del_ejemplo(self):
+        # Figura 1: Ana ve 09:00, 10:30, 11:00, 11:30 y 12:30
+        espacios = AgendaService.espacios_disponibles(self.paredes, self.consulta, self.fecha)
+        self.assertEqual(espacios, [self.hora(9), self.hora(10, 30), self.hora(11), self.hora(11, 30),
+                                    self.hora(12, 30)])
+
+    def test_dos_citas_que_solo_se_tocan_no_se_cruzan(self):
+        # 09:00-09:30 termina justo cuando empieza Luna (09:30-10:00): no comparten ningún minuto
+        milo = AgendaService.agendar(mascota=crear_mascota(self.dueno, nombre='Milo'), veterinario=self.paredes,
+                                     servicio=self.consulta, inicio=self.hora(9))
+        self.assertEqual((milo.fin, milo.estado), (self.hora(9, 30), EstadoCita.CONFIRMADA))
+
+    def test_la_cita_cancelada_deja_su_turno_libre(self):
+        self.assertIn(self.hora(11), AgendaService.espacios_disponibles(self.paredes, self.consulta, self.fecha))
+
+    def test_cancelar_una_cita_que_ya_empezo_se_rechaza(self):
+        empezada = Cita.objects.create(
+            mascota=crear_mascota(self.dueno, nombre='Rocky'), veterinario=self.paredes, servicio=self.consulta,
+            inicio=timezone.now() - timedelta(minutes=10), fin=timezone.now() + timedelta(minutes=20),
+            precio=Decimal('25.00'),
+        )
+        with self.assertRaisesMessage(ValidationError, 'ya empezó'):
+            AgendaService.cancelar(empezada)
+        empezada.refresh_from_db()
+        self.assertEqual(empezada.estado, EstadoCita.CONFIRMADA)
+
+
+@skipUnless(connection.vendor == 'postgresql', 'select_for_update solo bloquea de verdad en PostgreSQL (CI y Neon)')
+class ReservasSimultaneasTests(TransactionTestCase):
+    """
+    §3.5: dos reservas del mismo turno llegan al mismo tiempo, cada una en su propio hilo y su propia conexión.
+    El bloqueo del veterinario (select_for_update) las ordena: solo se crea una cita y la otra recibe el aviso.
+    Para que de verdad se crucen, la revisión de turnos libres se hace más lenta mientras dura la prueba.
+    """
+    serialized_rollback = True   # al terminar se restauran los datos de las migraciones (especies, vacunas...)
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.milo = crear_mascota(crear_usuario('ana'), nombre='Milo')
+        self.rocky = crear_mascota(crear_usuario('carlos'), nombre='Rocky')
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+
+    def a_la_vez(self, *acciones):
+        """Corre cada acción en su hilo, todas a la vez (Barrier). Devuelve lo que devolvió cada una o su error."""
+        barrera = threading.Barrier(len(acciones))
+        resultados = [None] * len(acciones)
+        original = AgendaService.espacios_disponibles
+
+        def lento(*args, **kwargs):
+            espacios = original(*args, **kwargs)
+            time_module.sleep(0.3)   # da tiempo a que la otra reserva llegue mientras esta revisa
+            return espacios
+
+        def correr(indice, accion):
+            try:
+                barrera.wait()
+                resultados[indice] = accion()
+            except ValidationError as error:
+                resultados[indice] = error
+            finally:
+                connection.close()   # cada hilo abrió su propia conexión
+
+        with patch.object(AgendaService, 'espacios_disponibles', side_effect=lento):
+            hilos = [threading.Thread(target=correr, args=(i, accion)) for i, accion in enumerate(acciones)]
+            for hilo in hilos:
+                hilo.start()
+            for hilo in hilos:
+                hilo.join(timeout=30)
+        return resultados
+
+    def agendar(self, mascota, inicio):
+        return lambda: AgendaService.agendar(mascota=mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                             inicio=inicio)
+
+    def test_dos_clientes_reservan_el_mismo_turno_y_solo_uno_lo_consigue(self):
+        resultados = self.a_la_vez(self.agendar(self.milo, self.hora(9, 30)), self.agendar(self.rocky, self.hora(9, 30)))
+
+        citas = [r for r in resultados if isinstance(r, Cita)]
+        avisos = [r for r in resultados if isinstance(r, ValidationError)]
+        self.assertEqual((len(citas), len(avisos)), (1, 1))
+        self.assertEqual(avisos[0].messages, [TURNO_OCUPADO])
+        self.assertEqual(Cita.objects.filter(inicio=self.hora(9, 30)).exclude(estado=EstadoCita.CANCELADA).count(), 1)
+
+    def test_reprogramar_y_agendar_al_mismo_turno_no_pierde_la_reserva(self):
+        # Milo tiene las 9:00 y se mueve a las 10:00 justo cuando Rocky reserva las 10:00
+        cita_milo = self.agendar(self.milo, self.hora(9))()
+        resultados = self.a_la_vez(lambda: AgendaService.reprogramar(cita_milo, self.hora(10)),
+                                   self.agendar(self.rocky, self.hora(10)))
+
+        self.assertEqual(sum(isinstance(r, ValidationError) for r in resultados), 1)
+        self.assertEqual(Cita.objects.filter(inicio=self.hora(10)).count(), 1)
+        cita_milo.refresh_from_db()
+        # Si Milo perdió, conserva su hora de antes: la reprogramación es una sola operación
+        self.assertIn(cita_milo.inicio, (self.hora(9), self.hora(10)))
+        self.assertEqual(cita_milo.estado, EstadoCita.CONFIRMADA)
