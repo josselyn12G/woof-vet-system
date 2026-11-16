@@ -1948,6 +1948,64 @@ fieldset.formulario-panel__campo {
   border-bottom-color: var(--p-acento);
 }
 
+/* Filtro por mascota (RF-15): chips con la foto; la elegida con el tinte naranja */
+.filtro-mascotas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filtro-mascotas__opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.85rem;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 999px;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.filtro-mascotas__opcion:hover {
+  color: var(--p-texto);
+  border-color: var(--p-acento);
+}
+
+.filtro-mascotas__opcion:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 2px;
+}
+
+.filtro-mascotas__opcion.es-activo {
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
+  border-color: var(--p-acento);
+}
+
+.filtro-mascotas__foto {
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-left: -0.5rem;
+  flex: none;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.filtro-mascotas__foto .avatar-inicial {
+  font-size: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filtro-mascotas__opcion {
+    transition: none;
+  }
+}
+
 .mis-citas__dia {
   margin: 0.75rem 0 0;
   color: var(--p-texto-2);
