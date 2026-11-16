@@ -1,13 +1,73 @@
 from datetime import datetime, timedelta
 
+from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario
+from citas.services.formato import minutos
+
+
+def porcentaje(parte, total):
+    """Con un decimal, como el ejemplo del documento (80 ÷ 240 = 33,3 %); 0 si no hay total."""
+    return round(parte * 100 / total, 1) if total else 0
 
 
 class EstadisticasService:
-    """Cifras de la portada del veterinario, calculadas a partir de sus citas y su horario."""
+    """Cifras de la portada del veterinario y de los indicadores de la clínica, a partir de las citas y los horarios."""
+
+    @staticmethod
+    def indicadores(desde, hasta, veterinario=None):
+        """
+        Indicadores de la agenda entre dos fechas (RF-25, §2.5), de toda la clínica o de un veterinario:
+
+        - citas por estado (las canceladas también, para saber cuántas hubo);
+        - por veterinario: sus citas, la ocupación = Σ minutos de citas no canceladas ÷ Σ minutos de sus bloques × 100
+          y los ingresos (precio copiado de las citas atendidas);
+        - los totales de la clínica con la misma fórmula.
+        """
+        citas = Cita.objects.filter(inicio__date__range=(desde, hasta))
+        bloques = HorarioVeterinario.objects.filter(fecha__range=(desde, hasta))
+        if veterinario is not None:
+            citas = citas.filter(veterinario=veterinario)
+            bloques = bloques.filter(veterinario=veterinario)
+        citas = list(citas.values_list('veterinario_id', 'estado', 'inicio', 'fin', 'precio'))
+        bloques = list(bloques)
+
+        # Un renglón por veterinario con citas o con horario en el período
+        ids = {cita[0] for cita in citas} | {bloque.veterinario_id for bloque in bloques}
+        filas = []
+        for vet in get_user_model().objects.filter(pk__in=ids).order_by('first_name', 'last_name', 'username'):
+            suyas = [cita for cita in citas if cita[0] == vet.pk]
+            activas = [cita for cita in suyas if cita[1] != EstadoCita.CANCELADA]
+            minutos_citas = sum((fin - inicio).total_seconds() / 60 for _, _, inicio, fin, _ in activas)
+            minutos_horario = sum(minutos(bloque) for bloque in bloques if bloque.veterinario_id == vet.pk)
+            filas.append({
+                'veterinario': vet,
+                'citas': len(activas),
+                'atendidas': sum(1 for cita in suyas if cita[1] == EstadoCita.ATENDIDA),
+                'no_asistio': sum(1 for cita in suyas if cita[1] == EstadoCita.NO_ASISTIO),
+                'canceladas': len(suyas) - len(activas),
+                'minutos_citas': minutos_citas,
+                'minutos_horario': minutos_horario,
+                'ocupacion': porcentaje(minutos_citas, minutos_horario),
+                # El ancho de la barra: hasta 100 aunque alguna cita haya quedado fuera del horario
+                'barra': min(porcentaje(minutos_citas, minutos_horario), 100),
+                'ingresos': sum(precio for _, estado, _, _, precio in suyas if estado == EstadoCita.ATENDIDA),
+            })
+
+        minutos_citas = sum(fila['minutos_citas'] for fila in filas)
+        minutos_horario = sum(fila['minutos_horario'] for fila in filas)
+        return {
+            'por_estado': [
+                (valor, nombre, sum(1 for cita in citas if cita[1] == valor)) for valor, nombre in EstadoCita.choices
+            ],
+            'total_citas': len(citas),
+            'filas': filas,
+            'ocupacion': porcentaje(minutos_citas, minutos_horario),
+            'ingresos': sum(fila['ingresos'] for fila in filas),
+            'horas_horario': round(minutos_horario / 60, 1),
+        }
 
     @staticmethod
     def del_veterinario(veterinario, desde, hasta):

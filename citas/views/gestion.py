@@ -1,4 +1,4 @@
-"""Gestión de la clínica (administrador y superadministrador): todas las citas y los horarios."""
+"""Gestión de la clínica (administrador y superadministrador): todas las citas, los horarios y los indicadores."""
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect
@@ -9,8 +9,8 @@ from django.views.generic import ListView, TemplateView
 
 from cuentas.mixins import AdministradorRequeridoMixin
 
-from ..forms import FiltroCitasForm
-from ..services import VISTAS_GESTION, AgendaService, CitaService, HorarioService
+from ..forms import FiltroCitasForm, IndicadoresForm
+from ..services import VISTAS_GESTION, AgendaService, CitaService, EstadisticasService, HorarioService
 from ..services.horarios import semana_pedida
 
 
@@ -77,4 +77,26 @@ class GestionHorariosView(AdministradorRequeridoMixin, TemplateView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto.update(HorarioService.semana_de_la_clinica(semana_pedida(self.request.GET.get('semana'))))
+        return contexto
+
+
+class IndicadoresView(AdministradorRequeridoMixin, TemplateView):
+    """
+    Indicadores de la agenda (RF-25, §2.5): por rango de fechas y, si se elige, de un solo veterinario.
+    Citas por estado, ocupación de cada veterinario e ingresos de las citas atendidas.
+    """
+    template_name = 'citas/gestion/indicadores.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        veterinarios = CitaService.veterinarios()
+        # Sin parámetros, el formulario se llena con los últimos 30 días (lo mismo que se muestra)
+        if self.request.GET:
+            form = IndicadoresForm(self.request.GET, veterinarios=veterinarios)
+        else:
+            desde, hasta = IndicadoresForm.rango_por_defecto()
+            form = IndicadoresForm(initial={'desde': desde, 'hasta': hasta}, veterinarios=veterinarios)
+        desde, hasta, veterinario = form.filtros()
+        contexto.update(EstadisticasService.indicadores(desde, hasta, veterinario))
+        contexto.update({'form': form, 'desde': desde, 'hasta': hasta, 'veterinario': veterinario})
         return contexto

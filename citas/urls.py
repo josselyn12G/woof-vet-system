@@ -37,6 +37,8 @@ urlpatterns = [
     path('gestion/', views.GestionCitasView.as_view(), name='gestion_citas'),
     path('gestion/<int:pk>/cancelar/', views.GestionCancelarCitaView.as_view(), name='gestion_cancelar'),
     path('gestion/horarios/', views.GestionHorariosView.as_view(), name='gestion_horarios'),
+    # RF-25: indicadores de la agenda por rango de fechas y veterinario
+    path('gestion/indicadores/', views.IndicadoresView.as_view(), name='indicadores'),
     # El horario y los servicios de un veterinario: solo el superadministrador (403 para los demás)
     path('gestion/horarios/<int:vet>/', views.GestionHorarioView.as_view(), name='gestion_horario'),
     path('gestion/horarios/<int:vet>/bloques/<int:pk>/editar/', views.GestionHorarioEditarView.as_view(),
