@@ -1696,3 +1696,75 @@ class CalificacionEnMisCitasTests(TestCase):
                                     {'servicio': self.servicio.pk, 'fecha': fecha.isoformat()})
         self.assertEqual(respuesta.json()['turnos'][0]['perfil'],
                          reverse('citas:perfil_veterinario', args=[self.veterinario.pk]))
+
+
+class FiltroPorMascotaTests(TestCase):
+    """RF-15: Mis citas se filtra por una de las mascotas del cliente con ?mascota=<id>."""
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.cliente = crear_usuario('ana')
+        self.milo = crear_mascota(self.cliente, nombre='Milo')
+        self.luna = crear_mascota(self.cliente, nombre='Luna', especie='gato')
+        self.cita_milo = self.agendar(self.milo, 9)
+        self.cita_luna = self.agendar(self.luna, 10)
+        self.client.force_login(self.cliente)
+
+    def agendar(self, mascota, horas, minutos=0):
+        inicio = timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+        return AgendaService.agendar(mascota=mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                     inicio=inicio)
+
+    def mis_citas(self, **parametros):
+        return self.client.get(reverse('citas:mis_citas'), parametros)
+
+    def citas_mostradas(self, respuesta):
+        return [cita for _, citas in respuesta.context['por_dia'] for cita in citas]
+
+    def test_sin_filtro_muestra_las_citas_de_todas_sus_mascotas(self):
+        respuesta = self.mis_citas()
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_milo, self.cita_luna])
+        self.assertIsNone(respuesta.context['mascota_elegida'])
+
+    def test_con_una_mascota_muestra_solo_sus_citas(self):
+        respuesta = self.mis_citas(mascota=self.luna.pk)
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_luna])
+        self.assertEqual(respuesta.context['mascota_elegida'], self.luna)
+        # La cantidad de la pestaña Próximas también cuenta solo las de Luna
+        self.assertIn(('proximas', 'Próximas', 1), respuesta.context['pestanas'])
+
+    def test_el_filtro_se_combina_con_la_pestana(self):
+        AgendaService.cancelar(self.cita_milo)
+        respuesta = self.mis_citas(vista='canceladas', mascota=self.milo.pk)
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_milo])
+        self.assertEqual(self.citas_mostradas(self.mis_citas(vista='canceladas', mascota=self.luna.pk)), [])
+
+    def test_las_pestanas_conservan_la_mascota_elegida(self):
+        self.assertContains(self.mis_citas(mascota=self.milo.pk), f'?vista=pasadas&amp;mascota={self.milo.pk}')
+
+    def test_la_mascota_de_otro_cliente_no_filtra_ni_muestra_sus_citas(self):
+        otra = crear_mascota(crear_usuario('luis'), nombre='Toby')
+        self.agendar(otra, 10, 30)
+        respuesta = self.mis_citas(mascota=otra.pk)
+        # El id ajeno se ignora: se ven las citas propias (todas) y nada de Toby
+        self.assertIsNone(respuesta.context['mascota_elegida'])
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_milo, self.cita_luna])
+        self.assertNotContains(respuesta, 'Toby')
+
+    def test_un_id_inventado_se_ignora(self):
+        for valor in ('abc', '99999', ''):
+            with self.subTest(valor=valor):
+                respuesta = self.mis_citas(mascota=valor)
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertIsNone(respuesta.context['mascota_elegida'])
+
+    def test_con_una_sola_mascota_no_se_muestran_los_chips(self):
+        self.luna.delete()
+        self.assertNotContains(self.mis_citas(), 'Filtrar por mascota')
+
+    def test_con_varias_mascotas_se_muestran_los_chips(self):
+        self.assertContains(self.mis_citas(), 'Filtrar por mascota')

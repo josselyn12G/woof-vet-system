@@ -24,11 +24,23 @@
       {# Pestañas con ?vista= (enlaces normales: funcionan sin JavaScript y se pueden recargar) #}
       <nav class="pestanas-citas" aria-label="Qué citas ver">
         {% for valor, nombre, cantidad in pestanas %}
-          <a class="pestanas-citas__opcion{% if valor == vista %} es-activo{% endif %}" href="?vista={{ valor }}"{% if valor == vista %} aria-current="page"{% endif %}>
+          <a class="pestanas-citas__opcion{% if valor == vista %} es-activo{% endif %}" href="?vista={{ valor }}{% if mascota_elegida %}&amp;mascota={{ mascota_elegida.pk }}{% endif %}"{% if valor == vista %} aria-current="page"{% endif %}>
             {% if valor == 'proximas' %}<i class="bi bi-calendar-check" aria-hidden="true"></i>{% endif %}{{ nombre }}{% if valor == 'proximas' %} ({{ cantidad }}){% endif %}
           </a>
         {% endfor %}
       </nav>
+
+      {# Filtro por mascota (RF-15): enlaces con ?mascota= que conservan la pestaña. Con una sola mascota no hace falta #}
+      {% if mascotas|length > 1 %}
+        <nav class="filtro-mascotas" aria-label="Filtrar por mascota">
+          <a class="filtro-mascotas__opcion{% if not mascota_elegida %} es-activo{% endif %}" href="?vista={{ vista }}"{% if not mascota_elegida %} aria-current="true"{% endif %}>Todas</a>
+          {% for mascota in mascotas %}
+            <a class="filtro-mascotas__opcion{% if mascota == mascota_elegida %} es-activo{% endif %}" href="?vista={{ vista }}&amp;mascota={{ mascota.pk }}"{% if mascota == mascota_elegida %} aria-current="true"{% endif %}>
+              <span class="filtro-mascotas__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>{{ mascota.nombre }}
+            </a>
+          {% endfor %}
+        </nav>
+      {% endif %}
 
       {% for fecha, citas_del_dia in por_dia %}
         <h2 class="mis-citas__dia">{% if fecha == hoy %}Hoy{% else %}{{ fecha|date:'l j \d\e F' }}{% endif %}</h2>
@@ -100,14 +112,14 @@
         <div class="sin-citas sin-citas--{{ vista }}">
           <div class="sin-citas__texto">
             {% if vista == 'proximas' %}
-              <h2 class="sin-citas__titulo">No tienes citas próximas</h2>
+              <h2 class="sin-citas__titulo">{% if mascota_elegida %}{{ mascota_elegida.nombre }} no tiene citas próximas{% else %}No tienes citas próximas{% endif %}</h2>
               <p class="sin-citas__bajada">Elige el servicio, el día y una hora libre con su doctor. Tu cita queda confirmada al instante.</p>
-              <a class="boton-panel sin-citas__boton" href="{% url 'citas:agendar' %}" data-abrir-agendar><i class="bi bi-calendar-plus" aria-hidden="true"></i>Agendar una cita</a>
+              <a class="boton-panel sin-citas__boton" href="{% url 'citas:agendar' %}{% if mascota_elegida %}?mascota={{ mascota_elegida.pk }}{% endif %}" data-abrir-agendar><i class="bi bi-calendar-plus" aria-hidden="true"></i>Agendar una cita</a>
             {% elif vista == 'pasadas' %}
-              <h2 class="sin-citas__titulo">Todavía no hay citas pasadas</h2>
+              <h2 class="sin-citas__titulo">{% if mascota_elegida %}{{ mascota_elegida.nombre }} todavía no tiene citas pasadas{% else %}Todavía no hay citas pasadas{% endif %}</h2>
               <p class="sin-citas__bajada">Cuando tus mascotas vayan a sus citas, aquí verás cada visita con su servicio y su doctor.</p>
             {% else %}
-              <h2 class="sin-citas__titulo">No has cancelado ninguna cita</h2>
+              <h2 class="sin-citas__titulo">{% if mascota_elegida %}No hay citas canceladas de {{ mascota_elegida.nombre }}{% else %}No has cancelado ninguna cita{% endif %}</h2>
               <p class="sin-citas__bajada">Si alguna vez cancelas una, quedará aquí para que sepas qué día y con quién era.</p>
             {% endif %}
           </div>

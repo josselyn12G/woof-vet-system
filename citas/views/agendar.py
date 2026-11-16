@@ -137,13 +137,20 @@ class MisCitasView(ClienteRequeridoMixin, TemplateView):
         if vista not in VISTAS_CITAS:   # una pestaña inventada en la URL vuelve a Próximas
             vista = 'proximas'
 
-        contexto.update(CitaService.del_cliente(self.request.user, vista))
+        # ?mascota=<id> filtra por una de sus mascotas (RF-15). Un id ajeno o inventado se ignora:
+        # solo se buscan sus propias mascotas, así nunca se muestra nada de otro cliente
+        mascotas = MascotaService.del_dueno(self.request.user).order_by('nombre')
+        pedida = self.request.GET.get('mascota', '')
+        elegida = mascotas.filter(pk=pedida).first() if pedida.isdigit() else None
+
+        contexto.update(CitaService.del_cliente(self.request.user, vista, mascota=elegida))
         contexto.update({
             # La reserva del pop-up "Agendar cita" (el mismo formulario de AgendarCitaView)
             'form': AgendarCitaForm(cliente=self.request.user),
             'abrir_agendar': 'agendar' in self.request.GET,   # ?agendar abre el pop-up al cargar (desde el inicio)
             'vista': vista,
-            'mascotas': MascotaService.del_dueno(self.request.user).order_by('nombre'),
+            'mascotas': mascotas,
+            'mascota_elegida': elegida,
             'hoy': timezone.localdate(),
             'ahora': timezone.now(),
             # El indicador "Calificación promedio" del wireframe 2: lo que el cliente ha dado
