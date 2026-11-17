@@ -1903,6 +1903,233 @@ fieldset.formulario-panel__campo {
 }
 
 /* =========================================================
+   Reprogramar: la cita actual como tarjeta y, debajo, la nueva fecha (antes → después)
+   ========================================================= */
+.cambio-cita {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.cita-actual {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px -18px rgba(87, 63, 51, 0.45);
+}
+
+.cita-actual__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+/* El día como una hoja de calendario: mes arriba en naranja y el número grande */
+.cita-actual__dia {
+  display: grid;
+  flex: none;
+  width: 3.4rem;
+  overflow: hidden;
+  text-align: center;
+  background: var(--p-acento-tinte);
+  border-radius: 12px;
+}
+
+.cita-actual__mes {
+  padding: 0.15rem 0;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--p-acento);
+}
+
+.cita-actual__numero {
+  padding: 0.2rem 0 0.3rem;
+  color: var(--woof-marron);
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cita-actual__cuando {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.cita-actual__cuando strong {
+  color: var(--p-texto);
+  font-size: 0.95rem;
+}
+
+.cita-actual__cuando strong::first-letter {
+  text-transform: uppercase;
+}
+
+.cita-actual__cuando span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cita-actual__servicio {
+  margin: 0;
+  padding-top: 0.85rem;
+  color: var(--woof-marron);
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-top: 1px dashed var(--p-borde);
+}
+
+.cita-actual__datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cita-actual__datos li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  color: var(--p-texto);
+  font-size: 0.88rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cita-actual__etiqueta {
+  display: block;
+  color: var(--p-texto-2);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.cita-actual__icono,
+.cita-actual__avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.cita-actual__icono {
+  color: var(--p-acento-texto);
+  background: var(--p-acento-tinte);
+}
+
+.cita-actual__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cita-actual__avatar .avatar-inicial {
+  font-size: 0.85rem;
+}
+
+.cita-actual__motivo {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-style: italic;
+  background: var(--p-fondo);
+  border-radius: 10px;
+}
+
+.cambio-cita__flecha {
+  justify-self: center;
+  color: var(--p-acento);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* La nueva fecha: punteada mientras falta elegir; sólida y naranja cuando ya hay día y hora */
+.cita-nueva {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px dashed var(--p-control);
+  border-radius: 14px;
+  transition: background-color 200ms ease, border-color 200ms ease;
+}
+
+.cita-nueva__icono {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  color: var(--p-texto-2);
+  background: var(--p-fondo);
+  border-radius: 10px;
+}
+
+.cita-nueva__texto {
+  display: block;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cita-nueva__texto::first-letter {
+  text-transform: uppercase;
+}
+
+.cita-nueva.esta-elegida {
+  background: var(--p-acento-tinte);
+  border-style: solid;
+  border-color: var(--p-acento);
+}
+
+.cita-nueva.esta-elegida .cita-nueva__icono {
+  color: #fff;
+  background: var(--p-acento);
+}
+
+.cita-nueva.esta-elegida .cita-nueva__texto {
+  color: var(--woof-marron);
+}
+
+.cambio-cita__nota {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.cambio-cita__nota .bi {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--p-acento);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cita-nueva {
+    transition: none;
+  }
+}
+
+/* =========================================================
    Mis citas (cliente): pestañas, tarjetas por cita y una columna lateral con el resumen
    ========================================================= */
 .mis-citas {
