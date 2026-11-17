@@ -509,6 +509,16 @@ class CatalogoVacunasTests(HistorialBaseTests):
         respuesta = self.client.get(reverse('historial:consulta', args=[self.cita.pk]))
         self.assertNotIn(rabia, respuesta.context['vacunas'].forms[0].fields['vacuna'].queryset)
 
+    def test_cuenta_cuantas_veces_se_aplico(self):
+        rabia = self.rabia_perro()
+        respuesta = self.client.get(self.url, {'q': 'Polivalente'})
+        self.assertContains(respuesta, '0 veces')
+        VacunaAplicada.objects.create(mascota=self.milo, vacuna=rabia, veterinario=self.veterinario,
+                                      fecha_aplicacion=timezone.localdate())
+        respuesta = self.client.get(self.url, {'q': 'Rabia'})
+        self.assertContains(respuesta, '1 vez')
+        self.assertNotContains(respuesta, 'vezes')
+
     def test_filtra_por_estado_y_busca(self):
         rabia = self.rabia_perro()
         self.client.post(reverse('historial:vacuna_estado', args=[rabia.pk]))
