@@ -2,6 +2,7 @@
 Mixins de las vistas de mascotas. Los de acceso por rol están en cuentas/mixins.py.
 
 - MascotasDelUsuarioMixin y FormularioMascotaMixin: «Mis mascotas» del cliente.
+- MascotaVisiblePorRolMixin: una mascota que el usuario puede ver según su rol (la historia clínica).
 - MascotaGestionadaMixin y FormularioGestionMixin: la ficha de cualquier mascota (superadministrador).
 - CatalogoFormularioMixin: los formularios de especies y razas (superadministrador).
 """
@@ -32,6 +33,15 @@ class MascotasDelUsuarioMixin(LoginRequiredMixin):
 
     def get_queryset(self):
         return MascotaService.del_dueno(self.request.user)
+
+
+class MascotaVisiblePorRolMixin(LoginRequiredMixin):
+    """Sin sesión redirige al login (?next=...). Con sesión, cada rol solo encuentra las mascotas que puede ver
+    (MascotaService.visibles_para): una que no le corresponde no está en la consulta, así que responde 404."""
+    model = Mascota
+
+    def get_queryset(self):
+        return MascotaService.visibles_para(self.request.user)
 
 
 class FormularioMascotaMixin:
