@@ -7,13 +7,19 @@ from django.views.generic import CreateView, FormView, TemplateView
 
 from ..forms import RegistroForm, VerificarCodigoForm
 from ..services import (
-    PoliticaDeCuentas, cancelar_login_pendiente, completar_login, hay_login_pendiente, iniciar_login_pendiente,
-    verificar_codigo,
+    PerfilVeterinarioService, PoliticaDeCuentas, cancelar_login_pendiente, completar_login, hay_login_pendiente,
+    iniciar_login_pendiente, verificar_codigo,
 )
 
 
 class InicioView(TemplateView):
+    """La portada pública. La sección de veterinarios muestra a los verificados con su calificación real."""
     template_name = 'cuentas/inicio.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['veterinarios'] = PerfilVeterinarioService.destacados()
+        return contexto
 
 
 class RegistroView(CreateView):

@@ -1,5 +1,7 @@
 import re
 import time
+from datetime import timedelta
+from decimal import Decimal
 
 from django.core import mail
 from django.contrib.auth.models import AnonymousUser
@@ -8,6 +10,10 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
+
+from citas.models import Calificacion, Cita, EstadoCita, Servicio
+from mascotas.tests import cedula_de_prueba, crear_mascota
 
 from .models import Ciudad, Pais, PerfilVeterinario, Provincia, Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
@@ -753,3 +759,52 @@ class PerfilVeterinarioTests(TestCase):
         perfil = PerfilVeterinario.objects.get(usuario=self.veterinario)
         self.assertEqual((perfil.verificado, perfil.especialidad), (True, 'Cirugía'))
 
+
+class VeterinariosDeLaPortadaTests(TestCase):
+    """La portada muestra a los veterinarios verificados con su calificación real (PerfilVeterinarioService)."""
+
+    def crear_veterinario(self, username, nombre, verificado=True, **perfil):
+        veterinario = crear_usuario(username=username, email=f'{username}@woof.ec', cedula=cedula_de_prueba(),
+                                    rol=Roles.VETERINARIO, first_name=nombre, last_name='Paredes')
+        PerfilVeterinario.objects.create(usuario=veterinario, verificado=verificado, **perfil)
+        return veterinario
+
+    def calificar(self, veterinario, *estrellas):
+        servicio, _ = Servicio.objects.get_or_create(nombre='Consulta general',
+                                                     defaults={'duracion_min': 30, 'precio': Decimal('25.00')})
+        dueno = crear_usuario(username=f'dueno{Usuario.objects.count()}', email=f'd{Usuario.objects.count()}@woof.ec',
+                              cedula=cedula_de_prueba())
+        for dias, valor in enumerate(estrellas, start=1):
+            inicio = timezone.now() - timedelta(days=dias)
+            cita = Cita.objects.create(mascota=crear_mascota(dueno, nombre=f'M{dias}'), veterinario=veterinario,
+                                       servicio=servicio, inicio=inicio, fin=inicio + timedelta(minutes=30),
+                                       precio=servicio.precio, estado=EstadoCita.ATENDIDA)
+            Calificacion.objects.create(cita=cita, estrellas=valor)
+
+    def portada(self):
+        return self.client.get(reverse('cuentas:inicio'))
+
+    def test_sin_veterinarios_verificados_muestra_los_ejemplos(self):
+        respuesta = self.portada()
+        self.assertEqual(respuesta.context['veterinarios'], [])
+        self.assertContains(respuesta, 'Dra. Ana Pérez')
+
+    def test_muestra_a_los_verificados_con_su_promedio(self):
+        sofia = self.crear_veterinario('sofia', 'Sofía', especialidad='Medicina general', anios_experiencia=9)
+        self.calificar(sofia, 5, 4)
+        respuesta = self.portada()
+        self.assertContains(respuesta, 'Sofía Paredes')
+        self.assertContains(respuesta, 'Medicina general')
+        self.assertContains(respuesta, '4,5 · 2 opiniones')
+        self.assertContains(respuesta, '9 años de experiencia')
+        self.assertNotContains(respuesta, 'Dra. Ana Pérez')
+
+    def test_un_veterinario_sin_verificar_no_aparece(self):
+        self.crear_veterinario('mora', 'Andrés', verificado=False)
+        self.assertNotContains(self.portada(), 'Andrés Paredes')
+
+    def test_primero_los_mejor_calificados(self):
+        nuevo = self.crear_veterinario('nuevo', 'Nuevo')
+        bueno = self.crear_veterinario('bueno', 'Bueno')
+        self.calificar(bueno, 5)
+        self.assertEqual(self.portada().context['veterinarios'], [bueno, nuevo])
