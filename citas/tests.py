@@ -1,15 +1,18 @@
+import threading
+import time as time_module
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from io import StringIO
+from unittest import skipUnless
 from unittest.mock import patch
 
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
-from django.db import IntegrityError
+from django.db import IntegrityError, connection
 from django.db.models import ProtectedError
 from django.forms import modelform_factory
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -18,8 +21,8 @@ from mascotas.tests import crear_mascota, crear_usuario
 
 from .models import Calificacion, Cita, EstadoCita, HorarioVeterinario, Notificacion, Servicio, TipoNotificacion
 from .services import (
-    TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService, HorarioService, NotificacionService,
-    ServicioService,
+    ANTICIPACION_MINIMA, SIN_ANTICIPACION, TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService,
+    HorarioService, NotificacionService, ServicioService,
 )
 
 
@@ -515,7 +518,7 @@ class AgendaServiceTests(TestCase):
             self.agendar(self.hora(9))
 
     def test_hora_pasada_no_se_agenda(self):
-        with self.assertRaisesMessage(ValidationError, 'todavía no haya pasado'):
+        with self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
             self.agendar(timezone.now() - timedelta(hours=1))
 
     def test_el_precio_queda_copiado(self):
@@ -727,7 +730,7 @@ class ReprogramarTests(TestCase):
     def test_rechaza_la_misma_hora_y_una_hora_pasada(self):
         with self.assertRaisesMessage(ValidationError, 'Esa ya es la hora de la cita'):
             AgendaService.reprogramar(self.cita, self.hora(9))
-        with self.assertRaisesMessage(ValidationError, 'todavía no haya pasado'):
+        with self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
             AgendaService.reprogramar(self.cita, timezone.now() - timedelta(hours=1))
 
     def test_una_cita_cancelada_o_que_ya_empezo_no_se_reprograma(self):
@@ -794,6 +797,70 @@ class ReprogramarTests(TestCase):
         self.assertIn(self.fecha.isoformat(), dias.json()['dias'])
         self.assertEqual(self.client.get(reverse('citas:reprogramar_dias', args=[self.cita.pk]),
                                          {'mes': 'inventado'}).json(), {'dias': []})
+
+
+class AnticipacionMinimaTests(TestCase):
+    """
+    RF-12 (§2.1 paso d.1): un turno nuevo se reserva con al menos 1 hora de anticipación.
+    El reloj se congela con patch para reproducir el ejemplo del documento: Ana entra a las 08:20.
+    """
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.mascota = crear_mascota(crear_usuario('ana'))
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+
+    def a_las(self, horas, minutos=0):
+        """Hace que timezone.now() devuelva esa hora del día de la cita mientras dure el with."""
+        return patch('django.utils.timezone.now', return_value=self.hora(horas, minutos))
+
+    def agendar(self, inicio):
+        return AgendaService.agendar(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                     inicio=inicio)
+
+    def espacios(self):
+        return AgendaService.espacios_disponibles(self.veterinario, self.servicio, self.fecha)
+
+    def test_la_anticipacion_es_de_una_hora(self):
+        self.assertEqual(ANTICIPACION_MINIMA, timedelta(hours=1))
+
+    def test_a_las_8_20_no_se_ofrece_el_turno_de_las_9(self):
+        # Ejemplo del documento: a las 9:00 le faltan solo 40 minutos, así que se descarta
+        with self.a_las(8, 20):
+            self.assertEqual(self.espacios(), [self.hora(9, 30), self.hora(10), self.hora(10, 30)])
+
+    def test_si_falta_exactamente_una_hora_el_turno_se_ofrece(self):
+        with self.a_las(8, 0):
+            self.assertIn(self.hora(9), self.espacios())
+
+    def test_agendar_a_40_minutos_se_rechaza(self):
+        with self.a_las(8, 20), self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
+            self.agendar(self.hora(9))
+        self.assertFalse(Cita.objects.exists())
+
+    def test_agendar_con_mas_de_una_hora_se_acepta(self):
+        with self.a_las(8, 20):
+            self.assertEqual(self.agendar(self.hora(9, 30)).estado, EstadoCita.CONFIRMADA)
+
+    def test_reprogramar_a_menos_de_una_hora_se_rechaza_y_la_cita_conserva_su_hora(self):
+        cita = self.agendar(self.hora(10, 30))
+        with self.a_las(9, 50), self.assertRaisesMessage(ValidationError, SIN_ANTICIPACION):
+            AgendaService.reprogramar(cita, self.hora(10))
+        cita.refresh_from_db()
+        self.assertEqual(cita.inicio, self.hora(10, 30))
+
+    def test_cancelar_sigue_permitido_hasta_la_hora_de_inicio(self):
+        # La anticipación es para elegir un turno nuevo; una cita que ya existe se cancela hasta que empieza
+        cita = self.agendar(self.hora(9, 30))
+        with self.a_las(9, 0):
+            AgendaService.cancelar(cita)
+        self.assertEqual(cita.estado, EstadoCita.CANCELADA)
 
 
 class CalendarioYAgendaTests(TestCase):
@@ -1874,3 +1941,317 @@ class CampanaTests(TestCase):
     def test_pide_iniciar_sesion(self):
         self.client.logout()
         self.assertIn(reverse('cuentas:login'), self.client.get(reverse('citas:notificaciones')).url)
+
+
+class FiltroPorMascotaTests(TestCase):
+    """RF-15: Mis citas se filtra por una de las mascotas del cliente con ?mascota=<id>."""
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.cliente = crear_usuario('ana')
+        self.milo = crear_mascota(self.cliente, nombre='Milo')
+        self.luna = crear_mascota(self.cliente, nombre='Luna', especie='gato')
+        self.cita_milo = self.agendar(self.milo, 9)
+        self.cita_luna = self.agendar(self.luna, 10)
+        self.client.force_login(self.cliente)
+
+    def agendar(self, mascota, horas, minutos=0):
+        inicio = timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+        return AgendaService.agendar(mascota=mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                     inicio=inicio)
+
+    def mis_citas(self, **parametros):
+        return self.client.get(reverse('citas:mis_citas'), parametros)
+
+    def citas_mostradas(self, respuesta):
+        return [cita for _, citas in respuesta.context['por_dia'] for cita in citas]
+
+    def test_sin_filtro_muestra_las_citas_de_todas_sus_mascotas(self):
+        respuesta = self.mis_citas()
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_milo, self.cita_luna])
+        self.assertIsNone(respuesta.context['mascota_elegida'])
+
+    def test_con_una_mascota_muestra_solo_sus_citas(self):
+        respuesta = self.mis_citas(mascota=self.luna.pk)
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_luna])
+        self.assertEqual(respuesta.context['mascota_elegida'], self.luna)
+        # La cantidad de la pestaña Próximas también cuenta solo las de Luna
+        self.assertIn(('proximas', 'Próximas', 1), respuesta.context['pestanas'])
+
+    def test_el_filtro_se_combina_con_la_pestana(self):
+        AgendaService.cancelar(self.cita_milo)
+        respuesta = self.mis_citas(vista='canceladas', mascota=self.milo.pk)
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_milo])
+        self.assertEqual(self.citas_mostradas(self.mis_citas(vista='canceladas', mascota=self.luna.pk)), [])
+
+    def test_las_pestanas_conservan_la_mascota_elegida(self):
+        self.assertContains(self.mis_citas(mascota=self.milo.pk), f'?vista=pasadas&amp;mascota={self.milo.pk}')
+
+    def test_la_mascota_de_otro_cliente_no_filtra_ni_muestra_sus_citas(self):
+        otra = crear_mascota(crear_usuario('luis'), nombre='Toby')
+        self.agendar(otra, 10, 30)
+        respuesta = self.mis_citas(mascota=otra.pk)
+        # El id ajeno se ignora: se ven las citas propias (todas) y nada de Toby
+        self.assertIsNone(respuesta.context['mascota_elegida'])
+        self.assertEqual(self.citas_mostradas(respuesta), [self.cita_milo, self.cita_luna])
+        self.assertNotContains(respuesta, 'Toby')
+
+    def test_un_id_inventado_se_ignora(self):
+        for valor in ('abc', '99999', ''):
+            with self.subTest(valor=valor):
+                respuesta = self.mis_citas(mascota=valor)
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertIsNone(respuesta.context['mascota_elegida'])
+
+    def test_con_una_sola_mascota_no_se_muestran_los_chips(self):
+        self.luna.delete()
+        self.assertNotContains(self.mis_citas(), 'Filtrar por mascota')
+
+    def test_con_varias_mascotas_se_muestran_los_chips(self):
+        self.assertContains(self.mis_citas(), 'Filtrar por mascota')
+
+
+class IndicadoresTests(TestCase):
+    """
+    RF-25 y §2.5: el ejemplo del documento. El martes 13/10/2026 la Dra. Paredes tiene el bloque 09:00-13:00
+    (240 min) y las citas de Luna (30), Kira (30), Simba (20) y Toby (30, cancelada): 80 ÷ 240 = 33,3 %.
+    """
+    FECHA = date(2026, 10, 13)
+
+    def setUp(self):
+        self.paredes = crear_veterinario('paredes', first_name='Sofía', last_name='Paredes')
+        self.consulta = crear_servicio()
+        self.desparasitacion = crear_servicio(nombre='Desparasitación', duracion_min=20, precio=Decimal('15.00'))
+        crear_horario(self.paredes, time(9, 0), time(13, 0), fecha=self.FECHA)
+        dueno = crear_usuario('ana')
+        self.luna = self.cita('Luna', dueno, 9, 30, estado=EstadoCita.ATENDIDA)
+        self.kira = self.cita('Kira', dueno, 10, 0, estado=EstadoCita.NO_ASISTIO)
+        self.simba = self.cita('Simba', dueno, 12, 0, servicio=self.desparasitacion)
+        self.toby = self.cita('Toby', dueno, 11, 0, estado=EstadoCita.CANCELADA)
+        self.admin = crear_usuario('laura', rol=Roles.ADMINISTRADOR)
+        self.client.force_login(self.admin)
+        self.url = reverse('citas:indicadores')
+
+    def cita(self, nombre, dueno, horas, minutos, servicio=None, estado=EstadoCita.CONFIRMADA, veterinario=None):
+        servicio = servicio or self.consulta
+        inicio = timezone.make_aware(datetime.combine(self.FECHA, time(horas, minutos)))
+        return Cita.objects.create(mascota=crear_mascota(dueno, nombre=nombre), veterinario=veterinario or self.paredes,
+                                   servicio=servicio, inicio=inicio, fin=inicio + timedelta(minutes=servicio.duracion_min),
+                                   precio=servicio.precio, estado=estado)
+
+    def indicadores(self, veterinario=None):
+        return EstadisticasService.indicadores(self.FECHA, self.FECHA, veterinario)
+
+    # ---------- El service ----------
+    def test_la_ocupacion_del_ejemplo_es_33_3(self):
+        fila = self.indicadores()['filas'][0]
+        self.assertEqual((fila['minutos_citas'], fila['minutos_horario']), (80, 240))
+        self.assertEqual(fila['ocupacion'], 33.3)
+
+    def test_con_la_cita_de_ana_sube_a_45_8(self):
+        self.cita('Milo', crear_usuario('ana2'), 10, 30)
+        self.assertEqual(self.indicadores()['filas'][0]['ocupacion'], 45.8)
+        self.assertEqual(self.indicadores()['ocupacion'], 45.8)
+
+    def test_cuenta_las_citas_por_estado(self):
+        por_estado = {valor: cantidad for valor, _, cantidad in self.indicadores()['por_estado']}
+        self.assertEqual(por_estado, {EstadoCita.CONFIRMADA: 1, EstadoCita.ATENDIDA: 1,
+                                      EstadoCita.NO_ASISTIO: 1, EstadoCita.CANCELADA: 1})
+        fila = self.indicadores()['filas'][0]
+        self.assertEqual((fila['citas'], fila['canceladas']), (3, 1))
+
+    def test_los_ingresos_son_solo_de_las_atendidas(self):
+        self.assertEqual(self.indicadores()['ingresos'], Decimal('25.00'))  # Luna; Kira no asistió, Toby se canceló
+
+    def test_filtra_por_veterinario(self):
+        leon = crear_veterinario('leon', first_name='Mateo', last_name='León')
+        crear_horario(leon, time(9, 0), time(11, 0), fecha=self.FECHA)
+        self.cita('Rocky', crear_usuario('carlos'), 9, 0, veterinario=leon, estado=EstadoCita.ATENDIDA)
+        todos = self.indicadores()
+        self.assertEqual([fila['veterinario'] for fila in todos['filas']], [leon, self.paredes])
+        # Clínica: (30 + 80) ÷ (120 + 240) = 30,6 %
+        self.assertEqual(todos['ocupacion'], 30.6)
+        solo_leon = self.indicadores(leon)
+        self.assertEqual([fila['veterinario'] for fila in solo_leon['filas']], [leon])
+        self.assertEqual(solo_leon['ocupacion'], 25.0)
+        self.assertEqual(solo_leon['total_citas'], 1)
+
+    def test_fuera_del_rango_no_cuenta(self):
+        otro_dia = EstadisticasService.indicadores(self.FECHA + timedelta(days=1), self.FECHA + timedelta(days=7))
+        self.assertEqual((otro_dia['total_citas'], otro_dia['filas'], otro_dia['ocupacion']), (0, [], 0))
+
+    def test_sin_horario_la_ocupacion_es_cero_y_la_barra_no_pasa_de_100(self):
+        HorarioVeterinario.objects.all().delete()
+        fila = self.indicadores()['filas'][0]
+        self.assertEqual((fila['ocupacion'], fila['barra']), (0, 0))
+
+    # ---------- La vista ----------
+    def test_solo_la_abre_la_gestion_de_la_clinica(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+        for usuario in (self.paredes, crear_usuario('cliente')):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_muestra_la_ocupacion_y_los_ingresos_del_rango(self):
+        respuesta = self.client.get(self.url, {'desde': '2026-10-13', 'hasta': '2026-10-13'})
+        self.assertContains(respuesta, 'Sofía Paredes')
+        self.assertContains(respuesta, '33,3 %')
+        self.assertContains(respuesta, '$25,00')
+
+    def test_filtra_por_veterinario_en_la_vista(self):
+        leon = crear_veterinario('leon', first_name='Mateo', last_name='León')
+        respuesta = self.client.get(self.url, {'desde': '2026-10-13', 'hasta': '2026-10-13', 'veterinario': leon.pk})
+        self.assertEqual(respuesta.context['veterinario'], leon)
+        # Paredes sigue en el desplegable, pero no en el reporte
+        self.assertEqual(respuesta.context['filas'], [])
+        self.assertEqual(respuesta.context['total_citas'], 0)
+
+    def test_sin_parametros_muestra_los_ultimos_30_dias(self):
+        respuesta = self.client.get(self.url)
+        hoy = timezone.localdate()
+        self.assertEqual((respuesta.context['desde'], respuesta.context['hasta']), (hoy - timedelta(days=29), hoy))
+
+    def test_un_rango_al_reves_avisa_y_vuelve_a_30_dias(self):
+        respuesta = self.client.get(self.url, {'desde': '2026-10-20', 'hasta': '2026-10-13'})
+        self.assertContains(respuesta, 'debe ser anterior o igual')
+        self.assertEqual(respuesta.context['hasta'], timezone.localdate())
+
+    def test_un_rango_de_mas_de_un_ano_no_se_acepta(self):
+        respuesta = self.client.get(self.url, {'desde': '2025-01-01', 'hasta': '2026-10-13'})
+        self.assertContains(respuesta, 'un año como máximo')
+
+
+class EjemploDelDocumentoTests(TestCase):
+    """
+    Casos del plan de pruebas (§3.5) con el ejemplo del §2.1: la Dra. Paredes atiende de 09:00 a 13:00 y ya tiene
+    a Luna (09:30), Kira (10:00), Simba (12:00, desparasitación de 20 min) y a Toby (11:00, cancelada).
+    """
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.paredes = crear_veterinario('paredes')
+        self.consulta = crear_servicio()
+        self.desparasitacion = crear_servicio(nombre='Desparasitación', duracion_min=20, precio=Decimal('15.00'))
+        self.consulta.veterinarios.add(self.paredes)
+        crear_horario(self.paredes, time(9, 0), time(13, 0), fecha=self.fecha)
+        self.dueno = crear_usuario('ana')
+        for nombre, horas, minutos, servicio, estado in (
+            ('Luna', 9, 30, self.consulta, EstadoCita.CONFIRMADA),
+            ('Kira', 10, 0, self.consulta, EstadoCita.CONFIRMADA),
+            ('Simba', 12, 0, self.desparasitacion, EstadoCita.CONFIRMADA),
+            ('Toby', 11, 0, self.consulta, EstadoCita.CANCELADA),
+        ):
+            inicio = self.hora(horas, minutos)
+            Cita.objects.create(mascota=crear_mascota(self.dueno, nombre=nombre), veterinario=self.paredes,
+                                servicio=servicio, inicio=inicio, fin=inicio + timedelta(minutes=servicio.duracion_min),
+                                precio=servicio.precio, estado=estado)
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+
+    def test_espacios_libres_del_ejemplo(self):
+        # Figura 1: Ana ve 09:00, 10:30, 11:00, 11:30 y 12:30
+        espacios = AgendaService.espacios_disponibles(self.paredes, self.consulta, self.fecha)
+        self.assertEqual(espacios, [self.hora(9), self.hora(10, 30), self.hora(11), self.hora(11, 30),
+                                    self.hora(12, 30)])
+
+    def test_dos_citas_que_solo_se_tocan_no_se_cruzan(self):
+        # 09:00-09:30 termina justo cuando empieza Luna (09:30-10:00): no comparten ningún minuto
+        milo = AgendaService.agendar(mascota=crear_mascota(self.dueno, nombre='Milo'), veterinario=self.paredes,
+                                     servicio=self.consulta, inicio=self.hora(9))
+        self.assertEqual((milo.fin, milo.estado), (self.hora(9, 30), EstadoCita.CONFIRMADA))
+
+    def test_la_cita_cancelada_deja_su_turno_libre(self):
+        self.assertIn(self.hora(11), AgendaService.espacios_disponibles(self.paredes, self.consulta, self.fecha))
+
+    def test_cancelar_una_cita_que_ya_empezo_se_rechaza(self):
+        empezada = Cita.objects.create(
+            mascota=crear_mascota(self.dueno, nombre='Rocky'), veterinario=self.paredes, servicio=self.consulta,
+            inicio=timezone.now() - timedelta(minutes=10), fin=timezone.now() + timedelta(minutes=20),
+            precio=Decimal('25.00'),
+        )
+        with self.assertRaisesMessage(ValidationError, 'ya empezó'):
+            AgendaService.cancelar(empezada)
+        empezada.refresh_from_db()
+        self.assertEqual(empezada.estado, EstadoCita.CONFIRMADA)
+
+
+@skipUnless(connection.vendor == 'postgresql', 'select_for_update solo bloquea de verdad en PostgreSQL (CI y Neon)')
+class ReservasSimultaneasTests(TransactionTestCase):
+    """
+    §3.5: dos reservas del mismo turno llegan al mismo tiempo, cada una en su propio hilo y su propia conexión.
+    El bloqueo del veterinario (select_for_update) las ordena: solo se crea una cita y la otra recibe el aviso.
+    Para que de verdad se crucen, la revisión de turnos libres se hace más lenta mientras dura la prueba.
+    """
+    serialized_rollback = True   # al terminar se restauran los datos de las migraciones (especies, vacunas...)
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.milo = crear_mascota(crear_usuario('ana'), nombre='Milo')
+        self.rocky = crear_mascota(crear_usuario('carlos'), nombre='Rocky')
+
+    def hora(self, horas, minutos=0):
+        return timezone.make_aware(datetime.combine(self.fecha, time(horas, minutos)))
+
+    def a_la_vez(self, *acciones):
+        """Corre cada acción en su hilo, todas a la vez (Barrier). Devuelve lo que devolvió cada una o su error."""
+        barrera = threading.Barrier(len(acciones))
+        resultados = [None] * len(acciones)
+        original = AgendaService.espacios_disponibles
+
+        def lento(*args, **kwargs):
+            espacios = original(*args, **kwargs)
+            time_module.sleep(0.3)   # da tiempo a que la otra reserva llegue mientras esta revisa
+            return espacios
+
+        def correr(indice, accion):
+            try:
+                barrera.wait()
+                resultados[indice] = accion()
+            except ValidationError as error:
+                resultados[indice] = error
+            finally:
+                connection.close()   # cada hilo abrió su propia conexión
+
+        with patch.object(AgendaService, 'espacios_disponibles', side_effect=lento):
+            hilos = [threading.Thread(target=correr, args=(i, accion)) for i, accion in enumerate(acciones)]
+            for hilo in hilos:
+                hilo.start()
+            for hilo in hilos:
+                hilo.join(timeout=30)
+        return resultados
+
+    def agendar(self, mascota, inicio):
+        return lambda: AgendaService.agendar(mascota=mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                             inicio=inicio)
+
+    def test_dos_clientes_reservan_el_mismo_turno_y_solo_uno_lo_consigue(self):
+        resultados = self.a_la_vez(self.agendar(self.milo, self.hora(9, 30)), self.agendar(self.rocky, self.hora(9, 30)))
+
+        citas = [r for r in resultados if isinstance(r, Cita)]
+        avisos = [r for r in resultados if isinstance(r, ValidationError)]
+        self.assertEqual((len(citas), len(avisos)), (1, 1))
+        self.assertEqual(avisos[0].messages, [TURNO_OCUPADO])
+        self.assertEqual(Cita.objects.filter(inicio=self.hora(9, 30)).exclude(estado=EstadoCita.CANCELADA).count(), 1)
+
+    def test_reprogramar_y_agendar_al_mismo_turno_no_pierde_la_reserva(self):
+        # Milo tiene las 9:00 y se mueve a las 10:00 justo cuando Rocky reserva las 10:00
+        cita_milo = self.agendar(self.milo, self.hora(9))()
+        resultados = self.a_la_vez(lambda: AgendaService.reprogramar(cita_milo, self.hora(10)),
+                                   self.agendar(self.rocky, self.hora(10)))
+
+        self.assertEqual(sum(isinstance(r, ValidationError) for r in resultados), 1)
+        self.assertEqual(Cita.objects.filter(inicio=self.hora(10)).count(), 1)
+        cita_milo.refresh_from_db()
+        # Si Milo perdió, conserva su hora de antes: la reprogramación es una sola operación
+        self.assertIn(cita_milo.inicio, (self.hora(9), self.hora(10)))
+        self.assertEqual(cita_milo.estado, EstadoCita.CONFIRMADA)

@@ -36,3 +36,37 @@ jobs:
 
       - name: Tests (todas las apps)
         run: python manage.py test -v 2
+
+  # Las mismas pruebas sobre PostgreSQL (como Neon en producción). Aquí corren además las que SQLite
+  # no puede hacer, como las reservas simultáneas con select_for_update (plan de pruebas §3.5)
+  test-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: woof
+          POSTGRES_PASSWORD: woof
+          POSTGRES_DB: woof
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U woof"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://woof:woof@localhost:5432/woof
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Tests sobre PostgreSQL
+        run: python manage.py test -v 2

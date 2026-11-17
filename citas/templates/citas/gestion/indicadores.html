@@ -1,0 +1,111 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Indicadores · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-bar-chart-line{% endblock %}
+{% block panel_seccion %}Indicadores{% endblock %}
+{% block panel_titulo %}Indicadores de la agenda{% endblock %}
+{% block panel_subtitulo %}Del {{ desde|date:'j \d\e F' }} al {{ hasta|date:'j \d\e F \d\e Y' }}{% if veterinario %} · {{ veterinario.get_full_name|default:veterinario.username }}{% else %} · toda la clínica{% endif %}{% endblock %}
+
+{% block panel_contenido %}
+  {# Rango y veterinario por GET: el reporte queda en la URL y se puede recargar o compartir #}
+  <form class="filtros filtros--indicadores" method="get">
+    <div class="formulario-panel__campo">
+      <label class="formulario-panel__etiqueta" for="{{ form.desde.id_for_label }}">Desde</label>
+      {{ form.desde }}
+    </div>
+    <div class="formulario-panel__campo">
+      <label class="formulario-panel__etiqueta" for="{{ form.hasta.id_for_label }}">Hasta</label>
+      {{ form.hasta }}
+    </div>
+    <div class="formulario-panel__campo">
+      <label class="formulario-panel__etiqueta" for="{{ form.veterinario.id_for_label }}">Veterinario</label>
+      {{ form.veterinario }}
+    </div>
+    <button type="submit" class="boton-panel">Ver indicadores</button>
+  </form>
+  {% for error in form.non_field_errors %}
+    <p class="panel-aviso panel-aviso--error" role="alert">{{ error }} Se muestran los últimos 30 días.</p>
+  {% endfor %}
+
+  {# Cifras del período #}
+  <section class="estadisticas" aria-label="Resumen del período">
+    <div class="tira-cifras tira-cifras--cinco">
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-calendar-week" aria-hidden="true"></i>Citas reservadas</p>
+        <p class="cifra__fila"><span class="cifra__valor">{{ total_citas }}</span></p>
+      </div>
+      {% for valor, nombre, cantidad in por_estado %}
+        {% if valor != 'confirmada' %}
+          <div class="cifra">
+            <p class="cifra__etiqueta"><span class="estado-cita estado-cita--{{ valor }} indicadores__estado">{{ nombre }}</span></p>
+            <p class="cifra__fila"><span class="cifra__valor">{{ cantidad }}</span></p>
+          </div>
+        {% endif %}
+      {% endfor %}
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-cash-coin" aria-hidden="true"></i>Ingresos</p>
+        <p class="cifra__fila"><span class="cifra__valor">${{ ingresos|floatformat:2 }}</span></p>
+      </div>
+    </div>
+  </section>
+
+  {# Ocupación: Σ minutos de citas no canceladas ÷ Σ minutos de horario publicado × 100 (§2.5) #}
+  <section class="bloque-panel" aria-labelledby="titulo-ocupacion">
+    <div class="bloque-panel__cabecera">
+      <h2 class="bloque-panel__titulo" id="titulo-ocupacion">Ocupación por veterinario</h2>
+      <span class="bloque-panel__meta">Clínica: <strong>{{ ocupacion|floatformat:1 }} %</strong> de {{ horas_horario|floatformat:1 }} h publicadas</span>
+    </div>
+
+    {% if filas %}
+      <div class="tabla-envoltorio tabla-envoltorio--plano">
+        <table class="tabla-panel">
+          <thead>
+            <tr>
+              <th scope="col">Veterinario</th>
+              <th scope="col">Ocupación</th>
+              <th scope="col" class="tabla-panel__num">Citas</th>
+              <th scope="col" class="tabla-panel__num tabla-panel__ocultable">Atendidas</th>
+              <th scope="col" class="tabla-panel__num tabla-panel__ocultable">No asistió</th>
+              <th scope="col" class="tabla-panel__num tabla-panel__ocultable">Canceladas</th>
+              <th scope="col" class="tabla-panel__num">Ingresos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fila in filas %}
+              <tr>
+                <td>
+                  <span class="tabla-panel__persona">
+                    <span class="inicial inicial--veterinario" aria-hidden="true">{{ fila.veterinario.first_name|default:fila.veterinario.username|slice:':1'|upper }}{{ fila.veterinario.last_name|slice:':1'|upper }}</span>
+                    <span class="tabla-panel__nombre">{{ fila.veterinario.get_full_name|default:fila.veterinario.username }}</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="ocupacion" title="{{ fila.minutos_citas|floatformat:0 }} min con citas de {{ fila.minutos_horario }} min de horario">
+                    <span class="ocupacion__barra" aria-hidden="true"><span style="width: {{ fila.barra|stringformat:'s' }}%"></span></span>
+                    <span class="ocupacion__valor">{{ fila.ocupacion|floatformat:1 }} %</span>
+                  </span>
+                  {% if not fila.minutos_horario %}<span class="tabla-panel__secundario d-block">Sin horario publicado</span>{% endif %}
+                </td>
+                <td class="tabla-panel__num">{{ fila.citas }}</td>
+                <td class="tabla-panel__num tabla-panel__ocultable">{{ fila.atendidas }}</td>
+                <td class="tabla-panel__num tabla-panel__ocultable">{{ fila.no_asistio }}</td>
+                <td class="tabla-panel__num tabla-panel__ocultable">{{ fila.canceladas }}</td>
+                <td class="tabla-panel__num">${{ fila.ingresos|floatformat:2 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="tabla-panel__total">Citas cuenta las no canceladas. Los ingresos son el precio copiado de las citas atendidas.</p>
+    {% else %}
+      <p class="tabla-panel__total">No hay citas ni horario publicado en este período.</p>
+    {% endif %}
+  </section>
+{% endblock %}

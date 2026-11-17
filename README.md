@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-297%20pasan-2e7d32" alt="297 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-468%20pasan-2e7d32" alt="468 pruebas pasan">
 </p>
 
 <p align="center">
@@ -46,13 +46,14 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 
 ## Estado del proyecto
 
-**En desarrollo.** La Entrega 1, los roles y el Core de citas están terminados.
+**En desarrollo.** La Entrega 1, los roles y el Core de citas están terminados; la historia clínica (consultas, recetas y carnet de vacunación) tiene su versión mínima.
 
 | Versión | Alcance | Estado |
 |---|---|---|
 | `v0.1.0` · Entrega 1 | Portada, registro, login con doble factor, CRUD de mascotas con URLs protegidas | Terminada |
 | `v0.2.0` · Roles y citas | Roles con su panel, cédula validada, catálogo de servicios, horario del veterinario, agendar y cancelar citas, agenda y pacientes, despliegue en Render | Terminada |
-| Próximas | Historia clínica, carnet de vacunación, login con Google y correos con SendGrid | Pendiente |
+| Fase 3 · Cierre del Core e historia clínica | Anticipación de 1 hora, bloques con citas protegidos, veterinarios verificados, calificación, filtro por mascota, avisos por correo y recordatorio de 24 h, indicadores, registrar consulta (receta y vacunas), historia clínica por rol, carnet de vacunación y plan de pruebas en PostgreSQL | Terminada |
+| Próximas | Login con Google y país → provincia → ciudad en el registro | Pendiente |
 
 ## Funcionalidades
 
@@ -83,16 +84,27 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 ### Citas
 
 - **Catálogo de servicios (administrador):** nombre, descripción, duración, precio y veterinarios que lo atienden. Un servicio con citas no se borra: se desactiva.
+- **Veterinarios verificados:** cada veterinario tiene su perfil (especialidad y años de experiencia); solo los que el administrador verificó se ofrecen al agendar.
 - **Mi horario (veterinario):** la semana como calendario, con un día por columna y cada bloque ubicado según su hora; sin cruces ni fechas pasadas.
   - Para cargar un bloque: los días de la semana como botones, turnos frecuentes (mañana, tarde, jornada) y un selector de hora en grilla de 15 minutos.
   - Copiar la semana anterior y elegir los servicios que atiende.
+  - Un bloque con citas confirmadas no se quita ni se recorta: primero hay que reprogramarlas o cancelarlas.
 - **Agendar (cliente):** en un pop-up dentro de Mis citas: mascota, servicio, calendario con los días que tienen horas libres y las horas agrupadas por doctor.
-  - Los turnos se calculan cortando el horario del veterinario en bloques del largo del servicio.
+  - Los turnos se calculan cortando el horario del veterinario en bloques del largo del servicio, con al menos 1 hora de anticipación.
   - Dos clientes no pueden ganar el mismo turno: la reserva se guarda en una transacción con la fila del veterinario bloqueada, y la base tiene un índice único como respaldo.
-- **Mis citas (cliente):** próximas, pasadas y canceladas; cancelar con confirmación, lo que libera el turno; reprogramar a otro día u hora con el mismo veterinario y servicio, en una sola operación: si el nuevo turno ya no está libre, la cita se queda en su hora.
+- **Mis citas (cliente):** próximas, pasadas y canceladas, con filtro por mascota; cancelar con confirmación, lo que libera el turno; reprogramar a otro día u hora con el mismo veterinario y servicio, en una sola operación: si el nuevo turno ya no está libre, la cita se queda en su hora.
 - **Mi semana (inicio del veterinario):** los 7 días en columnas, con su horario de fondo y las citas reservadas encima; al tocar una cita se abre un pop-up con la mascota, el servicio, la hora, el motivo y el dueño (con botón para llamar).
-- **Agenda (veterinario):** las citas del día y el cierre de cada una como «atendida» o «no asistió».
+- **Calificar la atención (cliente):** de 1 a 5 estrellas y un comentario, una sola vez por cita atendida; el perfil del veterinario muestra su promedio y las opiniones recientes.
+- **Agenda (veterinario):** las citas del día y el cierre de cada una como «atendida» o «no asistió»; desde una cita atendida se registra la consulta.
+- **Indicadores (administrador):** por rango de fechas y por veterinario, las citas por estado, la ocupación (minutos con citas ÷ minutos de horario) y los ingresos de las citas atendidas.
 - **Pacientes (veterinario):** mascotas con su dueño, buscador por nombre, cédula o teléfono, y filtro «mis pacientes».
+
+### Historia clínica
+
+- **Registrar consulta (veterinario):** desde una cita atendida, el motivo, el peso, el diagnóstico y las indicaciones, la receta (cuántas tomas salen) y las vacunas aplicadas. Todo se guarda junto o no se guarda nada, y el peso pasa a la ficha de la mascota.
+- **Ver la historia clínica:** la línea de tiempo de cada mascota (consultas, recetas y vacunas). El cliente ve solo las de sus mascotas; el veterinario y el administrador, las de todos.
+- **Carnet de vacunación:** las vacunas aplicadas con su lote, el veterinario, la próxima dosis y su estado (al día, próxima o vencida), también en el carnet 3D.
+- **Catálogo de vacunas (administrador):** cada vacuna con su especie y su refuerzo; se desactiva en vez de borrarse y la próxima dosis se calcula sola.
 
 ## Capturas
 
@@ -141,10 +153,13 @@ cp .env.example .env               # y completa los valores (ver abajo)
 
 python manage.py migrate
 python manage.py createsuperuser   # crea el superadministrador de Woof (también entra a /admin/)
+python manage.py cargar_demo       # opcional: datos de ejemplo del Documento de Análisis
 python manage.py runserver
 ```
 
 Abre http://127.0.0.1:8000/ · Panel de administración: http://127.0.0.1:8000/admin/
+
+`cargar_demo` crea veterinarios (uno sin verificar), clientes, mascotas, servicios, horarios y citas, todo relativo a hoy: el próximo día hábil la Dra. Paredes tiene la agenda de la Figura 1 y las dos semanas anteriores tienen consultas, recetas, vacunas y calificaciones. Todos entran con la clave `Woof-Demo-2026` (`ana` es cliente, `paredes` es veterinaria y `laura` es administradora). Si la base no es SQLite, pide `--confirmar`.
 
 ### Variables de entorno (`.env`)
 
@@ -185,14 +200,17 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-297 pruebas:
+468 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 63 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo (superadministrador), destino correcto después del login y services de cuentas |
-| `mascotas` | 84 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos y gestión de mascotas de la clínica |
-| `citas` | 147 | Servicios, horario en columnas, Mi semana y agenda del veterinario, turnos libres, agendar (incluye turno ocupado y cruces), cancelar, reprogramar (sin perder la reserva si falla), agenda, pacientes, gestión de citas y horarios, y acceso por rol |
-| `panel` | 3 | Redirección a la portada de cada rol, períodos inventados en la URL y cálculo de variaciones |
+| `cuentas` | 69 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas |
+| `mascotas` | 92 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
+| `citas` | 242 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, avisos y recordatorios, filtro por mascota, agenda, pacientes, gestión, indicadores y acceso por rol |
+| `historial` | 57 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol y el catálogo de vacunas |
+| `panel` | 8 | Portada de cada rol, períodos de las estadísticas y el comando `cargar_demo` |
+
+En GitHub Actions la suite corre dos veces en cada Pull Request: con SQLite y con **PostgreSQL 16** (como Neon). Las pruebas de dos reservas simultáneas solo corren en PostgreSQL, porque SQLite no bloquea filas. Cada caso del plan de pruebas del Documento de Análisis (§3.5) y la prueba que lo cubre están en [PLAN_DE_PRUEBAS.md](docs/PLAN_DE_PRUEBAS.md).
 
 Durante las pruebas no se envían correos reales: Django los guarda en memoria.
 
@@ -229,13 +247,19 @@ woof-vet-system/
 │   ├── views/           catalogo, horarios, agendar (cliente), agenda (veterinario) y gestion
 │   ├── forms/           los mismos temas que las vistas, más los campos que comparten
 │   ├── mixins.py        el horario del veterinario (y su versión para el superadministrador)
-│   └── services/        AgendaService (turnos, agendar, cancelar, reprogramar), catálogo, horarios y consultas de citas
+│   └── services/        AgendaService (turnos, agendar, cancelar, reprogramar, calificar), catálogo, horarios, consultas de citas y estadísticas
+├── historial/           historia clínica: consultas, recetas y vacunas (nace de una cita atendida)
+│   ├── models/          consulta (y su receta) y vacuna (catálogo y vacunas aplicadas)
+│   ├── views/           registrar consulta (veterinario), la historia por rol y el catálogo de vacunas
+│   ├── forms/           la consulta, los formsets de la receta y las vacunas, y una vacuna del catálogo
+│   └── services/        HistorialService (historia, carnet y guardar la consulta) y el catálogo de vacunas
 ├── panel/               la portada de cada rol después del login (depende de las otras apps; ninguna depende de ella)
-│   └── services/        cifras de cada portada y períodos de las estadísticas
+│   ├── services/        cifras de cada portada, períodos de las estadísticas y datos de demostración
+│   └── management/      comando cargar_demo
 ├── templates/           plantillas comunes (base.html y panel_base.html)
 ├── static/              CSS, JavaScript e imágenes comunes
 ├── docs/                guías del equipo, historias de usuario y modelo de datos
-├── .github/             CI (pruebas, Ruff y migraciones), validación de commits y releases
+├── .github/             CI (pruebas en SQLite y PostgreSQL, Ruff y migraciones), validación de commits y releases
 ├── build.sh             pasos de despliegue en Render
 ├── requirements.txt     dependencias de Python
 └── manage.py            comandos de Django
@@ -247,10 +271,11 @@ woof-vet-system/
 |---|---|
 | [HISTORIAS_DE_USUARIO.md](docs/HISTORIAS_DE_USUARIO.md) | Alcance y criterios de aceptación de cada fase |
 | [MODELO_DE_DATOS.md](docs/MODELO_DE_DATOS.md) | Diagrama entidad-relación y campos de cada tabla |
+| [PLAN_DE_PRUEBAS.md](docs/PLAN_DE_PRUEBAS.md) | Los casos del §3.5 y la prueba que cubre cada uno |
 | `Guia_Git_y_CI_CD.docx` · [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Ramas, commits y el trabajo diario paso a paso |
 | `Guia_GitHub_Projects.docx` | Issues, tablero del equipo y cómo se conectan con ramas y PRs |
 | `Arquitectura_del_Proyecto.docx` | Qué es cada archivo y cómo crear un módulo nuevo |
-| Capas de cada app | `views` recibe la petición y dibuja la plantilla; `forms` valida lo que llega; `services` hace las consultas y aplica las reglas; `models` define las tablas (en cuentas, citas y mascotas, cada una es una carpeta separada por tema) |
+| Capas de cada app | `views` recibe la petición y dibuja la plantilla; `forms` valida lo que llega; `services` hace las consultas y aplica las reglas; `models` define las tablas (en cuentas, citas, mascotas e historial, cada una es una carpeta separada por tema) |
 | `Crear_un_Modulo_Mascotas.docx` | Tutorial: módulo de mascotas completo (modelo, vistas, URLs, plantillas y pruebas) |
 | `Entorno_Virtual_Python.docx` | Qué es el `.venv`, para qué sirve y cómo usarlo |
 | `Pruebas_y_CI_CD.docx` · [CI_CD.md](docs/CI_CD.md) | Cómo escribir pruebas y cómo las valida GitHub Actions |

@@ -32,10 +32,13 @@ class CitaService:
 
     # ---------- Cliente ----------
     @staticmethod
-    def del_cliente(cliente, vista='proximas'):
+    def del_cliente(cliente, vista='proximas', mascota=None):
         """
         Las citas de las mascotas del cliente repartidas en próximas, pasadas y canceladas,
         con las de la pestaña elegida agrupadas por día: [(fecha, [citas]), ...].
+
+        Con mascota (una del cliente, RF-15), las pestañas y sus cantidades muestran solo las de esa mascota;
+        el lateral (próxima y última cita) sigue siendo el resumen de todas.
         """
         ahora = timezone.now()
         citas = con_foto_de_la_mascota(
@@ -49,6 +52,8 @@ class CitaService:
         canceladas = sorted((c for c in citas if c.estado == EstadoCita.CANCELADA), key=lambda c: c.inicio, reverse=True)
         pasadas = sorted((c for c in citas if c not in proximas and c not in canceladas), key=lambda c: c.inicio, reverse=True)
         listas = {'proximas': proximas, 'pasadas': pasadas, 'canceladas': canceladas}
+        if mascota is not None:
+            listas = {valor: [c for c in lista if c.mascota_id == mascota.pk] for valor, lista in listas.items()}
 
         por_dia = {}
         for cita in listas[vista]:
