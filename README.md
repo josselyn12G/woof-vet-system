@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-426%20pasan-2e7d32" alt="426 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-468%20pasan-2e7d32" alt="468 pruebas pasan">
 </p>
 
 <p align="center">
@@ -46,14 +46,14 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 
 ## Estado del proyecto
 
-**En desarrollo.** La Entrega 1, los roles y el Core de citas están terminados; la historia clínica tiene su versión mínima.
+**En desarrollo.** La Entrega 1, los roles y el Core de citas están terminados; la historia clínica (consultas, recetas y carnet de vacunación) tiene su versión mínima.
 
 | Versión | Alcance | Estado |
 |---|---|---|
 | `v0.1.0` · Entrega 1 | Portada, registro, login con doble factor, CRUD de mascotas con URLs protegidas | Terminada |
 | `v0.2.0` · Roles y citas | Roles con su panel, cédula validada, catálogo de servicios, horario del veterinario, agendar y cancelar citas, agenda y pacientes, despliegue en Render | Terminada |
-| Fase 3 · Cierre del Core | Anticipación de 1 hora, bloques con citas protegidos, veterinarios verificados, calificación, filtro por mascota, indicadores, registrar consulta (receta y vacunas) y plan de pruebas en PostgreSQL | En revisión |
-| Próximas | Ver la historia clínica por rol, carnet de vacunación con datos reales, avisos por correo, login con Google | Pendiente |
+| Fase 3 · Cierre del Core e historia clínica | Anticipación de 1 hora, bloques con citas protegidos, veterinarios verificados, calificación, filtro por mascota, avisos por correo y recordatorio de 24 h, indicadores, registrar consulta (receta y vacunas), historia clínica por rol, carnet de vacunación y plan de pruebas en PostgreSQL | Terminada |
+| Próximas | Login con Google y país → provincia → ciudad en el registro | Pendiente |
 
 ## Funcionalidades
 
@@ -102,7 +102,9 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 ### Historia clínica
 
 - **Registrar consulta (veterinario):** desde una cita atendida, el motivo, el peso, el diagnóstico y las indicaciones, la receta (cuántas tomas salen) y las vacunas aplicadas. Todo se guarda junto o no se guarda nada, y el peso pasa a la ficha de la mascota.
-- **Vacunas:** catálogo por especie con su refuerzo; la próxima dosis se calcula sola.
+- **Ver la historia clínica:** la línea de tiempo de cada mascota (consultas, recetas y vacunas). El cliente ve solo las de sus mascotas; el veterinario y el administrador, las de todos.
+- **Carnet de vacunación:** las vacunas aplicadas con su lote, el veterinario, la próxima dosis y su estado (al día, próxima o vencida), también en el carnet 3D.
+- **Catálogo de vacunas (administrador):** cada vacuna con su especie y su refuerzo; se desactiva en vez de borrarse y la próxima dosis se calcula sola.
 
 ## Capturas
 
@@ -198,14 +200,14 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-426 pruebas:
+468 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
 | `cuentas` | 69 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas |
-| `mascotas` | 84 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos y gestión de mascotas de la clínica |
-| `citas` | 226 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, filtro por mascota, agenda, pacientes, gestión, indicadores y acceso por rol |
-| `historial` | 39 | Reglas de la consulta, la receta y las vacunas, y registrar la consulta desde una cita atendida |
+| `mascotas` | 92 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
+| `citas` | 242 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, avisos y recordatorios, filtro por mascota, agenda, pacientes, gestión, indicadores y acceso por rol |
+| `historial` | 57 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol y el catálogo de vacunas |
 | `panel` | 8 | Portada de cada rol, períodos de las estadísticas y el comando `cargar_demo` |
 
 En GitHub Actions la suite corre dos veces en cada Pull Request: con SQLite y con **PostgreSQL 16** (como Neon). Las pruebas de dos reservas simultáneas solo corren en PostgreSQL, porque SQLite no bloquea filas. Cada caso del plan de pruebas del Documento de Análisis (§3.5) y la prueba que lo cubre están en [PLAN_DE_PRUEBAS.md](docs/PLAN_DE_PRUEBAS.md).
@@ -248,9 +250,9 @@ woof-vet-system/
 │   └── services/        AgendaService (turnos, agendar, cancelar, reprogramar, calificar), catálogo, horarios, consultas de citas y estadísticas
 ├── historial/           historia clínica: consultas, recetas y vacunas (nace de una cita atendida)
 │   ├── models/          consulta (y su receta) y vacuna (catálogo y vacunas aplicadas)
-│   ├── views/           registrar consulta (veterinario)
-│   ├── forms/           la consulta y los formsets de la receta y las vacunas
-│   └── services/        HistorialService (la historia de cada mascota y guardar la consulta)
+│   ├── views/           registrar consulta (veterinario), la historia por rol y el catálogo de vacunas
+│   ├── forms/           la consulta, los formsets de la receta y las vacunas, y una vacuna del catálogo
+│   └── services/        HistorialService (historia, carnet y guardar la consulta) y el catálogo de vacunas
 ├── panel/               la portada de cada rol después del login (depende de las otras apps; ninguna depende de ella)
 │   ├── services/        cifras de cada portada, períodos de las estadísticas y datos de demostración
 │   └── management/      comando cargar_demo
