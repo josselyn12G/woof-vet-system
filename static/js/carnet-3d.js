@@ -343,6 +343,7 @@ function dibujarReverso(d, logoBlanco) {
 
 // Corta el texto con "…" si no cabe en el ancho dado
 function recortar(ctx, texto, ancho) {
+  texto = String(texto ?? '');          // las celdas de las vacunas pueden venir vacías
   if (ctx.measureText(texto).width <= ancho) return texto;
   let corto = texto;
   while (corto.length > 1 && ctx.measureText(`${corto}…`).width > ancho) corto = corto.slice(0, -1);
@@ -448,14 +449,6 @@ function leerVacunas(dialogo) {
   } catch (error) {
     return [];
   }
-}
-
-// Recorta un texto con "…" para que quepa en su columna
-function recortar(ctx, texto, ancho) {
-  let recortado = String(texto ?? '');
-  if (ctx.measureText(recortado).width <= ancho) return recortado;
-  while (recortado.length > 1 && ctx.measureText(`${recortado}…`).width > ancho) recortado = recortado.slice(0, -1);
-  return `${recortado}…`;
 }
 
 // Color de cada estado, como las etiquetas de la vista plana
