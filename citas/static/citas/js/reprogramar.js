@@ -2,6 +2,7 @@
  * Reprogramar una cita: el mismo calendario de agendar, pero sin elegir servicio ni veterinario
  * (se mantienen). Pide al servidor los días con horas libres del mes y las horas de un día;
  * al tocar una hora llena los campos ocultos fecha y hora. El servidor vuelve a validar todo.
+ * A la izquierda, el recuadro "Nueva fecha" muestra lo elegido debajo de la cita actual (antes → después).
  */
 (function () {
   const formulario = document.querySelector('[data-reprogramar]');
@@ -20,6 +21,8 @@
   const textoDia = formulario.querySelector('[data-dia-texto]');
   const horas = formulario.querySelector('[data-horas]');
   const confirmar = formulario.querySelector('[data-confirmar]');
+  const nueva = formulario.querySelector('[data-nueva]');
+  const textoNueva = formulario.querySelector('[data-nueva-texto]');
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
@@ -87,6 +90,21 @@
     campoHora.value = '';
     dibujarMes();
     cargarHoras();
+    mostrarNueva();
+  }
+
+  // El recuadro "Nueva fecha": el día y la hora elegidos, o qué falta elegir
+  function mostrarNueva() {
+    if (!nueva) return;
+    const lista = Boolean(fecha && campoHora.value);
+    nueva.classList.toggle('esta-elegida', lista);
+    if (!fecha) {
+      textoNueva.textContent = 'Elige un día y una hora en el calendario';
+      return;
+    }
+    const dia = new Date(`${fecha}T00:00`);
+    const texto = `${DIAS[dia.getDay()]} ${dia.getDate()} de ${MESES[dia.getMonth()]}`;
+    textoNueva.textContent = lista ? `${texto} · ${campoHora.value}` : `${texto} · elige la hora`;
   }
 
   function aviso(texto) {
@@ -130,6 +148,7 @@
       radio.addEventListener('change', () => {
         campoHora.value = hora;
         confirmar.hidden = false;
+        mostrarNueva();
       });
       const texto = document.createElement('span');
       texto.innerHTML = '<i class="bi bi-arrow-right" aria-hidden="true"></i>';
@@ -139,6 +158,7 @@
     });
     horas.appendChild(lista);
     confirmar.hidden = !campoHora.value;
+    mostrarNueva();
   }
 
   botonAnterior.addEventListener('click', () => {
