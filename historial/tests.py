@@ -419,3 +419,100 @@ class HistoriaClinicaVistaTests(HistorialBaseTests):
             with self.subTest(usuario=usuario.username):
                 self.client.force_login(usuario)
                 self.assertContains(self.client.get(pagina), self.url)
+
+
+class CatalogoVacunasTests(HistorialBaseTests):
+    """El administrador crea, edita y desactiva las vacunas que el veterinario puede registrar."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = crear_usuario('laura', rol=Roles.ADMINISTRADOR)
+        self.client.force_login(self.admin)
+        self.url = reverse('historial:vacunas')
+
+    def datos(self, **cambios):
+        valores = {'nombre': 'Parvovirus', 'especie': str(Especie.objects.get(codigo='perro').pk),
+                   'refuerzo_cada_dias': '365', 'activa': 'on'}
+        valores.update(cambios)
+        return valores
+
+    # ---------- Quién entra ----------
+    def test_el_administrador_y_el_superadministrador_ven_el_catalogo(self):
+        for usuario in (self.admin, crear_usuario('jefa', rol=Roles.SUPERADMIN)):
+            with self.subTest(rol=usuario.rol):
+                self.client.force_login(usuario)
+                respuesta = self.client.get(self.url)
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertContains(respuesta, 'Rabia')   # de las vacunas que carga la migración
+
+    def test_el_veterinario_y_el_cliente_reciben_403(self):
+        for usuario in (self.veterinario, self.cliente):
+            with self.subTest(rol=usuario.rol):
+                self.client.force_login(usuario)
+                self.assertEqual(self.client.get(self.url).status_code, 403)
+                self.assertEqual(self.client.get(reverse('historial:vacuna_crear')).status_code, 403)
+
+    def test_un_visitante_va_al_login(self):
+        self.client.logout()
+        self.assertRedirects(self.client.get(self.url), f"{reverse('cuentas:login')}?next={self.url}",
+                             fetch_redirect_response=False)
+
+    # ---------- Crear y editar ----------
+    def test_crea_una_vacuna(self):
+        respuesta = self.client.post(reverse('historial:vacuna_crear'), self.datos())
+        self.assertRedirects(respuesta, self.url)
+        vacuna = Vacuna.objects.get(nombre='Parvovirus')
+        self.assertEqual(vacuna.especie.codigo, 'perro')
+        self.assertEqual(vacuna.refuerzo_cada_dias, 365)
+        self.assertTrue(vacuna.activa)
+
+    def test_sin_especie_sirve_para_todas(self):
+        self.client.post(reverse('historial:vacuna_crear'), self.datos(nombre='Vitamina', especie=''))
+        self.assertIsNone(Vacuna.objects.get(nombre='Vitamina').especie)
+
+    def test_no_repite_el_nombre_en_la_misma_especie(self):
+        respuesta = self.client.post(reverse('historial:vacuna_crear'), self.datos(nombre='rabia'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Ya existe la vacuna rabia para Perro')
+        self.assertEqual(Vacuna.objects.filter(nombre__iexact='rabia', especie__codigo='perro').count(), 1)
+
+    def test_el_mismo_nombre_vale_para_otra_especie(self):
+        conejo = Especie.objects.get(codigo='conejo')
+        self.client.post(reverse('historial:vacuna_crear'), self.datos(nombre='Rabia', especie=str(conejo.pk)))
+        self.assertTrue(Vacuna.objects.filter(nombre='Rabia', especie=conejo).exists())
+
+    def test_edita_una_vacuna(self):
+        rabia = self.rabia_perro()
+        url = reverse('historial:vacuna_editar', args=[rabia.pk])
+        respuesta = self.client.post(url, self.datos(nombre='Rabia', refuerzo_cada_dias='730'))
+        self.assertRedirects(respuesta, self.url)
+        rabia.refresh_from_db()
+        self.assertEqual(rabia.refuerzo_cada_dias, 730)
+
+    # ---------- Desactivar ----------
+    def test_desactivar_y_volver_a_activar(self):
+        rabia = self.rabia_perro()
+        url = reverse('historial:vacuna_estado', args=[rabia.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)   # solo POST
+        self.client.post(url)
+        rabia.refresh_from_db()
+        self.assertFalse(rabia.activa)
+        self.client.post(url)
+        rabia.refresh_from_db()
+        self.assertTrue(rabia.activa)
+
+    def test_una_vacuna_desactivada_no_se_ofrece_al_registrar(self):
+        rabia = self.rabia_perro()
+        self.client.post(reverse('historial:vacuna_estado', args=[rabia.pk]))
+        self.assertNotIn(rabia, HistorialService.vacunas_para(self.milo))
+        self.client.force_login(self.veterinario)
+        respuesta = self.client.get(reverse('historial:consulta', args=[self.cita.pk]))
+        self.assertNotIn(rabia, respuesta.context['vacunas'].forms[0].fields['vacuna'].queryset)
+
+    def test_filtra_por_estado_y_busca(self):
+        rabia = self.rabia_perro()
+        self.client.post(reverse('historial:vacuna_estado', args=[rabia.pk]))
+        inactivas = self.client.get(self.url, {'estado': 'inactivas'}).context['vacunas']
+        self.assertEqual(list(inactivas), [rabia])
+        buscadas = self.client.get(self.url, {'q': 'rabia'}).context['vacunas']
+        self.assertTrue(all('rabia' in vacuna.nombre.lower() for vacuna in buscadas))
