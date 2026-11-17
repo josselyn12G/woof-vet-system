@@ -53,7 +53,6 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 | `v0.1.0` · Entrega 1 | Portada, registro, login con doble factor, CRUD de mascotas con URLs protegidas | Terminada |
 | `v0.2.0` · Roles y citas | Roles con su panel, cédula validada, catálogo de servicios, horario del veterinario, agendar y cancelar citas, agenda y pacientes, despliegue en Render | Terminada |
 | Fase 3 · Cierre del Core e historia clínica | Anticipación de 1 hora, bloques con citas protegidos, veterinarios verificados, calificación, filtro por mascota, avisos por correo y recordatorio de 24 h, indicadores, registrar consulta (receta y vacunas), historia clínica por rol, carnet de vacunación y plan de pruebas en PostgreSQL | Terminada |
-| Próximas | Login con Google | Pendiente |
 
 ## Funcionalidades
 
