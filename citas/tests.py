@@ -744,6 +744,17 @@ class ReprogramarTests(TestCase):
         )
         self.assertFalse(AgendaService.se_puede_reprogramar(empezada))
 
+    def test_la_pagina_muestra_la_cita_actual_y_el_recuadro_de_la_nueva_fecha(self):
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Tu cita ahora')
+        self.assertContains(respuesta, 'Consulta general')
+        self.assertContains(respuesta, '09:00 – 09:30')       # el rango de la cita, no solo la hora
+        self.assertContains(respuesta, '$25,00')
+        self.assertContains(respuesta, '«Control»')            # el motivo se mantiene y se muestra
+        self.assertContains(respuesta, 'data-nueva-texto')     # reprogramar.js escribe ahí la nueva fecha
+
     def test_las_horas_para_reprogramar_no_incluyen_la_actual(self):
         horas = AgendaService.horas_para_reprogramar(self.cita, self.fecha)
         self.assertEqual(horas, [self.hora(9, 30), self.hora(10), self.hora(10, 30)])
