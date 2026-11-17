@@ -53,7 +53,7 @@
           <ul class="panel-menu__lista">
             <li><a class="panel-menu__enlace{% if ruta == 'citas:gestion_citas' %} es-activo{% endif %}" href="{% url 'citas:gestion_citas' %}" title="Citas"{% if ruta == 'citas:gestion_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-week" aria-hidden="true"></i><span class="panel-menu__texto">Citas</span></a></li>
             <li><a class="panel-menu__enlace{% if 'citas:gestion_horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:gestion_horarios' %}" title="Horarios"{% if ruta == 'citas:gestion_horarios' %} aria-current="page"{% endif %}><i class="bi bi-clock-history" aria-hidden="true"></i><span class="panel-menu__texto">Horarios</span></a></li>
-            <li><a class="panel-menu__enlace{% if 'mascotas:gestion' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:gestion' %}" title="Mascotas"{% if ruta == 'mascotas:gestion' %} aria-current="page"{% endif %}><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mascotas</span></a></li>
+            <li><a class="panel-menu__enlace{% if 'mascotas:gestion' in ruta or ruta == 'mascotas:historial' %} es-activo{% endif %}" href="{% url 'mascotas:gestion' %}" title="Mascotas"{% if ruta == 'mascotas:gestion' %} aria-current="page"{% endif %}><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mascotas</span></a></li>
           </ul>
         {% else %}
           <p class="panel-menu__grupo">Plataforma</p>
@@ -99,7 +99,7 @@
           <a class="nav-arriba__opcion{% if ruta == 'panel:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'panel:inicio_veterinario' %}"{% if ruta == 'panel:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
           <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' or ruta == 'historial:consulta' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda</a>
           <a class="nav-arriba__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"{% if ruta == 'citas:horario' %} aria-current="page"{% endif %}>Mi horario</a>
-          <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
+          <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' or ruta == 'mascotas:historial' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
         </nav>
         <div class="nav-arriba__lado">
           <span class="panel-barra__boton" aria-label="Notificaciones (pronto)" title="Notificaciones: pronto"><i class="bi bi-bell" aria-hidden="true"></i></span>
