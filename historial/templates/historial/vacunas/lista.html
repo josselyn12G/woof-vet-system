@@ -59,7 +59,7 @@
               </td>
               <td>{{ vacuna.especie|default:'Todas' }}</td>
               <td class="tabla-panel__num">{% if vacuna.refuerzo_cada_dias %}Cada {{ vacuna.refuerzo_cada_dias }} día{{ vacuna.refuerzo_cada_dias|pluralize }}{% else %}<span class="tabla-panel__secundario">Sin refuerzo</span>{% endif %}</td>
-              <td class="tabla-panel__num tabla-panel__ocultable">{{ vacuna.total_aplicaciones }} vez{{ vacuna.total_aplicaciones|pluralize:'es' }}</td>
+              <td class="tabla-panel__num tabla-panel__ocultable">{{ vacuna.total_aplicaciones }} {% if vacuna.total_aplicaciones == 1 %}vez{% else %}veces{% endif %}</td>
               <td>
                 {% if vacuna.activa %}
                   <span class="estado estado--listo">Activa</span>
