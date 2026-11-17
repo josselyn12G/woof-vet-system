@@ -1,0 +1,34 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{# Crear o editar una vacuna del catálogo: la vista manda form y, al editar, vacuna #}
+{% block titulo %}{% if vacuna %}Editar {{ vacuna.nombre }}{% else %}Nueva vacuna{% endif %} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-shield-plus{% endblock %}
+{% block panel_seccion %}Vacunas{% endblock %}
+{% block panel_titulo %}{% if vacuna %}Editar {{ vacuna.nombre }}{% else %}Nueva vacuna{% endif %}{% endblock %}
+{% block panel_subtitulo %}Las vacunas activas se ofrecen al registrar una consulta de una mascota de su especie.{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel bloque-panel--angosto">
+    <form class="formulario-panel" method="post" novalidate>
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}
+        <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+      {% endfor %}
+
+      {% for campo in form %}
+        {% include 'cuentas/superadmin/_campo.html' %}
+      {% endfor %}
+
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>{% if vacuna %}Guardar cambios{% else %}Agregar{% endif %}</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'historial:vacunas' %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

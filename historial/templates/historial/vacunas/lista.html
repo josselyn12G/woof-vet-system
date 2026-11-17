@@ -1,0 +1,102 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Vacunas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-shield-plus{% endblock %}
+{% block panel_seccion %}Vacunas{% endblock %}
+{% block panel_titulo %}Catálogo de vacunas{% endblock %}
+{% block panel_subtitulo %}Las que el veterinario puede registrar en una consulta. Una vacuna desactivada ya no se ofrece, pero los carnets la conservan.{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel" href="{% url 'historial:vacuna_crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva vacuna</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  {# Filtros por GET: la búsqueda queda en la URL y se puede recargar o compartir #}
+  <form class="filtros" method="get" role="search">
+    <div class="buscador">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="visually-hidden" for="buscar-vacuna">Buscar</label>
+      <input class="control-panel" type="search" id="buscar-vacuna" name="q" value="{{ buscar }}"
+             placeholder="Buscar por nombre o especie">
+    </div>
+    <label class="visually-hidden" for="filtro-estado">Estado</label>
+    <select class="control-panel filtros__rol" id="filtro-estado" name="estado" onchange="this.form.submit()">
+      <option value="">Todos los estados</option>
+      <option value="activas"{% if estado_elegido == 'activas' %} selected{% endif %}>Activas</option>
+      <option value="inactivas"{% if estado_elegido == 'inactivas' %} selected{% endif %}>Desactivadas</option>
+    </select>
+    <button type="submit" class="boton-panel boton-panel--secundario">Buscar</button>
+  </form>
+
+  <p class="tabla-panel__total">{{ paginator.count }} vacuna{{ paginator.count|pluralize }}{% if buscar or estado_elegido %} con estos filtros{% endif %}</p>
+
+  {% if vacunas %}
+    <div class="tabla-envoltorio">
+      <table class="tabla-panel">
+        <thead>
+          <tr>
+            <th scope="col">Vacuna</th>
+            <th scope="col">Especie</th>
+            <th scope="col">Refuerzo</th>
+            <th scope="col" class="tabla-panel__ocultable">Aplicada</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="tabla-panel__accion"><span class="visually-hidden">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vacuna in vacunas %}
+            <tr>
+              <td>
+                <span class="tabla-panel__persona">
+                  <span class="inicial" aria-hidden="true"><i class="bi bi-shield-plus"></i></span>
+                  <span class="tabla-panel__nombre">{{ vacuna.nombre }}</span>
+                </span>
+              </td>
+              <td>{{ vacuna.especie|default:'Todas' }}</td>
+              <td class="tabla-panel__num">{% if vacuna.refuerzo_cada_dias %}Cada {{ vacuna.refuerzo_cada_dias }} día{{ vacuna.refuerzo_cada_dias|pluralize }}{% else %}<span class="tabla-panel__secundario">Sin refuerzo</span>{% endif %}</td>
+              <td class="tabla-panel__num tabla-panel__ocultable">{{ vacuna.total_aplicaciones }} vez{{ vacuna.total_aplicaciones|pluralize:'es' }}</td>
+              <td>
+                {% if vacuna.activa %}
+                  <span class="estado estado--listo">Activa</span>
+                {% else %}
+                  <span class="estado">Desactivada</span>
+                {% endif %}
+              </td>
+              <td class="tabla-panel__accion">
+                <span class="acciones-fila">
+                  <a class="boton-fila" href="{% url 'historial:vacuna_editar' vacuna.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar {{ vacuna.nombre }}</span></a>
+                  {# Desactivar en vez de borrar: un formulario POST, nunca un enlace #}
+                  <form method="post" action="{% url 'historial:vacuna_estado' vacuna.pk %}">
+                    {% csrf_token %}
+                    {% if vacuna.activa %}
+                      <button type="submit" class="boton-fila" title="Desactivar"><i class="bi bi-pause-circle" aria-hidden="true"></i><span class="visually-hidden">Desactivar {{ vacuna.nombre }}</span></button>
+                    {% else %}
+                      <button type="submit" class="boton-fila" title="Activar"><i class="bi bi-play-circle" aria-hidden="true"></i><span class="visually-hidden">Activar {{ vacuna.nombre }}</span></button>
+                    {% endif %}
+                  </form>
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav class="filtros" aria-label="Páginas">
+        {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if estado_elegido %}&estado={{ estado_elegido }}{% endif %}">Anterior</a>{% endif %}
+        <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}{% if buscar %}&q={{ buscar|urlencode }}{% endif %}{% if estado_elegido %}&estado={{ estado_elegido }}{% endif %}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% elif buscar or estado_elegido %}
+    <p class="bloque-panel__vacio">Ninguna vacuna coincide con la búsqueda. Prueba con otro nombre o quita el filtro de estado.</p>
+  {% else %}
+    <p class="bloque-panel__vacio">Todavía no hay vacunas. Crea la primera para que el veterinario pueda registrarla en una consulta.</p>
+  {% endif %}
+{% endblock %}
