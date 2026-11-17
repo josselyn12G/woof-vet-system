@@ -34,16 +34,59 @@
       <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
     {% endfor %}
 
-    <div class="reserva__grupo">
+    {# Antes → después: la cita como está ahora y, debajo, la nueva fecha que se llena al elegir una hora #}
+    <div class="cambio-cita">
       <p class="reserva__paso">Tu cita ahora</p>
-      <dl class="tarjeta-cita__datos">
-        <div><dt>Mascota</dt><dd>{{ cita.mascota }}</dd></div>
-        <div><dt>Servicio</dt><dd>{{ cita.servicio }} ({{ cita.servicio.duracion_min }} min)</dd></div>
-        <div><dt>Veterinario</dt><dd>{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</dd></div>
-        <div><dt>Fecha</dt><dd>{{ cita.inicio|date:'l j \d\e F' }}, {{ cita.inicio|date:'H:i' }}</dd></div>
-      </dl>
-      <p class="reserva__descripcion">Solo cambian el día y la hora: el veterinario, el servicio, el precio y el motivo se mantienen.
-        Si el nuevo turno ya no está libre al confirmar, tu cita se queda como está.</p>
+      <article class="cita-actual" aria-label="Tu cita ahora">
+        <header class="cita-actual__cabecera">
+          {# El día como una hoja de calendario #}
+          <span class="cita-actual__dia" aria-hidden="true">
+            <span class="cita-actual__mes">{{ cita.inicio|date:'M' }}</span>
+            <span class="cita-actual__numero">{{ cita.inicio|date:'j' }}</span>
+          </span>
+          <span class="cita-actual__cuando">
+            <strong>{{ cita.inicio|date:'l j \d\e F' }}</strong>
+            <span><i class="bi bi-clock" aria-hidden="true"></i>{{ cita.inicio|date:'H:i' }} – {{ cita.fin|date:'H:i' }}</span>
+          </span>
+        </header>
+
+        <p class="cita-actual__servicio">{{ cita.servicio }}</p>
+
+        <ul class="cita-actual__datos">
+          <li>
+            {% with mascota=cita.mascota %}
+              <span class="cita-actual__avatar foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
+              <span><span class="cita-actual__etiqueta">Mascota</span>{{ mascota }}</span>
+            {% endwith %}
+          </li>
+          <li>
+            <span class="cita-actual__icono" aria-hidden="true"><i class="bi bi-person-badge"></i></span>
+            <span><span class="cita-actual__etiqueta">Veterinario</span>{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</span>
+          </li>
+          <li>
+            <span class="cita-actual__icono" aria-hidden="true"><i class="bi bi-hourglass-split"></i></span>
+            <span><span class="cita-actual__etiqueta">Duración</span>{{ cita.servicio.duracion_min }} min</span>
+          </li>
+          <li>
+            <span class="cita-actual__icono" aria-hidden="true"><i class="bi bi-cash-coin"></i></span>
+            <span><span class="cita-actual__etiqueta">Precio</span>${{ cita.precio|floatformat:2 }}</span>
+          </li>
+        </ul>
+        {% if cita.motivo %}<p class="cita-actual__motivo">«{{ cita.motivo }}»</p>{% endif %}
+      </article>
+
+      <span class="cambio-cita__flecha" aria-hidden="true"><i class="bi bi-arrow-down"></i></span>
+
+      {# La nueva fecha: reprogramar.js la escribe al elegir día y hora #}
+      <div class="cita-nueva" data-nueva aria-live="polite">
+        <span class="cita-nueva__icono" aria-hidden="true"><i class="bi bi-calendar-plus"></i></span>
+        <span>
+          <span class="cita-actual__etiqueta">Nueva fecha</span>
+          <strong class="cita-nueva__texto" data-nueva-texto>Elige un día y una hora en el calendario</strong>
+        </span>
+      </div>
+
+      <p class="cambio-cita__nota"><i class="bi bi-info-circle" aria-hidden="true"></i>Se mantienen el veterinario, el servicio, el precio y el motivo. Si el nuevo turno ya no está libre al confirmar, tu cita se queda como está.</p>
     </div>
     <a class="boton-cita" href="{% url 'citas:mis_citas' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver a Mis citas</a>
   </aside>
