@@ -7,6 +7,8 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
+from historial.services import HistorialService
+
 from ..forms import MascotaForm
 from ..mixins import FormularioMascotaMixin, MascotasDelUsuarioMixin
 from ..services import MascotaService, foto_visible
@@ -23,10 +25,18 @@ class MascotaDetailView(MascotasDelUsuarioMixin, DetailView):
 
 
 class MascotaCarnetView(MascotasDelUsuarioMixin, DetailView):
-    """Carnet de vacunación (HU-36). Las vacunas llegan con la app historial (HU-35);
-    mientras tanto el carnet se muestra vacío."""
+    """Carnet de vacunación (HU-36) con las vacunas que registró el veterinario: vacuna, fecha, lote,
+    veterinario, próxima dosis y si está al día, próxima o vencida."""
     template_name = 'mascotas/carnet.html'
     context_object_name = 'mascota'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        vacunas = HistorialService.carnet(self.object)
+        contexto['vacunas'] = vacunas
+        contexto['vacunas_datos'] = HistorialService.carnet_en_datos(vacunas)   # para el librito 3D
+        contexto['id_vacunas_datos'] = f'carnet-datos-{self.object.pk}'
+        return contexto
 
 
 class MascotaCreateView(MascotasDelUsuarioMixin, FormularioMascotaMixin, SuccessMessageMixin, CreateView):
