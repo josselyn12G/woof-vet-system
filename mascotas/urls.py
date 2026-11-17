@@ -1,5 +1,7 @@
 from django.urls import path
 
+from historial.views import HistoriaClinicaView
+
 from . import views
 
 app_name = 'mascotas'
@@ -11,6 +13,8 @@ urlpatterns = [
     path('<int:pk>/editar/', views.MascotaUpdateView.as_view(), name='editar'),
     path('<int:pk>/eliminar/', views.MascotaDeleteView.as_view(), name='eliminar'),
     path('<int:pk>/carnet/', views.MascotaCarnetView.as_view(), name='carnet'),
+    # Historia clínica de solo lectura: el dueño (404 con una ajena), los veterinarios y la clínica
+    path('<int:pk>/historial/', HistoriaClinicaView.as_view(), name='historial'),
     path('<int:pk>/foto/', views.FotoMascotaView.as_view(), name='foto'),
     # Gestión de la clínica: administrador y superadministrador (403 para los demás)
     path('gestion/', views.MascotaGestionListView.as_view(), name='gestion'),

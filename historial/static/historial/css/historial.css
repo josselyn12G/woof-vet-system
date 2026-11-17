@@ -151,3 +151,178 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ==========================================================================
+   Historia clínica (solo lectura): la ficha del paciente arriba, la línea de tiempo
+   de las consultas a la izquierda y todas las vacunas aplicadas a la derecha
+   ========================================================================== */
+.historia {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.historia__titulo {
+  margin-bottom: 1rem;
+}
+
+.historia__columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+/* Línea de tiempo: un punto naranja por consulta, unidos por una línea vertical */
+.linea-tiempo {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linea-tiempo__punto {
+  position: relative;
+  padding: 0 0 1.5rem 1.6rem;
+  border-left: 2px solid var(--p-borde);
+  margin-left: 0.4rem;
+}
+
+.linea-tiempo__punto:last-child {
+  padding-bottom: 0;
+  border-left-color: transparent;
+}
+
+.linea-tiempo__punto::before {
+  content: '';
+  position: absolute;
+  top: 0.3rem;
+  left: -0.45rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--p-superficie);
+  border-radius: 50%;
+  background: var(--p-acento);
+}
+
+.consulta-historia {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.consulta-historia__fecha {
+  color: var(--p-texto);
+  font-weight: 600;
+}
+
+.consulta-historia__quien {
+  margin: 0.15rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+.consulta-historia__quien .bi {
+  margin-right: 0.35rem;
+}
+
+.consulta-historia__datos {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.consulta-historia__datos dt,
+.consulta-historia__subtitulo {
+  color: var(--p-texto-2);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.consulta-historia__datos dd {
+  margin: 0;
+  color: var(--p-texto);
+}
+
+.consulta-historia__subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.consulta-historia__lista {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.consulta-historia__lista li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio-control);
+  background: var(--p-acento-tinte);
+  font-size: 0.9rem;
+}
+
+.consulta-historia__lista span {
+  color: var(--p-texto-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.historia__vacia {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--p-texto-2);
+  text-align: center;
+}
+
+.historia__vacia .bi {
+  font-size: 2rem;
+  color: var(--p-acento);
+}
+
+.historia__vacia p {
+  margin: 0;
+}
+
+/* Lista de todas las vacunas */
+.vacunas-historia {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vacunas-historia__fila {
+  display: grid;
+  gap: 0.1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--p-linea);
+}
+
+.vacunas-historia__fila:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.vacunas-historia__nombre {
+  color: var(--p-texto);
+  font-weight: 600;
+}
+
+.vacunas-historia__dato {
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 991.98px) {
+  .historia__columnas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
