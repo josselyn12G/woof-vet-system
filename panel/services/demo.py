@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario, Servicio
 from citas.services import AgendaService
-from cuentas.models import PerfilVeterinario, Roles
+from cuentas.models import Ciudad, PerfilVeterinario, Roles
 from historial.models import Consulta, Prescripcion, Vacuna, VacunaAplicada
 from mascotas.models import Especie, Mascota, Raza
 
@@ -124,11 +124,13 @@ class DemoService:
     @staticmethod
     def _personas():
         modelo = get_user_model()
+        quito = Ciudad.objects.filter(nombre='Quito').first()   # la carga la migración de Ecuador
         usuarios = {}
         for numero, (username, nombre, apellido, rol) in enumerate(PERSONAS, start=1):
             usuarios[username] = modelo.objects.create_user(
                 username=username, email=f'{username}@woof.ec', password=CLAVE_DEMO, first_name=nombre,
                 last_name=apellido, rol=rol, telefono=f'+5939870000{numero:02d}', cedula=cedula_valida(numero),
+                ciudad=quito,
             )
         for username, especialidad, anios, verificado in PERFILES:
             PerfilVeterinario.objects.create(usuario=usuarios[username], especialidad=especialidad,

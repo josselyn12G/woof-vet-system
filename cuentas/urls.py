@@ -10,6 +10,9 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('registro/', views.RegistroView.as_view(), name='registro'),
     path('verificar/', views.VerificarView.as_view(), name='verificar'),
+    # Desplegables dependientes del registro: país → provincia → ciudad (JSON, públicas)
+    path('ubicacion/provincias/', views.ProvinciasView.as_view(), name='provincias'),
+    path('ubicacion/ciudades/', views.CiudadesView.as_view(), name='ciudades'),
     # Gestión de usuarios del administrador (las portadas de cada rol están en la app panel)
     path('panel/administrador/usuarios/', views.UsuarioListView.as_view(), name='usuarios'),
     path('panel/administrador/reporte.csv', views.ReporteUsuariosView.as_view(), name='reporte_usuarios'),

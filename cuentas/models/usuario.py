@@ -5,6 +5,7 @@ from django.db import models
 
 from ..validators import validar_cedula
 from .roles import ROLES_DE_GESTION, Roles
+from .ubicacion import Ciudad
 
 # Validador del formato del telefono
 validar_telefono = RegexValidator(
@@ -28,6 +29,8 @@ class Usuario(AbstractUser):
     rol = models.CharField(max_length=15, choices=Roles.choices, default=Roles.CLIENTE)
     sector = models.CharField(max_length=80, blank=True)  # opcional: se guarda '' si está vacío
     cedula = models.CharField(max_length=10, unique=True, validators=[validar_cedula])
+    # Opcional en la base: las cuentas creadas antes no la tienen. El registro sí la pide (país → provincia → ciudad)
+    ciudad = models.ForeignKey(Ciudad, on_delete=models.PROTECT, null=True, blank=True, related_name='usuarios')
 
     REQUIRED_FIELDS = ['email', 'telefono', 'cedula']
 

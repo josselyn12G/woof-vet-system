@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-468%20pasan-2e7d32" alt="468 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-483%20pasan-2e7d32" alt="483 pruebas pasan">
 </p>
 
 <p align="center">
@@ -53,11 +53,13 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 | `v0.1.0` · Entrega 1 | Portada, registro, login con doble factor, CRUD de mascotas con URLs protegidas | Terminada |
 | `v0.2.0` · Roles y citas | Roles con su panel, cédula validada, catálogo de servicios, horario del veterinario, agendar y cancelar citas, agenda y pacientes, despliegue en Render | Terminada |
 | Fase 3 · Cierre del Core e historia clínica | Anticipación de 1 hora, bloques con citas protegidos, veterinarios verificados, calificación, filtro por mascota, avisos por correo y recordatorio de 24 h, indicadores, registrar consulta (receta y vacunas), historia clínica por rol, carnet de vacunación y plan de pruebas en PostgreSQL | Terminada |
-| Próximas | Login con Google y país → provincia → ciudad en el registro | Pendiente |
+| Próximas | Login con Google | Pendiente |
 
 ## Funcionalidades
 
 - **Registro de usuarios** en 3 pasos, con validación del teléfono en formato internacional (`+593…`).
+  - **País → provincia → ciudad:** desplegables dependientes (cada lista se llena según la anterior). El servidor revisa que la ciudad sea de esa provincia y la provincia de ese país; Ecuador viene cargado con sus 24 provincias.
+- **Portada:** muestra a los veterinarios verificados con su especialidad, su experiencia y su calificación real.
 - **Inicio de sesión con doble factor:** después de la contraseña, Woof envía un código de 6 dígitos al correo.
   - El código vence a los 5 minutos y se puede usar una sola vez.
   - Se genera con `secrets` y se compara con `secrets.compare_digest`.
@@ -200,11 +202,11 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-468 pruebas:
+483 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 69 | Modelo de usuario, cédula, registro, login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas |
+| `cuentas` | 84 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada |
 | `mascotas` | 92 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
 | `citas` | 242 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, avisos y recordatorios, filtro por mascota, agenda, pacientes, gestión, indicadores y acceso por rol |
 | `historial` | 57 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol y el catálogo de vacunas |

@@ -250,7 +250,8 @@
 }
 
 .campo__entrada,
-.campo__grupo > input {
+.campo__grupo > input,
+.campo__grupo > select {
   width: 100%;
   padding: 0.8rem 1rem;
   border: 1px solid #e4dfda;
@@ -280,7 +281,8 @@
 }
 
 .campo__grupo--icono .campo__entrada,
-.campo__grupo--icono > input {
+.campo__grupo--icono > input,
+.campo__grupo--icono > select {
   padding-left: 2.75rem;                     /* espacio para el ícono */
 }
 
@@ -295,13 +297,15 @@
 }
 
 .campo__entrada:hover,
-.campo__grupo > input:hover {
+.campo__grupo > input:hover,
+.campo__grupo > select:hover {
   border-color: #d3cbc4;
 }
 
 /* Al escribir: anillo naranja suave, en lugar del contorno azul del navegador */
 .campo__entrada:focus,
-.campo__grupo > input:focus {
+.campo__grupo > input:focus,
+.campo__grupo > select:focus {
   outline: none;
   border-color: var(--woof-marca);
   background: #fff;
@@ -446,7 +450,8 @@
   font-size: 0.85rem;
 }
 
-.registro .campo__grupo > input {
+.registro .campo__grupo > input,
+.registro .campo__grupo > select {
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
@@ -456,11 +461,13 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-.registro .campo__grupo > input:hover {
+.registro .campo__grupo > input:hover,
+.registro .campo__grupo > select:hover {
   border-color: rgba(255, 255, 255, 0.55);
 }
 
-.registro .campo__grupo > input:focus {
+.registro .campo__grupo > input:focus,
+.registro .campo__grupo > select:focus {
   border-color: #fff;
   background: rgba(255, 255, 255, 0.24);
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18);
@@ -1060,4 +1067,21 @@
   .otp--error .otp__cajas {
     animation: none;
   }
+}
+
+/* País, provincia y ciudad (registro): el select se ve como los demás campos; las opciones de la lista
+   desplegable del sistema van en oscuro, porque el campo del registro tiene el texto en blanco */
+.campo__grupo > select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+.campo__grupo > select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.registro .campo__grupo > select option {
+  color: var(--woof-marron-oscuro);
+  background: #fff;
 }

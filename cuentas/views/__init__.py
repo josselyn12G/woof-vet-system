@@ -5,14 +5,18 @@ los datos o las reglas a los services y responden; urls.py las sigue usando como
 - acceso: la portada, el registro y el login en dos pasos.
 - usuarios: los usuarios de la clínica (administrador).
 - equipo: el personal de la clínica (superadministrador).
+- ubicacion: provincias y ciudades en JSON para los desplegables del registro.
 """
 from .acceso import InicioView, LoginDosPasosView, RegistroView, VerificarView
 from .equipo import EquipoContrasenaView, EquipoCrearView, EquipoEditarView, EquipoEstadoView, EquipoListView
+from .ubicacion import CiudadesView, ProvinciasView
 from .usuarios import ReporteUsuariosView, UsuarioEditarView, UsuarioListView
 
 __all__ = [
     # acceso
     'InicioView', 'RegistroView', 'LoginDosPasosView', 'VerificarView',
+    # ubicacion
+    'ProvinciasView', 'CiudadesView',
     # usuarios
     'UsuarioListView', 'ReporteUsuariosView', 'UsuarioEditarView',
     # equipo
