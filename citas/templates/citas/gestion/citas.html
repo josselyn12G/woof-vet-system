@@ -116,10 +116,11 @@
               <td><span class="estado-cita estado-cita--{{ cita.estado }}">{{ cita.get_estado_display }}</span></td>
               <td class="tabla-panel__accion">
                 {% if cita.estado == 'confirmada' and cita.inicio > ahora %}
-                  {# Cancelar: POST con confirmación del navegador; libera el turno #}
-                  <form method="post" action="{% url 'citas:gestion_cancelar' cita.pk %}" onsubmit="return confirm('¿Cancelar la cita de {{ cita.mascota|escapejs }} del {{ cita.inicio|date:'j M, H:i' }}? El turno quedará libre.');">
+                  {# Cancelar: POST; el navegador pide confirmar y un motivo opcional, que reciben el cliente y el veterinario #}
+                  <form method="post" action="{% url 'citas:gestion_cancelar' cita.pk %}" onsubmit="var motivo = prompt('¿Cancelar la cita de {{ cita.mascota|escapejs }} del {{ cita.inicio|date:'j M, H:i' }}? El turno quedará libre. Motivo para el cliente (opcional):', ''); if (motivo === null) return false; this.motivo.value = motivo; return true;">
                     {% csrf_token %}
                     <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+                    <input type="hidden" name="motivo" value="">
                     <button type="submit" class="boton-fila boton-fila--peligro" title="Cancelar la cita"><i class="bi bi-x-circle" aria-hidden="true"></i><span class="visually-hidden">Cancelar la cita de {{ cita.mascota }}</span></button>
                   </form>
                 {% endif %}

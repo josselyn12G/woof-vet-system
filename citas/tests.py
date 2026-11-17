@@ -1,21 +1,25 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from io import StringIO
 from unittest.mock import patch
 
+from django.core import mail
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.db import IntegrityError
 from django.db.models import ProtectedError
 from django.forms import modelform_factory
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from cuentas.models import PerfilVeterinario, Roles
 from mascotas.tests import crear_mascota, crear_usuario
 
-from .models import Calificacion, Cita, EstadoCita, HorarioVeterinario, Servicio
+from .models import Calificacion, Cita, EstadoCita, HorarioVeterinario, Notificacion, Servicio, TipoNotificacion
 from .services import (
-    TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService, HorarioService, ServicioService,
+    TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService, HorarioService, NotificacionService,
+    ServicioService,
 )
 
 
@@ -1696,3 +1700,177 @@ class CalificacionEnMisCitasTests(TestCase):
                                     {'servicio': self.servicio.pk, 'fecha': fecha.isoformat()})
         self.assertEqual(respuesta.json()['turnos'][0]['perfil'],
                          reverse('citas:perfil_veterinario', args=[self.veterinario.pk]))
+
+
+# ---------------------------------------------------------------------------
+# F8: avisos por correo y recordatorio de 24 h (RF-23, RF-24)
+# ---------------------------------------------------------------------------
+class AvisosDeCitasTests(TestCase):
+    """Agendar, reprogramar y cancelar avisan al cliente y al veterinario, y solo si el cambio se guardó."""
+
+    def setUp(self):
+        self.fecha = timezone.localdate() + timedelta(days=7)
+        self.veterinario = crear_veterinario(first_name='Sofía', last_name='Paredes', email='sofia@woof.ec')
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        crear_horario(self.veterinario, time(9, 0), time(11, 0), fecha=self.fecha)
+        self.cliente = crear_usuario('ana', first_name='Ana', email='ana@correo.ec')
+        self.mascota = crear_mascota(self.cliente)
+        self.client.force_login(self.cliente)
+
+    def agendar(self, hora='09:30'):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('citas:agendar'), {
+                'mascota': self.mascota.pk, 'servicio': self.servicio.pk, 'veterinario': self.veterinario.pk,
+                'fecha': self.fecha.isoformat(), 'hora': hora, 'motivo': 'Control',
+            })
+        return Cita.objects.get()
+
+    def test_agendar_manda_dos_correos_y_guarda_dos_avisos(self):
+        cita = self.agendar()
+        self.assertEqual(sorted(correo.to[0] for correo in mail.outbox), ['ana@correo.ec', 'sofia@woof.ec'])
+        self.assertEqual(mail.outbox[0].subject, 'Woof · Cita agendada')
+        self.assertIn('quedó confirmada', mail.outbox[0].body)
+        self.assertEqual(Notificacion.objects.filter(cita=cita, tipo=TipoNotificacion.AGENDADA).count(), 2)
+
+    def test_los_avisos_se_envian_solo_al_confirmar_la_transaccion(self):
+        with self.captureOnCommitCallbacks(execute=False) as pendientes:
+            self.client.post(reverse('citas:agendar'), {
+                'mascota': self.mascota.pk, 'servicio': self.servicio.pk, 'veterinario': self.veterinario.pk,
+                'fecha': self.fecha.isoformat(), 'hora': '09:30',
+            })
+        self.assertEqual(len(pendientes), 1)       # esperan al commit
+        self.assertEqual(len(mail.outbox), 0)      # si la transacción se deshace, no salen
+
+    def test_un_turno_ocupado_no_avisa_a_nadie(self):
+        self.agendar()
+        mail.outbox.clear()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('citas:agendar'), {
+                'mascota': self.mascota.pk, 'servicio': self.servicio.pk, 'veterinario': self.veterinario.pk,
+                'fecha': self.fecha.isoformat(), 'hora': '09:30',
+            })
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_reprogramar_avisa_con_la_hora_anterior(self):
+        cita = self.agendar('09:00')
+        mail.outbox.clear()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('citas:reprogramar', args=[cita.pk]),
+                             {'fecha': self.fecha.isoformat(), 'hora': '10:00'})
+        self.assertEqual(len(mail.outbox), 2)
+        aviso = Notificacion.objects.get(usuario=self.cliente, tipo=TipoNotificacion.REPROGRAMADA)
+        self.assertIn('a las 09:00', aviso.mensaje)
+        self.assertIn('a las 10:00', aviso.mensaje)
+
+    def test_el_cliente_cancela_y_el_veterinario_sabe_quien_fue(self):
+        cita = self.agendar()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('citas:cancelar', args=[cita.pk]))
+        aviso = Notificacion.objects.get(usuario=self.veterinario, tipo=TipoNotificacion.CANCELADA)
+        self.assertIn('Ana', aviso.mensaje)
+        self.assertIn('canceló', aviso.mensaje)
+
+    def test_la_clinica_cancela_con_motivo(self):
+        cita = self.agendar()
+        self.client.force_login(crear_usuario('laura', rol=Roles.ADMINISTRADOR))
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('citas:gestion_cancelar', args=[cita.pk]),
+                             {'motivo': 'La doctora tiene una emergencia'})
+        aviso = Notificacion.objects.get(usuario=self.cliente, tipo=TipoNotificacion.CANCELADA)
+        self.assertIn('La clínica canceló', aviso.mensaje)
+        self.assertIn('Motivo: La doctora tiene una emergencia.', aviso.mensaje)
+
+    def test_si_el_correo_falla_la_cita_y_el_aviso_quedan(self):
+        with patch('django.core.mail.EmailMultiAlternatives.send', side_effect=OSError('SMTP caído')), \
+                self.assertLogs('citas.models.notificacion', level='ERROR'):
+            cita = self.agendar()
+        self.assertEqual(cita.estado, EstadoCita.CONFIRMADA)
+        self.assertEqual(Notificacion.objects.count(), 2)
+
+    @override_settings(CORREO_AVISOS=False)
+    def test_con_los_correos_apagados_solo_se_guardan_los_avisos(self):
+        self.agendar()
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(Notificacion.objects.count(), 2)
+
+
+class RecordatoriosTests(TestCase):
+    """python manage.py enviar_recordatorios: citas confirmadas que empiezan en 23 a 25 horas."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.cliente = crear_usuario('ana', email='ana@correo.ec')
+        self.mascota = crear_mascota(self.cliente)
+
+    def cita_en(self, horas, estado=EstadoCita.CONFIRMADA):
+        inicio = timezone.now() + timedelta(hours=horas)
+        return Cita.objects.create(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                   inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'),
+                                   estado=estado)
+
+    def ejecutar(self):
+        salida = StringIO()
+        call_command('enviar_recordatorios', stdout=salida)
+        return salida.getvalue()
+
+    def test_recuerda_la_cita_de_manana_solo_al_cliente(self):
+        cita = self.cita_en(24)
+        self.assertIn('Se enviaron 1 recordatorio.', self.ejecutar())
+        self.assertEqual([correo.to for correo in mail.outbox], [['ana@correo.ec']])
+        self.assertTrue(Notificacion.objects.filter(cita=cita, tipo=TipoNotificacion.RECORDATORIO).exists())
+
+    def test_no_envia_dos_veces_el_mismo_recordatorio(self):
+        self.cita_en(24)
+        self.ejecutar()
+        self.assertIn('Se enviaron 0 recordatorios.', self.ejecutar())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(Notificacion.objects.filter(tipo=TipoNotificacion.RECORDATORIO).count(), 1)
+
+    def test_una_cita_cancelada_no_recibe_recordatorio(self):
+        self.cita_en(24, estado=EstadoCita.CANCELADA)
+        self.ejecutar()
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_fuera_de_la_ventana_no_se_recuerda(self):
+        self.cita_en(5)
+        self.cita_en(48)
+        self.ejecutar()
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_la_base_no_acepta_dos_recordatorios_de_la_misma_cita(self):
+        cita = self.cita_en(24)
+        NotificacionService.recordatorio(cita)
+        self.assertIsNone(NotificacionService.recordatorio(cita))
+        with self.assertRaises(IntegrityError):
+            Notificacion.objects.create(usuario=self.cliente, cita=cita, tipo=TipoNotificacion.RECORDATORIO,
+                                        mensaje='otra vez')
+
+
+class CampanaTests(TestCase):
+    """La campana del panel: el número de avisos sin leer y la página que los muestra."""
+
+    def setUp(self):
+        self.cliente = crear_usuario('ana')
+        for mensaje in ('Primero', 'Segundo'):
+            Notificacion.objects.create(usuario=self.cliente, tipo=TipoNotificacion.AGENDADA, mensaje=mensaje)
+        Notificacion.objects.create(usuario=crear_usuario('luis'), tipo=TipoNotificacion.AGENDADA, mensaje='Ajeno')
+        self.client.force_login(self.cliente)
+
+    def test_la_campana_muestra_cuantos_avisos_no_ha_leido(self):
+        respuesta = self.client.get(reverse('citas:mis_citas'))
+        self.assertEqual(respuesta.context['notificaciones_sin_leer'], 2)
+        self.assertContains(respuesta, 'Notificaciones: 2 sin leer')
+
+    def test_abrir_los_avisos_los_marca_como_leidos(self):
+        respuesta = self.client.get(reverse('citas:notificaciones'))
+        self.assertContains(respuesta, 'Primero')
+        self.assertNotContains(respuesta, 'Ajeno')     # solo los suyos
+        self.assertContains(respuesta, 'Nuevo', count=2)
+        self.assertEqual(NotificacionService.no_leidas(self.cliente), 0)
+        self.assertNotContains(self.client.get(reverse('citas:notificaciones')), 'Nuevo')
+
+    def test_pide_iniciar_sesion(self):
+        self.client.logout()
+        self.assertIn(reverse('cuentas:login'), self.client.get(reverse('citas:notificaciones')).url)

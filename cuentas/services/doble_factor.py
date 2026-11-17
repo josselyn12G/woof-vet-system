@@ -1,11 +1,11 @@
 import secrets
 import time
-from email.mime.image import MIMEImage
 
 from django.contrib.auth import get_user_model, login
-from django.contrib.staticfiles import finders
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+
+from .correo import adjuntar_logo
 
 MINUTOS_VALIDEZ = 5
 
@@ -33,16 +33,7 @@ def enviar_codigo(request, usuario):
 
     correo = EmailMultiAlternatives('Tu código de acceso a Woof', texto, None, [usuario.email])
     correo.attach_alternative(html, 'text/html')
-    correo.mixed_subtype = 'related'           # el logo viaja dentro del correo, no como adjunto aparte
-
-    ruta_logo = finders.find('cuentas/img/logo-correo.png')
-    if ruta_logo:
-        with open(ruta_logo, 'rb') as archivo:
-            logo = MIMEImage(archivo.read())
-        logo.add_header('Content-ID', '<logo-woof>')
-        logo.add_header('Content-Disposition', 'inline', filename='logo-woof.png')
-        correo.attach(logo)
-
+    adjuntar_logo(correo)                      # el logo viaja dentro del correo, no como adjunto aparte
     correo.send()
 
 

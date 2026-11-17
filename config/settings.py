@@ -86,6 +86,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'citas.context_processors.notificaciones',
             ],
         },
     },
@@ -175,6 +176,9 @@ LOGOUT_REDIRECT_URL = 'cuentas:inicio'
 # Doble factor (código al correo) al iniciar sesión. Render (plan gratis) bloquea el SMTP,
 # así que allá se apaga con DJANGO_DOBLE_FACTOR=False; en local queda activo
 DOBLE_FACTOR = os.environ.get('DJANGO_DOBLE_FACTOR', 'True') == 'True'
+# Avisos de las citas por correo (F8). Por lo mismo, en Render se apagan con DJANGO_CORREO_AVISOS=False:
+# los avisos se siguen guardando y se ven en la campana del panel
+CORREO_AVISOS = os.environ.get('DJANGO_CORREO_AVISOS', 'True') == 'True'
 
 # Correo: Gmail por SMTP (credenciales en el .env)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -184,3 +188,5 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = f'Woof <{EMAIL_HOST_USER}>'
+# Si el SMTP no responde, se deja de esperar a los 10 segundos (sin esto la página se quedaría colgada)
+EMAIL_TIMEOUT = 10

@@ -10,7 +10,7 @@ from django.views.generic import ListView, TemplateView
 from cuentas.mixins import AdministradorRequeridoMixin
 
 from ..forms import FiltroCitasForm
-from ..services import VISTAS_GESTION, AgendaService, CitaService, HorarioService
+from ..services import VISTAS_GESTION, AgendaService, CitaService, HorarioService, NotificacionService
 from ..services.horarios import semana_pedida
 
 
@@ -52,7 +52,10 @@ class GestionCitasView(AdministradorRequeridoMixin, ListView):
 
 
 class GestionCancelarCitaView(AdministradorRequeridoMixin, View):
-    """El administrador cancela una cita confirmada que todavía no empieza (POST); el turno vuelve a quedar libre."""
+    """
+    El administrador cancela una cita confirmada que todavía no empieza (POST); el turno vuelve a quedar libre.
+    El cliente y el veterinario reciben el aviso con el motivo, si se escribió uno.
+    """
     http_method_names = ['post']
 
     def post(self, request, pk):
@@ -62,6 +65,9 @@ class GestionCancelarCitaView(AdministradorRequeridoMixin, View):
         except ValidationError as error:
             messages.error(request, error.messages[0])
         else:
+            motivo = request.POST.get('motivo', '')[:200]
+            NotificacionService.al_confirmar(NotificacionService.cita_cancelada, cita, cancelada_por=request.user,
+                                             motivo=motivo)
             messages.success(request, f'Se canceló la cita de {cita.mascota}. El horario quedó libre.')
         destino = request.POST.get('volver', '')
         # Solo se vuelve a la propia gestión de citas (nunca a una URL de afuera)
