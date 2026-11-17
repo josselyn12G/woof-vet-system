@@ -1,0 +1,39 @@
+{# Una línea de la receta. Se usa para cada fila del formset y para la fila modelo que clona consulta.js #}
+<fieldset class="fila-historial" data-fila>
+  <legend class="visually-hidden">Medicamento</legend>
+  {% for oculto in form.hidden_fields %}{{ oculto }}{% endfor %}
+  {% for error in form.non_field_errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+
+  <div class="formulario-panel__campo fila-historial__ancho">
+    <label class="formulario-panel__etiqueta" for="{{ form.medicamento.id_for_label }}">{{ form.medicamento.label|capfirst }}</label>
+    {{ form.medicamento }}
+    {% for error in form.medicamento.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ form.dosis.id_for_label }}">{{ form.dosis.label|capfirst }}</label>
+    {{ form.dosis }}
+    {% for error in form.dosis.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ form.frecuencia_horas.id_for_label }}">{{ form.frecuencia_horas.label|capfirst }}</label>
+    {{ form.frecuencia_horas }}
+    {% for error in form.frecuencia_horas.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ form.duracion_dias.id_for_label }}">{{ form.duracion_dias.label|capfirst }}</label>
+    {{ form.duracion_dias }}
+    {% for error in form.duracion_dias.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ form.indicaciones.id_for_label }}">{{ form.indicaciones.label|capfirst }}</label>
+    {{ form.indicaciones }}
+  </div>
+
+  <div class="fila-historial__pie">
+    {# Cuántas tomas salen: lo calcula consulta.js mientras se escribe; al editar ya viene calculado #}
+    <p class="fila-historial__tomas" data-tomas aria-live="polite">{% if form.instance.pk %}{{ form.instance.tomas }} toma{{ form.instance.tomas|pluralize }}{% endif %}</p>
+    {% if form.instance.pk %}
+      <label class="formulario-panel__casilla fila-historial__quitar">{{ form.DELETE }} Quitar de la receta</label>
+    {% endif %}
+  </div>
+</fieldset>

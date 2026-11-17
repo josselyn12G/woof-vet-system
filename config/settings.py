@@ -59,7 +59,8 @@ INSTALLED_APPS = [
     'cuentas',
     'mascotas',
     'citas',
-    'panel',      # la portada de cada rol: depende de las otras apps, ninguna depende de ella
+    'historial',  # la historia clínica: consultas y vacunas (nace de una cita atendida)
+    'panel',     # la portada de cada rol: depende de las otras apps, ninguna depende de ella
 ]
 
 MIDDLEWARE = [

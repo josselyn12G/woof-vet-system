@@ -29,6 +29,21 @@ class MascotaService:
         return Mascota.objects.del_dueno(dueno).con_foto()
 
     @staticmethod
+    def visibles_para(usuario):
+        """
+        Las mascotas que cada rol puede abrir (por ejemplo, su historia clínica):
+        el cliente, solo las suyas; el veterinario, las de los clientes (las mismas de Pacientes);
+        el administrador y el superadministrador, todas. Otro rol no ve ninguna (404).
+        """
+        if usuario.es_cliente:
+            return MascotaService.del_dueno(usuario).select_related('dueno')
+        if usuario.es_veterinario:
+            return Mascota.objects.filter(dueno__rol=Roles.CLIENTE).select_related('dueno').con_foto()
+        if usuario.gestiona_clinica:
+            return MascotaService.fichas()
+        return Mascota.objects.none()
+
+    @staticmethod
     def nombre_repetido(dueno, nombre, excluir_pk=None):
         """True si ese dueño ya tiene otra mascota con ese nombre (sin importar mayúsculas)."""
         return Mascota.objects.filter(dueno=dueno, nombre__iexact=nombre).exclude(pk=excluir_pk).exists()

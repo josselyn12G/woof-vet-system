@@ -110,6 +110,15 @@
                           <button type="submit" name="estado" value="atendida" class="boton-panel turno__boton"><i class="bi bi-check2" aria-hidden="true"></i>Atendida</button>
                         </form>
                       </span>
+                    {% elif cita.estado == 'atendida' %}
+                      {# RF-20: desde una cita atendida se abre el registro de la consulta (historia clínica) #}
+                      <span class="turno__acciones">
+                        {% if cita.tiene_consulta %}
+                          <a class="boton-panel boton-panel--secundario turno__boton" href="{% url 'historial:consulta' cita.pk %}"><i class="bi bi-journal-text" aria-hidden="true"></i>Ver consulta</a>
+                        {% else %}
+                          <a class="boton-panel turno__boton" href="{% url 'historial:consulta' cita.pk %}"><i class="bi bi-clipboard2-plus" aria-hidden="true"></i>Registrar consulta</a>
+                        {% endif %}
+                      </span>
                     {% endif %}
                   </footer>
                 </div>

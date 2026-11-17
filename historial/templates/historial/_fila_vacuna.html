@@ -1,0 +1,24 @@
+{# Una vacuna aplicada en la consulta. Se usa para cada fila del formset y para la fila modelo de consulta.js #}
+<fieldset class="fila-historial fila-historial--vacuna" data-fila>
+  <legend class="visually-hidden">Vacuna</legend>
+  {% for oculto in form.hidden_fields %}{{ oculto }}{% endfor %}
+  {% for error in form.non_field_errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+
+  <div class="formulario-panel__campo fila-historial__ancho">
+    <label class="formulario-panel__etiqueta" for="{{ form.vacuna.id_for_label }}">{{ form.vacuna.label|capfirst }}</label>
+    {{ form.vacuna }}
+    {% for error in form.vacuna.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ form.lote.id_for_label }}">{{ form.lote.label|capfirst }} (opcional)</label>
+    {{ form.lote }}
+    {% for error in form.lote.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+
+  {% if form.instance.pk %}
+    <div class="fila-historial__pie">
+      <p class="fila-historial__tomas">{% if form.instance.proxima_dosis %}Próxima dosis: {{ form.instance.proxima_dosis|date:'j M Y' }}{% else %}Sin refuerzo{% endif %}</p>
+      <label class="formulario-panel__casilla fila-historial__quitar">{{ form.DELETE }} Quitar</label>
+    </div>
+  {% endif %}
+</fieldset>

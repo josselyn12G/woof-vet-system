@@ -164,6 +164,8 @@ Reglas:
 
 ## 3. Historia clínica, vacunas y tratamientos
 
+> **Implementado (Fase 3, versión mínima, app `historial`):** `Consulta` (una por cita atendida), `Prescripcion` (el medicamento como texto; las tomas se calculan, no se guardan), `Vacuna` (catálogo por especie, único por nombre y especie) y `VacunaAplicada` (la próxima dosis se calcula con el refuerzo). Quedan para después `Medicamento`, `Toma` y `ExamenLaboratorio`.
+
 ```mermaid
 erDiagram
     CITA ||--o| CONSULTA : "genera"
