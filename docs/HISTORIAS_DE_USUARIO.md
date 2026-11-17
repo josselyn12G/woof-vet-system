@@ -38,7 +38,6 @@ Las historias marcadas con ➕ no estaban en la lista original del equipo: son s
 
 | ID | Historia | Rol |
 |---|---|---|
-| HU-12 | Iniciar sesión con Google | Visitante |
 | HU-13 | Verificar mi correo al registrarme | Cliente |
 | HU-14 | Recuperar mi contraseña por correo | Cliente |
 | HU-21 | Cambiar mi contraseña | Cliente / Veterinario |
@@ -196,9 +195,7 @@ Criterios de aceptación:
 
 ## Fase 2 · Cuenta y acceso
 
-### HU-12 · Iniciar sesión con Google
-**Como** visitante **quiero** entrar con mi cuenta de Google **para** no crear otra contraseña.
-- Si el correo ya existe, se vincula a la cuenta existente.
+> La HU-12 (iniciar sesión con Google) se descartó el 17/11/2026: no es necesaria para el proyecto. Se entra con usuario, contraseña y el código por correo.
 
 ### HU-13 · Verificar mi correo
 **Como** cliente **quiero** recibir un correo de verificación al registrarme **para** confirmar que el correo es mío.

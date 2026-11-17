@@ -371,7 +371,7 @@ Ya trae username, email, password (con hash), first_name, last_name, is_active, 
 |---|---|---|
 | rol | `CharField(choices=...)` | `cliente` por defecto. Valores: `cliente`, `veterinario`, `admin` (`veterinario` se usa desde la Fase 3, pero conviene definirlo ya) |
 | telefono | `CharField(max_length=16)` | obligatorio, formato internacional `+593...`: ahí llega el código SMS del doble factor |
-| email | `EmailField(unique=True)` | lo redefinimos para que sea único (lo necesitaremos para Google y 2FA) |
+| email | `EmailField(unique=True)` | lo redefinimos para que sea único (ahí llega el código del doble factor) |
 
 En `settings.py`: `AUTH_USER_MODEL = "cuentas.Usuario"` **antes de la primera migración propia**.
 
