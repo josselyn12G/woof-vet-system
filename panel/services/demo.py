@@ -130,7 +130,7 @@ class DemoService:
             usuarios[username] = modelo.objects.create_user(
                 username=username, email=f'{username}@woof.ec', password=CLAVE_DEMO, first_name=nombre,
                 last_name=apellido, rol=rol, telefono=f'+5939870000{numero:02d}', cedula=cedula_valida(numero),
-                ciudad=quito,
+                ciudad=quito, correo_verificado=True, terminos_aceptados_en=timezone.now(),
             )
         for username, especialidad, anios, verificado in PERFILES:
             PerfilVeterinario.objects.create(usuario=usuarios[username], especialidad=especialidad,

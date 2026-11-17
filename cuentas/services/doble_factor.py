@@ -6,6 +6,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from .correo import adjuntar_logo
+from .verificacion import marcar_verificado
 
 MINUTOS_VALIDEZ = 5
 
@@ -67,7 +68,9 @@ def completar_login(request):
     """
     pk = request.session.pop('pre_2fa_user')
     siguiente = request.session.pop('pre_2fa_next', '/')
-    login(request, get_user_model().objects.get(pk=pk))
+    usuario = get_user_model().objects.get(pk=pk)
+    marcar_verificado(usuario)   # el código llegó a su correo: el correo es suyo (HU-13)
+    login(request, usuario)
     return siguiente
 
 

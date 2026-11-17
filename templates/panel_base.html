@@ -76,10 +76,10 @@
       {# Usuario al pie: iniciales, nombre, rol y cerrar sesión (POST con CSRF, como pide Django 5) #}
       <div class="panel-menu__usuario">
         <span class="panel-menu__avatar" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
-        <span class="panel-menu__persona">
+        <a class="panel-menu__persona panel-menu__persona--enlace" href="{% url 'cuentas:mi_cuenta' %}" title="Mi cuenta">
           <span class="panel-menu__nombre">{{ user.get_full_name|default:user.username }}</span>
           <span class="panel-menu__rol">{{ user.get_rol_display }}</span>
-        </span>
+        </a>
         <form method="post" action="{% url 'cuentas:logout' %}">
           {% csrf_token %}
           <button type="submit" class="panel-menu__salir" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
@@ -105,7 +105,7 @@
         </nav>
         <div class="nav-arriba__lado">
           <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
-          <span class="panel-menu__avatar nav-arriba__avatar" title="{{ user.get_full_name|default:user.username }}" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
+          <a class="panel-menu__avatar nav-arriba__avatar text-decoration-none" href="{% url 'cuentas:mi_cuenta' %}" title="Mi cuenta" aria-label="Mi cuenta">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</a>
           <form method="post" action="{% url 'cuentas:logout' %}">
             {% csrf_token %}
             <button type="submit" class="panel-barra__boton" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>

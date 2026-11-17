@@ -1085,3 +1085,76 @@
   color: var(--woof-marron-oscuro);
   background: #fff;
 }
+
+/* Mensajes en las pantallas de acceso (por ejemplo, "Te enviamos un correo para verificarlo") */
+.acceso__aviso {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* Términos y política de datos: texto largo dentro del panel de vidrio, con scroll propio */
+.registro__panel--texto {
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+.terminos {
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.terminos h2 {
+  margin: 1.1rem 0 0.4rem;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.terminos ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.terminos a,
+.registro__terminos a {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* La casilla de los términos en el paso 3 del registro */
+.registro__terminos {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.registro__terminos input {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  accent-color: var(--woof-marca);
+}
+
+.registro__olvido {
+  display: block;
+  margin: -0.25rem 0 1rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+.registro__olvido:hover {
+  color: #fff;
+}

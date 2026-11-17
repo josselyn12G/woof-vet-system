@@ -1,0 +1,10 @@
+Hola, {{ nombre }}
+
+{{ texto }}
+
+{{ boton }}:
+{{ enlace }}
+
+{{ aviso }}
+
+Sistema Veterinario Woof

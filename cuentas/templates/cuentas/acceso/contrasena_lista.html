@@ -1,0 +1,7 @@
+{% extends 'cuentas/acceso/_pagina.html' %}
+{% block titulo %}Contraseña guardada · Woof{% endblock %}
+{% block titulo_pagina %}¡Listo!{% endblock %}
+{% block subtitulo %}Tu contraseña nueva quedó guardada. Ya puedes iniciar sesión con ella.{% endblock %}
+{% block cuerpo %}
+  <a class="acceso__boton registro__boton d-block text-center text-decoration-none" href="{% url 'cuentas:login' %}">Iniciar sesión</a>
+{% endblock %}

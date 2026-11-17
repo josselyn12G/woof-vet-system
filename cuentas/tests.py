@@ -116,7 +116,7 @@ class RegistroTests(TestCase):
         self.datos = {
             'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez',
             'email': 'luis@woof.ec', 'telefono': '+593987654322', 'cedula': '0926687856',
-            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
+            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123', 'acepto_terminos': 'on',
             **ubicacion(),
         }
 
@@ -143,7 +143,7 @@ class UbicacionTests(TestCase):
         self.datos = {
             'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez',
             'email': 'luis@woof.ec', 'telefono': '+593987654322', 'cedula': '0926687856',
-            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
+            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123', 'acepto_terminos': 'on',
             **ubicacion('Guayas', 'Guayaquil'),
         }
 
@@ -808,3 +808,193 @@ class VeterinariosDeLaPortadaTests(TestCase):
         bueno = self.crear_veterinario('bueno', 'Bueno')
         self.calificar(bueno, 5)
         self.assertEqual(self.portada().context['veterinarios'], [bueno, nuevo])
+
+
+def enlace_del_correo(correo):
+    """La ruta del enlace que llega en el correo (sin el dominio), como la abriría la persona."""
+    return re.search(r'https?://[^/\s]+(/\S+)', correo.body).group(1)
+
+
+class TerminosTests(TestCase):
+    """HU-23: no se crea la cuenta sin aceptar los términos, y queda guardado cuándo se aceptaron."""
+
+    def setUp(self):
+        self.datos = {
+            'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez', 'email': 'luis@woof.ec',
+            'telefono': '+593987654322', 'cedula': '0926687856',
+            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123', **ubicacion(),
+        }
+
+    def test_sin_aceptar_los_terminos_no_se_crea_la_cuenta(self):
+        respuesta = self.client.post(reverse('cuentas:registro'), self.datos)
+        self.assertContains(respuesta, 'tienes que aceptar los términos')
+        self.assertFalse(Usuario.objects.filter(username='luis').exists())
+
+    def test_al_aceptarlos_queda_la_fecha(self):
+        self.client.post(reverse('cuentas:registro'), {**self.datos, 'acepto_terminos': 'on'})
+        self.assertIsNotNone(Usuario.objects.get(username='luis').terminos_aceptados_en)
+
+    def test_la_pagina_de_terminos_es_publica_y_el_registro_la_enlaza(self):
+        self.assertContains(self.client.get(reverse('cuentas:terminos')), 'Protección de Datos Personales')
+        self.assertContains(self.client.get(reverse('cuentas:registro')), reverse('cuentas:terminos'))
+
+
+class VerificarCorreoTests(TestCase):
+    """HU-13: al registrarse llega un enlace para verificar el correo; también lo verifica entrar con el código."""
+
+    def registrar(self):
+        datos = {
+            'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez', 'email': 'luis@woof.ec',
+            'telefono': '+593987654322', 'cedula': '0926687856', 'acepto_terminos': 'on',
+            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123', **ubicacion(),
+        }
+        respuesta = self.client.post(reverse('cuentas:registro'), datos, follow=True)
+        return respuesta, Usuario.objects.get(username='luis')
+
+    def test_al_registrarse_llega_el_enlace_y_el_correo_queda_sin_verificar(self):
+        respuesta, usuario = self.registrar()
+        self.assertFalse(usuario.correo_verificado)
+        self.assertEqual(mail.outbox[-1].subject, 'Verifica tu correo en Woof')
+        self.assertEqual(mail.outbox[-1].to, ['luis@woof.ec'])
+        self.assertContains(respuesta, 'Te enviamos un enlace a luis@woof.ec')   # el aviso sale en el login
+
+    def test_el_enlace_verifica_el_correo(self):
+        self.registrar()
+        respuesta = self.client.get(enlace_del_correo(mail.outbox[-1]))
+        self.assertContains(respuesta, '¡Correo verificado!')
+        self.assertTrue(Usuario.objects.get(username='luis').correo_verificado)
+
+    def test_un_enlace_inventado_no_verifica(self):
+        _, usuario = self.registrar()
+        ruta = enlace_del_correo(mail.outbox[-1]).rstrip('/').rsplit('/', 1)[0] + '/token-falso/'
+        respuesta = self.client.get(ruta)
+        self.assertEqual(respuesta.status_code, 400)
+        usuario.refresh_from_db()
+        self.assertFalse(usuario.correo_verificado)
+
+    def test_si_cambia_el_correo_el_enlace_viejo_ya_no_sirve(self):
+        _, usuario = self.registrar()
+        ruta = enlace_del_correo(mail.outbox[-1])
+        usuario.email = 'otro@woof.ec'
+        usuario.save()
+        self.assertEqual(self.client.get(ruta).status_code, 400)
+
+    def test_entrar_con_el_codigo_del_correo_tambien_lo_verifica(self):
+        _, usuario = self.registrar()
+        self.client.post(reverse('cuentas:login'), {'username': 'luis', 'password': 'Clave-segura-123'})
+        codigo = re.search(r'\d{6}', mail.outbox[-1].body).group()
+        self.client.post(reverse('cuentas:verificar'), {'codigo': codigo})
+        usuario.refresh_from_db()
+        self.assertTrue(usuario.correo_verificado)
+
+    def test_una_cuenta_nueva_empieza_sin_verificar(self):
+        # Las cuentas de antes las marca verificadas la migración 0008; las nuevas esperan el enlace o el código
+        self.assertFalse(crear_usuario().correo_verificado)
+
+
+class RecuperarContrasenaTests(TestCase):
+    """HU-14: un enlace por correo para crear una contraseña nueva; sirve una sola vez."""
+
+    def setUp(self):
+        self.usuario = crear_usuario()
+
+    def pedir_enlace(self, correo='ana@woof.ec'):
+        return self.client.post(reverse('cuentas:recuperar_contrasena'), {'email': correo})
+
+    def test_el_login_enlaza_a_recuperar(self):
+        self.assertContains(self.client.get(reverse('cuentas:login')), reverse('cuentas:recuperar_contrasena'))
+
+    def test_llega_el_correo_con_el_enlace(self):
+        self.assertRedirects(self.pedir_enlace(), reverse('cuentas:recuperar_enviado'))
+        self.assertEqual(mail.outbox[-1].subject, 'Crea una contraseña nueva en Woof')
+        self.assertIn('/contrasena/nueva/', mail.outbox[-1].body)
+
+    def test_un_correo_que_no_existe_no_avisa_que_no_existe(self):
+        # Misma respuesta, pero sin correo: así nadie puede averiguar qué correos tienen cuenta
+        self.assertRedirects(self.pedir_enlace('nadie@woof.ec'), reverse('cuentas:recuperar_enviado'))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_con_el_enlace_se_crea_la_contrasena_nueva_y_sirve_una_sola_vez(self):
+        self.pedir_enlace()
+        ruta = enlace_del_correo(mail.outbox[-1])
+        formulario = self.client.get(ruta, follow=True)   # Django cambia el token por "set-password" en la URL
+        nueva = formulario.redirect_chain[-1][0] if formulario.redirect_chain else ruta
+        respuesta = self.client.post(nueva, {'new_password1': 'Otra-clave-456', 'new_password2': 'Otra-clave-456'})
+        self.assertRedirects(respuesta, reverse('cuentas:contrasena_lista'))
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('Otra-clave-456'))
+        self.assertContains(self.client.get(ruta, follow=True), 'El enlace ya no sirve')
+
+
+class MiCuentaTests(TestCase):
+    """HU-22 (editar mis datos) y HU-21 (cambiar mi contraseña)."""
+
+    def setUp(self):
+        self.usuario = crear_usuario(first_name='Ana', correo_verificado=True)
+        self.client.force_login(self.usuario)
+        self.url = reverse('cuentas:mi_cuenta')
+
+    def datos(self, **cambios):
+        valores = {'first_name': 'Ana María', 'last_name': 'Pérez', 'email': 'ana@woof.ec',
+                   'telefono': '+593987654321', **ubicacion('Azuay', 'Cuenca')}
+        valores.update(cambios)
+        return valores
+
+    def test_pide_iniciar_sesion(self):
+        self.client.logout()
+        self.assertIn(reverse('cuentas:login'), self.client.get(self.url).url)
+
+    def test_el_panel_enlaza_a_mi_cuenta(self):
+        self.assertContains(self.client.get(self.url), 'Mis datos')
+        self.assertContains(self.client.get(reverse('citas:mis_citas')), self.url)
+
+    def test_guarda_mis_datos_y_mi_ciudad(self):
+        self.assertRedirects(self.client.post(self.url, self.datos()), self.url)
+        self.usuario.refresh_from_db()
+        self.assertEqual((self.usuario.first_name, self.usuario.ciudad.nombre), ('Ana María', 'Cuenca'))
+        self.assertTrue(self.usuario.correo_verificado)   # el correo no cambió
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_si_cambia_el_correo_queda_sin_verificar_y_llega_el_enlace(self):
+        self.client.post(self.url, self.datos(email='ana.nueva@woof.ec'))
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.correo_verificado)
+        self.assertEqual(mail.outbox[-1].to, ['ana.nueva@woof.ec'])
+
+    def test_no_puede_usar_el_correo_de_otra_cuenta(self):
+        crear_usuario(username='luis', email='luis@woof.ec', cedula='0926687856')
+        respuesta = self.client.post(self.url, self.datos(email='luis@woof.ec'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.email, 'ana@woof.ec')
+
+    def test_una_ciudad_de_otra_provincia_se_rechaza(self):
+        respuesta = self.client.post(self.url, self.datos(ciudad=ubicacion()['ciudad']))   # Quito con Azuay
+        self.assertContains(respuesta, 'Elige una ciudad de la lista.')
+
+    def test_no_cambia_la_cedula_ni_el_rol_aunque_se_envien(self):
+        self.client.post(self.url, self.datos(cedula='0926687856', rol=Roles.ADMINISTRADOR))
+        self.usuario.refresh_from_db()
+        self.assertEqual((self.usuario.cedula, self.usuario.rol), ('1710034065', Roles.CLIENTE))
+
+    def test_reenviar_la_verificacion(self):
+        Usuario.objects.filter(pk=self.usuario.pk).update(correo_verificado=False)
+        self.client.post(reverse('cuentas:reenviar_verificacion'))
+        self.assertEqual(mail.outbox[-1].subject, 'Verifica tu correo en Woof')
+
+    def test_cambiar_la_contrasena_mantiene_la_sesion(self):
+        respuesta = self.client.post(reverse('cuentas:cambiar_contrasena'), {
+            'old_password': 'Clave-segura-123', 'new_password1': 'Otra-clave-456', 'new_password2': 'Otra-clave-456',
+        })
+        self.assertRedirects(respuesta, self.url)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('Otra-clave-456'))
+        self.assertEqual(self.client.get(self.url).status_code, 200)   # sigue con la sesión iniciada
+
+    def test_cambiar_la_contrasena_pide_la_actual(self):
+        respuesta = self.client.post(reverse('cuentas:cambiar_contrasena'), {
+            'old_password': 'mal', 'new_password1': 'Otra-clave-456', 'new_password2': 'Otra-clave-456',
+        })
+        self.assertEqual(respuesta.status_code, 200)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password('Clave-segura-123'))

@@ -1,5 +1,6 @@
 """La portada, el registro y el login en dos pasos (contraseña y luego el código)."""
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -7,8 +8,8 @@ from django.views.generic import CreateView, FormView, TemplateView
 
 from ..forms import RegistroForm, VerificarCodigoForm
 from ..services import (
-    PerfilVeterinarioService, PoliticaDeCuentas, cancelar_login_pendiente, completar_login, hay_login_pendiente,
-    iniciar_login_pendiente, verificar_codigo,
+    PerfilVeterinarioService, PoliticaDeCuentas, cancelar_login_pendiente, completar_login, enviar_verificacion,
+    hay_login_pendiente, iniciar_login_pendiente, verificar_codigo,
 )
 
 
@@ -23,9 +24,19 @@ class InicioView(TemplateView):
 
 
 class RegistroView(CreateView):
+    """Crea la cuenta del cliente y le envía el enlace para verificar su correo (HU-13)."""
     form_class = RegistroForm
     template_name = 'cuentas/registro.html'
     success_url = reverse_lazy('cuentas:login')
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        if enviar_verificacion(self.request, self.object):
+            messages.success(self.request, f'¡Listo! Creaste tu cuenta. Te enviamos un enlace a {self.object.email} '
+                                           'para verificar tu correo; ya puedes iniciar sesión.')
+        else:
+            messages.success(self.request, '¡Listo! Creaste tu cuenta. Ya puedes iniciar sesión.')
+        return respuesta
 
 
 class LoginDosPasosView(LoginView):

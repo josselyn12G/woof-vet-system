@@ -1,0 +1,16 @@
+{% extends 'cuentas/acceso/_pagina.html' %}
+{% block titulo %}Contraseña nueva · Woof{% endblock %}
+{% block titulo_pagina %}{% if validlink %}Crea tu contraseña nueva{% else %}El enlace ya no sirve{% endif %}{% endblock %}
+{% block subtitulo %}{% if validlink %}Usa al menos 8 caracteres, que no sean solo números.{% else %}Ya se usó o venció. Pide otro y úsalo dentro de 3 días.{% endif %}{% endblock %}
+{% block cuerpo %}
+  {% if validlink %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include 'cuentas/_campo.html' with campo=form.new_password1 icono='bi-lock' contrasena=True %}
+      {% include 'cuentas/_campo.html' with campo=form.new_password2 icono='bi-lock' contrasena=True %}
+      <button type="submit" class="acceso__boton registro__boton">Guardar contraseña</button>
+    </form>
+  {% else %}
+    <a class="acceso__boton registro__boton d-block text-center text-decoration-none" href="{% url 'cuentas:recuperar_contrasena' %}">Pedir otro enlace</a>
+  {% endif %}
+{% endblock %}
