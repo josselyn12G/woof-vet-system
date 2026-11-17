@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from citas.models import EstadoCita
 from citas.tests import crear_cita_pasada, crear_servicio, crear_veterinario
+from cuentas.models import Roles
 from mascotas.models import Especie
 from mascotas.tests import crear_mascota, crear_usuario
 
@@ -348,3 +349,73 @@ class RegistrarConsultaVistaTests(HistorialBaseTests):
         self.cita.save()
         agenda = reverse('citas:agenda') + f'?fecha={timezone.localtime(self.cita.inicio).date().isoformat()}'
         self.assertNotContains(self.client.get(agenda), self.url)
+
+
+class HistoriaClinicaVistaTests(HistorialBaseTests):
+    """La historia clínica de solo lectura: el dueño ve la de su mascota, los veterinarios y la clínica la ven."""
+
+    def setUp(self):
+        super().setUp()
+        consulta = self.consulta(peso_kg=Decimal('12.60'), indicaciones='Reposo 5 días.')
+        consulta.save()
+        Prescripcion.objects.create(consulta=consulta, medicamento='Amoxicilina 250 mg', dosis='1 tableta',
+                                    frecuencia_horas=12, duracion_dias=7)
+        VacunaAplicada.objects.create(mascota=self.milo, vacuna=self.rabia_perro(), consulta=consulta,
+                                      veterinario=self.veterinario, fecha_aplicacion=timezone.localdate())
+        self.url = reverse('mascotas:historial', args=[self.milo.pk])
+
+    def test_el_cliente_ve_la_historia_de_su_mascota(self):
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Traqueobronquitis leve.')
+        self.assertContains(respuesta, 'Tos desde hace 3 días')
+        self.assertContains(respuesta, 'Reposo 5 días.')
+        self.assertContains(respuesta, 'Amoxicilina 250 mg')
+        self.assertContains(respuesta, '14 tomas')
+        self.assertContains(respuesta, 'Rabia')
+        self.assertContains(respuesta, reverse('mascotas:detalle', args=[self.milo.pk]))   # volver a su mascota
+
+    def test_el_cliente_recibe_404_con_la_mascota_de_otro(self):
+        self.client.force_login(crear_usuario('carlos'))
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_el_veterinario_ve_la_historia(self):
+        # Cualquier veterinario, no solo el que la atendió: es el mismo alcance de Pacientes
+        self.client.force_login(crear_veterinario('mario'))
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Traqueobronquitis leve.')
+        self.assertContains(respuesta, reverse('citas:pacientes'))
+
+    def test_el_administrador_y_el_superadministrador_la_ven(self):
+        for rol in (Roles.ADMINISTRADOR, Roles.SUPERADMIN):
+            with self.subTest(rol=rol):
+                self.client.force_login(crear_usuario(f'gestion{rol}', rol=rol))
+                respuesta = self.client.get(self.url)
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertContains(respuesta, 'Traqueobronquitis leve.')
+                self.assertContains(respuesta, reverse('mascotas:gestion_detalle', args=[self.milo.pk]))
+
+    def test_un_visitante_va_al_login(self):
+        self.assertRedirects(self.client.get(self.url), f"{reverse('cuentas:login')}?next={self.url}",
+                             fetch_redirect_response=False)
+
+    def test_sin_consultas_muestra_el_estado_vacio(self):
+        luna = crear_mascota(self.cliente, nombre='Luna')
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(reverse('mascotas:historial', args=[luna.pk]))
+        self.assertContains(respuesta, 'Aún no hay consultas registradas')
+        self.assertNotContains(respuesta, 'Traqueobronquitis leve.')   # no mezcla la de Milo
+
+    def test_las_tres_entradas_enlazan_a_la_historia(self):
+        """El detalle de la mascota (cliente), Pacientes (veterinario) y la gestión (administrador)."""
+        entradas = (
+            (self.cliente, reverse('mascotas:detalle', args=[self.milo.pk])),
+            (self.veterinario, reverse('citas:pacientes')),
+            (crear_usuario('laura', rol=Roles.ADMINISTRADOR), reverse('mascotas:gestion_detalle', args=[self.milo.pk])),
+        )
+        for usuario, pagina in entradas:
+            with self.subTest(usuario=usuario.username):
+                self.client.force_login(usuario)
+                self.assertContains(self.client.get(pagina), self.url)
