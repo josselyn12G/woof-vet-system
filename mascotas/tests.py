@@ -699,3 +699,89 @@ class CatalogoEspeciesTests(TestCase):
         filtrada = self.client.get(reverse('mascotas:gestion'), {'especie': 'conejo'})
         self.assertEqual([m.nombre for m in filtrada.context['mascotas']], ['Coco'])
         self.assertEqual(filtrada.context['especie_elegida'], 'conejo')
+
+
+class CarnetVacunacionTests(TestCase):
+    """HU-36: el carnet muestra las vacunas que registró el veterinario, con su estado."""
+
+    def setUp(self):
+        from cuentas.models import Roles
+        from historial.models import Vacuna
+
+        self.ana = crear_usuario('ana')
+        self.firulais = crear_mascota(self.ana, nombre='Firulais')
+        self.sofia = crear_usuario('sofia', rol=Roles.VETERINARIO, first_name='Sofía', last_name='Paredes')
+        self.hoy = timezone.localdate()
+        self.rabia = Vacuna.objects.create(nombre='Antirrábica de prueba', refuerzo_cada_dias=365)
+        self.url = reverse('mascotas:carnet', args=[self.firulais.pk])
+        self.client.force_login(self.ana)
+
+    def aplicar(self, vacuna=None, hace_dias=10, proxima_en_dias=355, lote='L-2026-11'):
+        from historial.models import VacunaAplicada
+
+        fecha = self.hoy - timedelta(days=hace_dias)
+        proxima = self.hoy + timedelta(days=proxima_en_dias) if proxima_en_dias is not None else None
+        return VacunaAplicada.objects.create(
+            mascota=self.firulais, vacuna=vacuna or self.rabia, veterinario=self.sofia,
+            fecha_aplicacion=fecha, proxima_dosis=proxima, lote=lote,
+        )
+
+    def estados(self, respuesta):
+        return [(linea.vacuna.nombre, linea.estado) for linea in respuesta.context['vacunas']]
+
+    def test_el_carnet_muestra_las_vacunas_aplicadas(self):
+        aplicada = self.aplicar()
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, 'Antirrábica de prueba')
+        self.assertContains(respuesta, aplicada.fecha_aplicacion.strftime('%d/%m/%Y'))
+        self.assertContains(respuesta, aplicada.proxima_dosis.strftime('%d/%m/%Y'))
+        self.assertContains(respuesta, 'L-2026-11')
+        self.assertContains(respuesta, 'Sofía Paredes')
+        self.assertContains(respuesta, 'data-vacunas="1"')
+        self.assertNotContains(respuesta, 'Aún no hay vacunas registradas')
+        self.assertEqual(self.estados(respuesta), [('Antirrábica de prueba', 'al_dia')])
+
+    def test_los_datos_para_el_librito_van_como_json(self):
+        self.aplicar()
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, f'id="carnet-datos-{self.firulais.pk}"')
+        self.assertEqual(respuesta.context['vacunas_datos'][0]['vacuna'], 'Antirrábica de prueba')
+
+    def test_una_vacuna_con_la_proxima_dosis_pasada_aparece_vencida(self):
+        self.aplicar(hace_dias=400, proxima_en_dias=-35)
+        respuesta = self.client.get(self.url)
+        self.assertEqual(self.estados(respuesta), [('Antirrábica de prueba', 'vencida')])
+        self.assertContains(respuesta, 'Vencida')
+
+    def test_menos_de_30_dias_para_la_proxima_dosis_es_proxima(self):
+        self.aplicar(hace_dias=340, proxima_en_dias=25)
+        self.assertEqual(self.estados(self.client.get(self.url)), [('Antirrábica de prueba', 'proxima')])
+
+    def test_sin_refuerzo_queda_al_dia(self):
+        from historial.models import Vacuna
+        unica = Vacuna.objects.create(nombre='Dosis única de prueba')   # sin refuerzo: no hay próxima dosis
+        self.aplicar(vacuna=unica, proxima_en_dias=None)
+        respuesta = self.client.get(self.url)
+        self.assertEqual(self.estados(respuesta), [('Dosis única de prueba', 'al_dia')])
+        self.assertContains(respuesta, 'Sin refuerzo')
+
+    def test_una_dosis_vieja_ya_renovada_no_aparece_vencida(self):
+        self.aplicar(hace_dias=400, proxima_en_dias=-35)   # la del año pasado
+        self.aplicar(hace_dias=30, proxima_en_dias=335)    # el refuerzo de este año
+        estados = [estado for _, estado in self.estados(self.client.get(self.url))]
+        self.assertEqual(estados, ['al_dia', 'reforzada'])
+
+    def test_una_vacuna_desactivada_se_sigue_viendo_en_el_carnet(self):
+        self.aplicar()
+        self.rabia.activa = False
+        self.rabia.save()
+        self.assertContains(self.client.get(self.url), 'Antirrábica de prueba')
+
+    def test_no_muestra_las_vacunas_de_otra_mascota(self):
+        rocky = crear_mascota(self.ana, nombre='Rocky')
+        from historial.models import VacunaAplicada
+        VacunaAplicada.objects.create(mascota=rocky, vacuna=self.rabia, veterinario=self.sofia,
+                                      fecha_aplicacion=self.hoy, lote='DE-ROCKY')
+        respuesta = self.client.get(self.url)
+        self.assertNotContains(respuesta, 'DE-ROCKY')
+        self.assertContains(respuesta, 'Aún no hay vacunas registradas')

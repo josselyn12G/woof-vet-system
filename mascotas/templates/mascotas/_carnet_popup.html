@@ -3,7 +3,8 @@
   Pop-up del carnet de vacunación (HU-36): un librito en 3D (static/js/carnet-3d.js) y una vista "Plano".
   Los datos viajan en atributos data-*; el JavaScript los dibuja en la portada y en cada página.
   Se usa en la página del carnet; la lista y la ficha lo traen con fetch al tocar "Carnet".
-  Las vacunas las registrará el veterinario (HU-35, app historial); mientras tanto el registro va vacío.
+  Las vacunas las registra el veterinario en cada consulta (app historial). Llegan en la tabla de la vista
+  "Plano" y, como JSON, para que el librito las dibuje en sus páginas.
 {% endcomment %}
 <dialog class="carnet-popup" tabindex="-1" aria-labelledby="carnet-popup-titulo-{{ mascota.pk }}"
         data-carnet
@@ -18,7 +19,7 @@
         data-tutor="{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}"
         data-registro="{{ mascota.creado|date:'d/m/Y' }}"
         data-codigo="WF-{{ mascota.pk|stringformat:'05d' }}"
-        data-vacunas="0"
+        data-vacunas="{{ vacunas|length }}"
         data-foto="{% if mascota.tiene_foto %}{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}{% endif %}"
         data-logo="{% static 'img/logo.png' %}"
         data-logo-blanco="{% static 'img/logo-blanco.png' %}">
@@ -55,16 +56,37 @@
                 <th scope="col">Veterinario</th>
               </tr>
             </thead>
+            {% if vacunas %}
+              <tbody>
+                {% for aplicada in vacunas %}
+                  <tr>
+                    <td>
+                      <span class="carnet__vacuna">{{ aplicada.vacuna.nombre }}</span>
+                      <span class="estado-vacuna estado-vacuna--{{ aplicada.estado }}">{{ aplicada.estado_texto }}</span>
+                    </td>
+                    <td>{{ aplicada.fecha_aplicacion|date:'d/m/Y' }}</td>
+                    <td>{{ aplicada.lote|default:'—' }}</td>
+                    <td>{{ aplicada.proxima_dosis|date:'d/m/Y'|default:'Sin refuerzo' }}</td>
+                    <td>{{ aplicada.veterinario.get_full_name|default:aplicada.veterinario.username }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            {% endif %}
           </table>
-          <div class="carnet__vacio">
-            <span class="carnet__vacio-icono" aria-hidden="true"><i class="bi bi-journal-medical"></i></span>
-            <strong>Aún no hay vacunas registradas</strong>
-            El veterinario anotará aquí cada vacuna que reciba {{ mascota.nombre }} en sus visitas a la clínica.
-          </div>
+          {% if not vacunas %}
+            <div class="carnet__vacio">
+              <span class="carnet__vacio-icono" aria-hidden="true"><i class="bi bi-journal-medical"></i></span>
+              <strong>Aún no hay vacunas registradas</strong>
+              El veterinario anotará aquí cada vacuna que reciba {{ mascota.nombre }} en sus visitas a la clínica.
+            </div>
+          {% endif %}
         </div>
       </section>
     </div>
   </div>
+
+  {# Las mismas vacunas como JSON: carnet-3d.js las escribe en las páginas del librito #}
+  {{ vacunas_datos|json_script:id_vacunas_datos }}
 
   <footer class="carnet-popup__pie">
     <div class="carnet-popup__paginas" data-carnet-paginador>

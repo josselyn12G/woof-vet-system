@@ -792,6 +792,35 @@
   background: var(--woof-fondo-suave);
 }
 
+.carnet__tabla td {
+  padding: 0.75rem 1rem;
+  color: var(--woof-marron);
+  font-size: 0.9rem;
+  vertical-align: top;
+  border-top: 1px solid rgba(87, 63, 51, 0.08);
+  font-variant-numeric: tabular-nums;
+}
+
+.carnet__vacuna {
+  display: block;
+  font-weight: 700;
+}
+
+/* Estado de cada vacuna del carnet: al día, próxima (menos de 30 días), vencida o ya reforzada */
+.estado-vacuna {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.estado-vacuna--al_dia { color: #1e7b45; background: #e7f5ec; }
+.estado-vacuna--proxima { color: #9a5b00; background: #fdf1e3; }
+.estado-vacuna--vencida { color: #b4232a; background: #fdecee; }
+.estado-vacuna--reforzada { color: var(--woof-gris-calido); background: var(--woof-fondo-suave); }
+
 .carnet__vacio {
   padding: 2.5rem 1.5rem;
   color: var(--woof-gris-calido);
