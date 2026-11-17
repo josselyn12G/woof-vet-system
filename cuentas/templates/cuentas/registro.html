@@ -36,7 +36,8 @@
       </ol>
 
       {# Un solo formulario: los pasos solo muestran los campos de a poco; al final se envía todo junto #}
-      <form method="post" novalidate id="form-registro">
+      <form method="post" novalidate id="form-registro"
+            data-url-provincias="{% url 'cuentas:provincias' %}" data-url-ciudades="{% url 'cuentas:ciudades' %}">
         {% csrf_token %}
 
         <fieldset class="paso" data-paso="1">
@@ -46,6 +47,13 @@
             {% include 'cuentas/_campo.html' with campo=form.first_name icono='bi-person-vcard' mitad=True %}
             {% include 'cuentas/_campo.html' with campo=form.last_name icono='bi-person-vcard' mitad=True %}
             {% include 'cuentas/_campo.html' with campo=form.email icono='bi-envelope' %}
+          </div>
+          {# País → provincia → ciudad: ubicacion.js llena cada lista según la anterior; el servidor revisa que encajen #}
+          <p class="paso__ayuda">¿Dónde vives?</p>
+          <div class="registro__campos">
+            {% include 'cuentas/_campo.html' with campo=form.pais icono='bi-globe-americas' %}
+            {% include 'cuentas/_campo.html' with campo=form.provincia icono='bi-map' %}
+            {% include 'cuentas/_campo.html' with campo=form.ciudad icono='bi-geo-alt' %}
           </div>
         </fieldset>
 
@@ -87,4 +95,5 @@
 {% block scripts %}
   <script src="{% static 'cuentas/js/ver-contrasena.js' %}" defer></script>
   <script src="{% static 'cuentas/js/registro-pasos.js' %}" defer></script>
+  <script src="{% static 'cuentas/js/ubicacion.js' %}" defer></script>
 {% endblock %}

@@ -9,9 +9,15 @@ from django.db import IntegrityError
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from .models import PerfilVeterinario, Roles, Usuario
+from .models import Ciudad, Pais, PerfilVeterinario, Provincia, Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
-from .services import PoliticaDeCuentas, completar_login, iniciar_login_pendiente
+from .services import PoliticaDeCuentas, UbicacionService, completar_login, iniciar_login_pendiente
+
+
+def ubicacion(provincia='Pichincha', ciudad='Quito'):
+    """Los ids de país, provincia y ciudad de Ecuador (los carga la migración 0007) para el POST del registro."""
+    lugar = Ciudad.objects.select_related('provincia__pais').get(nombre=ciudad, provincia__nombre=provincia)
+    return {'pais': lugar.provincia.pais_id, 'provincia': lugar.provincia_id, 'ciudad': lugar.pk}
 
 
 def crear_usuario(**datos):
@@ -105,6 +111,7 @@ class RegistroTests(TestCase):
             'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez',
             'email': 'luis@woof.ec', 'telefono': '+593987654322', 'cedula': '0926687856',
             'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
+            **ubicacion(),
         }
 
     def test_registro_crea_usuario_cliente(self):
@@ -121,6 +128,87 @@ class RegistroTests(TestCase):
         # "rol" no está en los fields de RegistroForm: Django lo ignora y queda como cliente
         usuario = Usuario.objects.get(username='luis')
         self.assertEqual(usuario.rol, Roles.CLIENTE)
+
+
+class UbicacionTests(TestCase):
+    """País → provincia → ciudad (decisiones d8 y d10): desplegables dependientes validados en el servidor."""
+
+    def setUp(self):
+        self.datos = {
+            'username': 'luis', 'first_name': 'Luis', 'last_name': 'Pérez',
+            'email': 'luis@woof.ec', 'telefono': '+593987654322', 'cedula': '0926687856',
+            'password1': 'Clave-segura-123', 'password2': 'Clave-segura-123',
+            **ubicacion('Guayas', 'Guayaquil'),
+        }
+
+    def registrar(self, **cambios):
+        return self.client.post(reverse('cuentas:registro'), {**self.datos, **cambios})
+
+    def test_la_migracion_carga_ecuador_con_sus_24_provincias(self):
+        ecuador = Pais.objects.get(nombre='Ecuador')
+        self.assertEqual(ecuador.provincias.count(), 24)
+        self.assertTrue(Ciudad.objects.filter(nombre='Quito', provincia__nombre='Pichincha').exists())
+
+    def test_el_registro_guarda_la_ciudad(self):
+        self.assertRedirects(self.registrar(), reverse('cuentas:login'))
+        usuario = Usuario.objects.get(username='luis')
+        self.assertEqual((usuario.ciudad.nombre, usuario.ciudad.provincia.nombre), ('Guayaquil', 'Guayas'))
+
+    def test_la_ciudad_es_obligatoria_al_registrarse(self):
+        respuesta = self.registrar(ciudad='')
+        self.assertContains(respuesta, 'Elige tu ciudad.')
+        self.assertFalse(Usuario.objects.filter(username='luis').exists())
+
+    def test_una_ciudad_de_otra_provincia_se_rechaza_sin_importar_el_js(self):
+        # POST armado a mano: provincia Pichincha con la ciudad Guayaquil (que es de Guayas)
+        respuesta = self.registrar(provincia=ubicacion()['provincia'])
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Elige una ciudad de la lista.')
+        self.assertFalse(Usuario.objects.filter(username='luis').exists())
+
+    def test_una_provincia_de_otro_pais_se_rechaza(self):
+        lima = Provincia.objects.create(pais=Pais.objects.create(nombre='Perú'), nombre='Lima')
+        respuesta = self.registrar(provincia=lima.pk)
+        self.assertContains(respuesta, 'Elige una provincia de la lista.')
+        self.assertFalse(Usuario.objects.filter(username='luis').exists())
+
+    def test_el_service_revisa_que_encajen(self):
+        quito = Ciudad.objects.get(nombre='Quito')
+        guayas = Provincia.objects.get(nombre='Guayas')
+        ecuador = Pais.objects.get(nombre='Ecuador')
+        with self.assertRaisesMessage(ValidationError, 'Quito no es una ciudad de Guayas'):
+            UbicacionService.validar(ecuador, guayas, quito)
+        peru = Pais.objects.create(nombre='Perú')
+        with self.assertRaisesMessage(ValidationError, 'Guayas no es una provincia de Perú'):
+            UbicacionService.validar(peru, guayas, quito)
+        UbicacionService.validar(ecuador, quito.provincia, quito)   # la combinación correcta no lanza error
+
+    def test_el_registro_abre_con_ecuador_y_sus_provincias(self):
+        respuesta = self.client.get(reverse('cuentas:registro'))
+        form = respuesta.context['form']
+        self.assertEqual(form.initial['pais'], Pais.objects.get(nombre='Ecuador').pk)
+        self.assertEqual(form.fields['provincia'].queryset.count(), 24)
+        self.assertEqual(form.fields['ciudad'].queryset.count(), 0)   # hasta elegir provincia
+
+    def test_provincias_en_json(self):
+        pais = Pais.objects.get(nombre='Ecuador').pk
+        opciones = self.client.get(reverse('cuentas:provincias'), {'pais': pais}).json()['opciones']
+        self.assertEqual(len(opciones), 24)
+        self.assertIn('Pichincha', [opcion['nombre'] for opcion in opciones])
+
+    def test_ciudades_en_json(self):
+        opciones = self.client.get(reverse('cuentas:ciudades'), {'provincia': ubicacion()['provincia']}).json()
+        self.assertIn('Quito', [opcion['nombre'] for opcion in opciones['opciones']])
+
+    def test_un_id_inventado_devuelve_una_lista_vacia(self):
+        for url, parametro in (('cuentas:provincias', 'pais'), ('cuentas:ciudades', 'provincia')):
+            for valor in ('abc', '99999', ''):
+                with self.subTest(url=url, valor=valor):
+                    self.assertEqual(self.client.get(reverse(url), {parametro: valor}).json(), {'opciones': []})
+
+    def test_el_nombre_no_se_repite_en_la_misma_provincia(self):
+        with self.assertRaises(IntegrityError):
+            Ciudad.objects.create(provincia=Provincia.objects.get(nombre='Pichincha'), nombre='quito')
 
 
 class CedulaTests(TestCase):
@@ -664,3 +752,4 @@ class PerfilVeterinarioTests(TestCase):
         self.assertRedirects(respuesta, reverse('cuentas:equipo'))
         perfil = PerfilVeterinario.objects.get(usuario=self.veterinario)
         self.assertEqual((perfil.verificado, perfil.especialidad), (True, 'Cirugía'))
+

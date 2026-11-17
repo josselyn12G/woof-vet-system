@@ -10,6 +10,7 @@ ETIQUETAS = {
     'telefono': 'Teléfono',
     'cedula': 'Cédula',
     'sector': 'Sector',
+    'ciudad': 'Ciudad',
     'rol': 'Rol',
     'is_active': 'Cuenta activa',
 }
