@@ -1748,6 +1748,18 @@ class CalificacionEnMisCitasTests(TestCase):
     def test_una_atendida_sin_calificar_muestra_el_boton(self):
         self.assertContains(self.pasadas(), reverse('citas:calificar', args=[self.atendida.pk]))
 
+    def test_calificar_se_abre_en_un_pop_up_en_mis_citas(self):
+        # El botón lleva los datos para el pop-up; el enlace sigue sirviendo sin JavaScript
+        respuesta = self.pasadas()
+        self.assertContains(respuesta, 'data-dialogo-calificar')
+        self.assertContains(respuesta, 'data-calificar')
+        self.assertContains(respuesta, 'value="5" data-texto="Excelente"')
+
+    def test_el_pop_up_envia_al_mismo_post_y_vuelve_a_mis_citas(self):
+        respuesta = self.client.post(reverse('citas:calificar', args=[self.atendida.pk]), {'estrellas': '5'})
+        self.assertRedirects(respuesta, reverse('citas:mis_citas'))
+        self.assertEqual(self.atendida.calificacion.estrellas, 5)
+
     def test_una_ya_calificada_muestra_sus_estrellas_y_no_el_boton(self):
         AgendaService.calificar(self.atendida, self.cliente, 4)
         respuesta = self.pasadas()

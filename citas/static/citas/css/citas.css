@@ -4229,7 +4229,7 @@ button.cal-cita {
   color: var(--p-texto-2);
   font-size: 0.92rem;
   line-height: 1.5;
-
+}
 
 /* ==========================================================================
    Indicadores de la agenda (RF-25): filtros por rango y la ocupación de cada veterinario
@@ -4277,4 +4277,105 @@ button.cal-cita {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* =========================================================
+   Pop-up para calificar una cita atendida (Mis citas). Mismo movimiento que el de cancelar:
+   entra creciendo desde 0.96 y sale más rápido de lo que entra. Las estrellas son las de la página.
+   ========================================================= */
+.calificar-popup {
+  width: min(30rem, calc(100% - 2rem));
+  padding: 1.75rem 1.75rem 1.5rem;
+  color: var(--p-texto);
+  text-align: center;
+  background: var(--p-superficie);
+  border: 0;
+  border-radius: 22px;
+  box-shadow: 0 24px 60px -24px rgba(29, 24, 20, 0.45);
+}
+
+.calificar-popup[open] {
+  animation: cancelar-entra 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.calificar-popup::backdrop {
+  background: rgba(29, 24, 20, 0.4);
+  backdrop-filter: blur(3px);
+  animation: velo-entra 260ms ease-out;
+}
+
+.calificar-popup.es-cerrando {
+  animation: cancelar-sale 160ms ease-in forwards;
+}
+
+.calificar-popup.es-cerrando::backdrop {
+  animation: velo-sale 160ms ease-in forwards;
+}
+
+.calificar-popup form {
+  display: grid;
+  gap: 1rem;
+}
+
+.calificar-popup__detalle {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.875rem;
+}
+
+.calificar-popup__detalle strong {
+  color: var(--p-texto);
+  font-weight: 600;
+}
+
+.calificar-popup__titulo {
+  margin-bottom: 0.75rem;
+  color: var(--p-texto);
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.calificar-popup__texto-estrellas {
+  min-height: 1.25rem;
+  margin: 0.5rem 0 0;
+  color: var(--p-acento-texto);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.calificar-popup__comentario {
+  height: auto;
+  min-height: 5.5rem;
+  padding: 0.75rem 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.calificar-popup__nota {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+}
+
+.calificar-popup__acciones {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.calificar-popup [data-calificar-enviar]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calificar-popup[open],
+  .calificar-popup::backdrop,
+  .calificar-popup.es-cerrando,
+  .calificar-popup.es-cerrando::backdrop {
+    animation: none;
+  }
 }
