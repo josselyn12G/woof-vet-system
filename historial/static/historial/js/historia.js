@@ -132,6 +132,8 @@
     if (!enlace) return;
     const url = new URL(enlace.href);
     url.searchParams.set('vista', vista);
+    // Mientras llega el reporte nuevo, el cargando tapa la pantalla (cargando.js)
+    if (window.WoofCargando) window.WoofCargando.mostrar(enlace.dataset.nombre ? `Cargando a ${enlace.dataset.nombre}` : 'Cargando');
     if (sinMovimiento) { window.location.href = url; return; }
     try { sessionStorage.setItem('hc-entrada', direccion); } catch (e) { /* sin almacenamiento: sin animación de entrada */ }
     marco.classList.add(`es-saliendo-${direccion}`);

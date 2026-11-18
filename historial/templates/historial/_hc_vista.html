@@ -18,15 +18,15 @@
       {% endif %}
 
       {% if mascota_anterior %}
-        <a class="hc-foto__flecha hc-foto__flecha--anterior" href="?mascota={{ mascota_anterior.pk }}" data-ir="anterior" aria-label="Ver el reporte de {{ mascota_anterior.nombre }}"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
-        <a class="hc-foto__flecha hc-foto__flecha--siguiente" href="?mascota={{ mascota_siguiente.pk }}" data-ir="siguiente" aria-label="Ver el reporte de {{ mascota_siguiente.nombre }}"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+        <a class="hc-foto__flecha hc-foto__flecha--anterior" href="?mascota={{ mascota_anterior.pk }}" data-ir="anterior" data-nombre="{{ mascota_anterior.nombre }}" aria-label="Ver el reporte de {{ mascota_anterior.nombre }}"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+        <a class="hc-foto__flecha hc-foto__flecha--siguiente" href="?mascota={{ mascota_siguiente.pk }}" data-ir="siguiente" data-nombre="{{ mascota_siguiente.nombre }}" aria-label="Ver el reporte de {{ mascota_siguiente.nombre }}"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
       {% endif %}
 
       <div class="hc-foto__ficha">
         {% if mascotas|length > 1 %}
           <nav class="hc-foto__puntos" aria-label="Mascotas">
             {% for otra in mascotas %}
-              <a href="?mascota={{ otra.pk }}" class="hc-foto__punto{% if otra == mascota %} es-activo{% endif %}"{% if otra == mascota %} aria-current="true"{% endif %} aria-label="{{ otra.nombre }}"></a>
+              <a href="?mascota={{ otra.pk }}" data-nombre="{{ otra.nombre }}" class="hc-foto__punto{% if otra == mascota %} es-activo{% endif %}"{% if otra == mascota %} aria-current="true"{% endif %} aria-label="{{ otra.nombre }}"></a>
             {% endfor %}
           </nav>
         {% endif %}

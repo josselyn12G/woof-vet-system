@@ -3,7 +3,7 @@
 // Se muestra solo al enviar cualquier formulario POST de la página
 // (el texto sale de data-cargando="…" en el <form>, o "Guardando"). Para algo asíncrono propio:
 //   WoofCargando.mostrar('Buscando turnos');  …  WoofCargando.terminar('listo' | 'error', 'Listo en');
-// Un formulario con data-sin-cargando no lo muestra.
+// Un formulario con data-sin-cargando no lo muestra. Un enlace con data-cargando="…" también lo muestra.
 (function () {
   // Órbita de 3 x 3: el orden en que se enciende cada punto (null = el centro, apagado)
   const ORBITA = [0, 1, 2, 7, null, 3, 6, 5, 4];
@@ -80,6 +80,15 @@
     if (evento.defaultPrevented || !(formulario instanceof HTMLFormElement)) return;
     if ((formulario.getAttribute('method') || '').toLowerCase() !== 'post' || 'sinCargando' in formulario.dataset) return;
     mostrar(formulario.dataset.cargando);
+  });
+
+  // Enlaces que cargan otra página lenta (por ejemplo, cambiar de mascota): <a data-cargando="Cargando a Lila">.
+  // Solo con clic normal; con Ctrl, ⌘, Shift o el botón del medio se abre otra pestaña y no hace falta.
+  document.addEventListener('click', (evento) => {
+    const enlace = evento.target.closest('a[data-cargando]');
+    if (!enlace || evento.defaultPrevented || evento.button !== 0) return;
+    if (evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey || enlace.target === '_blank') return;
+    mostrar(enlace.dataset.cargando);
   });
 
   // Al volver con "atrás" la página puede venir de la caché con el cargando a la vista
