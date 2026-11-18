@@ -29,8 +29,8 @@ class CalificacionService:
         servicio y el veterinario ya cargados. Se pueden dejar solo las de un veterinario o de N estrellas.
         """
         calificaciones = Calificacion.objects.select_related(
-            'cita__mascota__dueno', 'cita__servicio', 'cita__veterinario',
-        )
+            'cita__mascota__dueno__ciudad', 'cita__servicio', 'cita__veterinario',
+        ).defer('cita__mascota__foto')   # la foto se guarda en la base: no hace falta traer sus bytes
         if veterinario is not None:
             calificaciones = calificaciones.filter(cita__veterinario=veterinario)
         if estrellas:

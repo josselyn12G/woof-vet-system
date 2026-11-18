@@ -4,7 +4,7 @@
 {% block titulo %}Reseñas · Woof{% endblock %}
 
 {% block panel_estilos %}
-  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}?v=3" rel="stylesheet">
   <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
 {% endblock %}
 
@@ -98,8 +98,8 @@
   </div>
 
   {# Cada opinión, filtrable por veterinario y estrellas (por GET: queda en la URL) #}
-  <section class="bloque-panel entra entra--3" aria-labelledby="opiniones-titulo">
-    <div class="bloque-panel__cabecera">
+  <section class="resenas-lista entra entra--3" aria-labelledby="opiniones-titulo">
+    <div class="resenas-lista__cabecera">
       <h2 class="bloque-panel__titulo" id="opiniones-titulo">Opiniones de los clientes</h2>
       <form class="filtros filtros--opiniones" method="get">
         <label class="visually-hidden" for="{{ filtros.veterinario.id_for_label }}">Veterinario</label>
@@ -116,9 +116,9 @@
       {% include 'citas/_opinion.html' with con_veterinario=True %}
     {% empty %}
       {% if hay_filtros %}
-        <p class="reputacion__vacio">Ninguna opinión coincide con los filtros.</p>
+        <p class="resenas-lista__vacio">Ninguna opinión coincide con los filtros.</p>
       {% else %}
-        <p class="reputacion__vacio">Cuando los clientes califiquen sus citas atendidas, sus opiniones aparecerán aquí.</p>
+        <p class="resenas-lista__vacio">Cuando los clientes califiquen sus citas atendidas, sus opiniones aparecerán aquí.</p>
       {% endif %}
     {% endfor %}
     {% include 'citas/_paginas_opiniones.html' %}
