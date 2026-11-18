@@ -1,6 +1,6 @@
 from django.urls import path
 
-from historial.views import HistoriaClinicaView, HistoriaPdfView, MisHistorialesView
+from historial.views import HistoriaClinicaView, HistoriaPdfView
 
 from . import views
 
@@ -8,8 +8,6 @@ app_name = 'mascotas'
 
 urlpatterns = [
     path('', views.MascotaListView.as_view(), name='lista'),
-    # «Historial médico» del sidebar del cliente: sus mascotas con sus tratamientos en curso
-    path('historiales/', MisHistorialesView.as_view(), name='historiales'),
     path('nueva/', views.MascotaCreateView.as_view(), name='crear'),
     path('<int:pk>/', views.MascotaDetailView.as_view(), name='detalle'),
     path('<int:pk>/editar/', views.MascotaUpdateView.as_view(), name='editar'),

@@ -448,52 +448,6 @@ class HistoriaClinicaVistaTests(HistorialBaseTests):
         self.assertContains(respuesta, 'Amoxicilina 250 mg')   # sigue en la receta de su consulta
 
 
-class MisHistorialesVistaTests(HistorialBaseTests):
-    """«Historial médico» del sidebar: el cliente ve sus mascotas, sus tratamientos y el acceso a cada historia."""
-
-    def setUp(self):
-        super().setUp()
-        consulta = self.consulta()
-        consulta.save()
-        Prescripcion.objects.create(consulta=consulta, medicamento='Amoxicilina 250 mg', dosis='1 tableta',
-                                    frecuencia_horas=12, duracion_dias=7)
-        self.url = reverse('mascotas:historiales')
-
-    def test_el_cliente_ve_sus_mascotas_con_su_tratamiento(self):
-        self.client.force_login(self.cliente)
-        respuesta = self.client.get(self.url)
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, 'Milo')
-        self.assertContains(respuesta, 'Amoxicilina 250 mg')
-        self.assertContains(respuesta, reverse('mascotas:historial', args=[self.milo.pk]))
-
-    def test_no_ve_las_mascotas_de_otro(self):
-        carlos = crear_usuario('carlos')
-        crear_mascota(carlos, nombre='Rocky')
-        self.client.force_login(carlos)
-        respuesta = self.client.get(self.url)
-        self.assertContains(respuesta, 'Rocky')
-        self.assertNotContains(respuesta, 'Milo')
-        self.assertNotContains(respuesta, 'Amoxicilina 250 mg')
-
-    def test_un_tratamiento_terminado_no_aparece(self):
-        Prescripcion.objects.update(fecha_inicio=timezone.now() - timedelta(days=10))
-        self.client.force_login(self.cliente)
-        respuesta = self.client.get(self.url)
-        self.assertContains(respuesta, 'Sin tratamientos en curso')
-        self.assertNotContains(respuesta, 'Amoxicilina 250 mg')
-
-    def test_otro_rol_vuelve_a_su_panel(self):
-        self.client.force_login(self.veterinario)
-        self.assertRedirects(self.client.get(self.url), reverse('panel:panel'), fetch_redirect_response=False)
-
-    def test_el_sidebar_y_la_tarjeta_llevan_al_historial(self):
-        self.client.force_login(self.cliente)
-        respuesta = self.client.get(reverse('mascotas:lista'))
-        self.assertContains(respuesta, self.url)                                              # sidebar
-        self.assertContains(respuesta, reverse('mascotas:historial', args=[self.milo.pk]))   # tarjeta
-
-
 class CatalogoVacunasTests(HistorialBaseTests):
     """El administrador crea, edita y desactiva las vacunas que el veterinario puede registrar."""
 

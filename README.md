@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-567%20pasan-2e7d32" alt="567 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-562%20pasan-2e7d32" alt="562 pruebas pasan">
 </p>
 
 <p align="center">
@@ -207,14 +207,14 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-567 pruebas:
+562 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
 | `cuentas` | 107 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada, verificar el correo, recuperar y cambiar la contraseña, Mi cuenta y términos |
 | `mascotas` | 92 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
 | `citas` | 249 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, avisos (el correo sale sin hacer esperar a la reserva) y recordatorios, panel de la campana, filtro por mascota, agenda, pacientes, gestión, indicadores y acceso por rol |
-| `historial` | 107 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol (tablero, línea de tiempo, peso, filtro por mes, PDF), «Historial médico» con los tratamientos en curso, Mis recetas por consulta, el tratamiento con su check por día (guardado al cerrar el pop-up), Consultas médicas y Vacunación del veterinario y el catálogo de vacunas |
+| `historial` | 102 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol (tablero, línea de tiempo, peso, filtro por mes, PDF), el tratamiento en curso en el Resumen, Mis recetas por consulta, el tratamiento con su check por día (guardado al cerrar el pop-up), Consultas médicas y Vacunación del veterinario y el catálogo de vacunas |
 | `panel` | 12 | Portada de cada rol, períodos de las estadísticas y los comandos `cargar_demo` y `preparar_demo_atencion` |
 
 En GitHub Actions la suite corre dos veces en cada Pull Request: con SQLite y con **PostgreSQL 16** (como Neon). Las pruebas de dos reservas simultáneas solo corren en PostgreSQL, porque SQLite no bloquea filas. Cada caso del plan de pruebas del Documento de Análisis (§3.5) y la prueba que lo cubre están en [PLAN_DE_PRUEBAS.md](docs/PLAN_DE_PRUEBAS.md).

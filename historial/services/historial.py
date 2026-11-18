@@ -2,7 +2,7 @@ from datetime import datetime, time, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Max, Prefetch, Q
+from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from citas.models import EstadoCita
@@ -64,22 +64,6 @@ class HistorialService:
                 receta for consulta in consultas for receta in consulta.prescripciones.all() if receta.en_curso
             ],
         }
-
-    @staticmethod
-    def resumen_de(mascotas):
-        """
-        Para «Historial médico» del cliente: cada mascota con cuántas consultas tiene, la fecha de la última
-        y los tratamientos que sigue tomando (receta en curso), así sabe de un vistazo a cuál darle qué.
-        """
-        mascotas = list(mascotas.annotate(total_consultas=Count('consultas'), ultima_consulta=Max('consultas__fecha')))
-        recetas = Prescripcion.objects.filter(consulta__mascota__in=mascotas).select_related('consulta')
-        por_mascota = {}
-        for receta in recetas:
-            if receta.en_curso:
-                por_mascota.setdefault(receta.consulta.mascota_id, []).append(receta)
-        for mascota in mascotas:
-            mascota.tratamientos = por_mascota.get(mascota.pk, [])
-        return mascotas
 
     @staticmethod
     def estado_de_la_vacuna(proxima_dosis, hoy=None):
