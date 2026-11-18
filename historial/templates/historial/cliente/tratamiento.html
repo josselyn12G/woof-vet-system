@@ -7,7 +7,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=21" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=22" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -55,7 +55,7 @@
                   </span>
                 </button>
 
-                <dialog class="rx-dialogo" data-dialogo-receta="{{ receta.pk }}" aria-labelledby="rx-{{ receta.pk }}-titulo">
+                <dialog class="rx-dialogo" data-dialogo-receta="{{ receta.pk }}" data-guardar-url="{% url 'historial:guardar_dias' receta.pk %}" data-total-dias="{{ receta.duracion_dias }}" aria-labelledby="rx-{{ receta.pk }}-titulo">
                   <div class="rx-dialogo__cabecera">
                     <span class="rx-imagen rx-icono" aria-hidden="true"><i class="bi {{ seg.icono }}"></i></span>
                     <div class="rx-detalle__titulos">
@@ -79,8 +79,11 @@
 
                   <div class="rx-control">
                     <div class="rx-control__cabecera">
-                      <h3 class="hc-titulo hc-titulo--tarjeta">Toca un día para tacharlo</h3>
-                      <span class="hc-mes__cuenta">{{ seg.hechos }} de {{ receta.duracion_dias }} días · {{ seg.avance }}%</span>
+                      <div>
+                        <h3 class="hc-titulo hc-titulo--tarjeta">Toca un día para tacharlo</h3>
+                        <p class="rx-control__nota">Se guarda al cerrar.</p>
+                      </div>
+                      <span class="hc-mes__cuenta" data-cuenta-dias>{{ seg.hechos }} de {{ receta.duracion_dias }} días · {{ seg.avance }}%</span>
                     </div>
                     {% include 'historial/cliente/_dias_tratamiento.html' %}
                   </div>
@@ -134,5 +137,5 @@
 {% endblock %}
 
 {% block panel_scripts %}
-  <script src="{% static 'historial/js/seguimiento.js' %}?v=3" defer></script>
+  <script src="{% static 'historial/js/seguimiento.js' %}?v=4" defer></script>
 {% endblock %}

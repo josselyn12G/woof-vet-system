@@ -1661,3 +1661,5 @@ p.hc-vacio { padding: 24px 0 4px; }
   .rx-medicamento { transition: none; }
   .rx-dialogo[open], .rx-dialogo.es-cerrando { animation: none; }
 }
+.rx-control__nota { margin: 0; font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-control__cabecera { row-gap: 2px; }

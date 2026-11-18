@@ -3,7 +3,7 @@ from datetime import date
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -125,3 +125,28 @@ class MarcarDiaView(ClienteRequeridoMixin, View):
         if not url_has_allowed_host_and_scheme(volver, allowed_hosts={request.get_host()}):
             volver = reverse('historial:mis_recetas')
         return redirect(f'{volver}#receta-{receta.pk}')
+
+
+class GuardarDiasView(ClienteRequeridoMixin, View):
+    """
+    POST al cerrar el pop-up de un medicamento: los días que quedaron marcados (dia=AAAA-MM-DD, varias veces).
+    Guarda todo de una vez (HistorialService.guardar_dias). Con fetch responde JSON; si no, vuelve al tratamiento.
+    """
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        receta = get_object_or_404(Prescripcion.objects.filter(consulta__mascota__dueno=request.user), pk=pk)
+        try:
+            dias = [date.fromisoformat(valor) for valor in request.POST.getlist('dia')]
+            marcados = HistorialService.guardar_dias(receta, dias)
+        except (ValueError, ValidationError) as error:
+            texto = error.messages[0] if isinstance(error, ValidationError) else 'Ese día no es válido.'
+            if request.headers.get('X-Requested-With') == 'fetch':
+                return JsonResponse({'error': texto}, status=400)
+            messages.error(request, texto)
+            marcados = None
+        if request.headers.get('X-Requested-With') == 'fetch':
+            return JsonResponse({'marcados': marcados, 'dias': receta.duracion_dias})
+        if marcados is not None:
+            messages.success(request, f'Listo: guardamos {marcados} día{"s" if marcados != 1 else ""} de {receta.medicamento}.')
+        return redirect(reverse('historial:tratamiento', args=[receta.consulta_id]) + f'#receta-{receta.pk}')

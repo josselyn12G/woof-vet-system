@@ -803,3 +803,44 @@ class FiltroPorFechaTests(ClienteConRecetasBase):
         for dias in (1, 40):
             mes = timezone.localtime(timezone.now() - timedelta(days=dias))
             self.assertContains(respuesta, f'data-mes-valor="{mes:%Y-%m}"')
+
+
+class GuardarDiasAlCerrarTests(ClienteConRecetasBase):
+    """Al cerrar el pop-up se guardan todos los días marcados en un solo POST."""
+
+    def guardar(self, *dias, receta=None, fetch=True):
+        receta = receta or self.en_curso
+        extra = {'HTTP_X_REQUESTED_WITH': 'fetch'} if fetch else {}
+        return self.client.post(reverse('historial:guardar_dias', args=[receta.pk]),
+                                {'dia': [d.isoformat() for d in dias]}, **extra)
+
+    def test_deja_marcados_exactamente_esos_dias(self):
+        hoy = timezone.localdate()
+        ayer = hoy - timedelta(days=1)
+        TomaDia.objects.create(prescripcion=self.en_curso, dia=ayer)
+        respuesta = self.guardar(hoy)                      # ayer se desmarcó en el pop-up, hoy se marcó
+        self.assertEqual(respuesta.json(), {'marcados': 1, 'dias': 7})
+        self.assertEqual(list(TomaDia.objects.filter(prescripcion=self.en_curso).values_list('dia', flat=True)), [hoy])
+        self.guardar(ayer, hoy)
+        self.assertEqual(TomaDia.objects.filter(prescripcion=self.en_curso).count(), 2)
+
+    def test_sin_dias_desmarca_todo(self):
+        TomaDia.objects.create(prescripcion=self.en_curso, dia=timezone.localdate())
+        self.guardar()
+        self.assertFalse(TomaDia.objects.filter(prescripcion=self.en_curso).exists())
+
+    def test_un_dia_futuro_o_fuera_se_rechaza_y_no_cambia_nada(self):
+        TomaDia.objects.create(prescripcion=self.en_curso, dia=timezone.localdate())
+        respuesta = self.guardar(timezone.localdate() + timedelta(days=1))
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn('Todavía no llega', respuesta.json()['error'])
+        self.assertTrue(TomaDia.objects.filter(prescripcion=self.en_curso).exists())
+
+    def test_la_receta_de_otro_cliente_responde_404(self):
+        self.client.force_login(crear_usuario('luis'))
+        self.assertEqual(self.guardar(timezone.localdate()).status_code, 404)
+
+    def test_sin_fetch_vuelve_al_tratamiento(self):
+        respuesta = self.guardar(timezone.localdate(), fetch=False)
+        self.assertRedirects(respuesta, reverse('historial:tratamiento', args=[self.consulta_milo.pk])
+                             + f'#receta-{self.en_curso.pk}', fetch_redirect_response=False)

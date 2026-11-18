@@ -313,6 +313,29 @@ class HistorialService:
         return True
 
     @staticmethod
+    def guardar_dias(receta, dias, hoy=None):
+        """
+        Deja marcados exactamente esos días del tratamiento (lo que quedó en el pop-up al cerrarlo): un solo POST
+        en lugar de uno por check. Los demás días se desmarcan. Solo días del tratamiento que ya llegaron.
+        Devuelve cuántos quedaron marcados.
+        """
+        hoy = hoy or timezone.localdate()
+        inicio = timezone.localtime(receta.fecha_inicio).date()
+        fin = inicio + timedelta(days=receta.duracion_dias)
+        dias = set(dias)
+        for dia in dias:
+            if not inicio <= dia < fin:
+                raise ValidationError('Ese día no es parte del tratamiento.')
+            if dia > hoy:
+                raise ValidationError('Todavía no llega ese día: márcalo cuando le des la dosis.')
+        with transaction.atomic():
+            TomaDia.objects.filter(prescripcion=receta).exclude(dia__in=dias).delete()
+            ya = set(TomaDia.objects.filter(prescripcion=receta).values_list('dia', flat=True))
+            TomaDia.objects.bulk_create([TomaDia(prescripcion=receta, dia=dia) for dia in dias - ya],
+                                        ignore_conflicts=True)
+        return len(dias)
+
+    @staticmethod
     def recetas_del_cliente(cliente, mascota=None, ahora=None, consulta=None):
         """
         Las líneas de receta de las mascotas del cliente, agrupadas por mascota
