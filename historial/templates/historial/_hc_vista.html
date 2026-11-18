@@ -95,7 +95,6 @@
           </div>
         </section>
 
-
         {# Tratamiento en curso (idea de Adrián, PR #70): lo que el dueño tiene que darle hoy, bien a la vista #}
         {% if tratamientos %}
           <section class="hc-tarjeta hc-en-curso" aria-labelledby="hc-en-curso-titulo">
@@ -114,32 +113,6 @@
             </ul>
           </section>
         {% endif %}
-
-        {# Lo más reciente: los últimos registros del mes más nuevo (el detalle completo está en Historial) #}
-        <section class="hc-tarjeta hc-recientes" aria-labelledby="hc-recientes-titulo">
-          <div class="hc-recientes__cabecera">
-            <h2 class="hc-titulo hc-titulo--tarjeta" id="hc-recientes-titulo"><i class="bi bi-clock-history" aria-hidden="true"></i>Lo más reciente</h2>
-            <a class="hc-pastilla" href="#hc-vista-historial" data-ir-vista="historial">Ver historial <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-          </div>
-          {% if historial_medico %}
-            <ul class="hc-recientes__lista">
-              {% for mes, registros in historial_medico|slice:':1' %}
-                {% for registro in registros|slice:':4' %}
-                  <li class="hc-reciente hc-registro--{{ registro.tipo }}">
-                    <span class="hc-registro__icono" aria-hidden="true"><i class="bi {{ registro.icono }}"></i></span>
-                    <span class="hc-reciente__textos">
-                      <strong>{{ registro.titulo }}</strong>
-                      <span>{{ registro.cuando|date:'j M' }} · {{ registro.veterinario.get_full_name|default:registro.veterinario.username }}</span>
-                    </span>
-                    <span class="hc-insignia hc-insignia--{{ registro.tono }}">{{ registro.insignia }}</span>
-                  </li>
-                {% endfor %}
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="hc-peso__fecha">Aún no hay consultas registradas.</p>
-          {% endif %}
-        </section>
       </div>
 
       <div class="hc-vista" role="tabpanel" id="hc-vista-vacunas" aria-labelledby="hc-pestana-vacunas" data-panel="vacunas">

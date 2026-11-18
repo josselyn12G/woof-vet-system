@@ -33,7 +33,7 @@
       {# Avisos que llegan desde otras pantallas (por ejemplo, después de registrarse) #}
       {% for mensaje in messages %}<p class="acceso__aviso" role="status">{{ mensaje }}</p>{% endfor %}
 
-      <form method="post">
+      <form method="post" data-cargando="Cargando">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
