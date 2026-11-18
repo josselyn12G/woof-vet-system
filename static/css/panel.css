@@ -25,10 +25,16 @@
   color: var(--p-texto);
 }
 
+/* La zona de trabajo lleva huellitas naranjas muy suaves sobre el fondo de siempre.
+   El sidebar y el header tienen fondo propio, así que solo se ven en el contenido */
 .panel__zona {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  background-color: var(--p-fondo);
+  background-image: url('../img/patitas.svg');
+  background-size: 420px 420px;
+  background-repeat: repeat;
 }
 
 .panel__pagina {
