@@ -1,0 +1,107 @@
+{% comment %}
+  La historia clínica de una mascota como tablero de tarjetas: arriba el estado del carnet y las cifras;
+  debajo la foto con su ficha, el peso en cada consulta, la próxima vacuna (anillo), la tarjeta oscura con
+  las vacunas aplicadas y la línea de tiempo de las consultas.
+  Recibe mascota, consultas y lo de HistorialService.tablero (estado_carnet, barras_peso, proxima_vacuna...).
+{% endcomment %}
+<div class="tablero-mascota">
+  {# ================= Resumen: el carnet en pastillas y las cifras grandes ================= #}
+  <div class="tablero-mascota__resumen">
+    <div class="tablero-mascota__pastillas" aria-label="Estado del carnet de vacunas">
+      {% for estado in estado_carnet %}
+        <div class="pastilla-estado">
+          <span class="pastilla-estado__etiqueta">{{ estado.texto }}</span>
+          <span class="pastilla-estado__barra pastilla-estado__barra--{{ estado.clave }}" style="--ancho: {{ estado.porcentaje|stringformat:'s' }}%">{{ estado.porcentaje }}%</span>
+        </div>
+      {% endfor %}
+    </div>
+    <dl class="tablero-mascota__cifras">
+      <div><dt><i class="bi bi-journal-medical" aria-hidden="true"></i>Consultas</dt><dd>{{ consultas|length }}</dd></div>
+      <div><dt><i class="bi bi-shield-check" aria-hidden="true"></i>Vacunas</dt><dd>{{ carnet|length }}</dd></div>
+      <div><dt><i class="bi bi-capsule" aria-hidden="true"></i>Recetas</dt><dd>{{ total_recetas }}</dd></div>
+    </dl>
+  </div>
+
+  <div class="tablero-mascota__rejilla">
+    {# ================= Foto de la mascota con su ficha ================= #}
+    <section class="tarjeta-tablero tarjeta-tablero--foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-label="{{ mascota.nombre }}">
+      {% include 'mascotas/_avatar.html' %}
+      <div class="tarjeta-tablero__velo">
+        <div>
+          <h2 class="tarjeta-tablero__nombre">{{ mascota.nombre }}</h2>
+          <p class="tarjeta-tablero__rasgos">{{ mascota.especie }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}</p>
+        </div>
+        <span class="tarjeta-tablero__peso">{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}Sin peso{% endif %}</span>
+      </div>
+    </section>
+
+    {# ================= Peso en cada consulta (barras) ================= #}
+    <section class="tarjeta-tablero tarjeta-tablero--peso" aria-labelledby="titulo-peso">
+      <div class="tarjeta-tablero__cabecera">
+        <div><h2 class="tarjeta-tablero__titulo" id="titulo-peso">Peso</h2><p class="tarjeta-tablero__subtitulo">En las últimas consultas</p></div>
+        <span class="tarjeta-tablero__icono" aria-hidden="true"><i class="bi bi-graph-up-arrow"></i></span>
+      </div>
+      {% if barras_peso %}
+        {% with ultima=barras_peso|last %}<p class="tarjeta-tablero__grande">{{ ultima.peso }} <small>kg</small></p>{% endwith %}
+        <ol class="barras-peso" aria-label="Peso en las últimas consultas">
+          {% for barra in barras_peso %}
+            <li class="barras-peso__barra{% if forloop.last %} es-ultima{% endif %}" style="--alto: {{ barra.alto|stringformat:'s' }}%" title="{{ barra.fecha|date:'j M Y' }}: {{ barra.peso }} kg">
+              <span class="barras-peso__fecha">{{ barra.fecha|date:'j/m' }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="tarjeta-tablero__vacio">El peso aparece cuando el veterinario lo registra en una consulta.</p>
+      {% endif %}
+    </section>
+
+    {# ================= Próxima vacuna (anillo: cuánto del refuerzo ya pasó) ================= #}
+    <section class="tarjeta-tablero tarjeta-tablero--centro" aria-labelledby="titulo-proxima">
+      <div class="tarjeta-tablero__cabecera">
+        <div><h2 class="tarjeta-tablero__titulo" id="titulo-proxima">Próxima vacuna</h2><p class="tarjeta-tablero__subtitulo">Días para el refuerzo</p></div>
+        <span class="tarjeta-tablero__icono" aria-hidden="true"><i class="bi bi-calendar-heart"></i></span>
+      </div>
+      {% if proxima_vacuna %}
+        <div class="anillo" style="--avance: {{ proxima_vacuna.avance|stringformat:'s' }}">
+          <span class="anillo__dias">{{ proxima_vacuna.dias }}</span>
+          <span class="anillo__texto">día{{ proxima_vacuna.dias|pluralize }}</span>
+        </div>
+        <p class="tarjeta-tablero__pie"><strong>{{ proxima_vacuna.linea.vacuna.nombre }}</strong><br>{{ proxima_vacuna.linea.proxima_dosis|date:'j \d\e F \d\e Y' }}</p>
+      {% else %}
+        <p class="tarjeta-tablero__vacio">No hay refuerzos pendientes.</p>
+      {% endif %}
+    </section>
+
+    {# ================= Vacunas aplicadas (tarjeta oscura, como una lista de tareas) ================= #}
+    <section class="tarjeta-tablero tarjeta-tablero--oscura" aria-labelledby="titulo-vacunas-tablero">
+      <div class="tarjeta-tablero__cabecera">
+        <div><h2 class="tarjeta-tablero__titulo" id="titulo-vacunas-tablero">Vacunas aplicadas</h2><p class="tarjeta-tablero__subtitulo">Al día en su carnet</p></div>
+        <span class="tarjeta-tablero__contador">{{ al_dia }}/{{ vigentes|length }}</span>
+      </div>
+      {% if carnet %}
+        <ul class="lista-vacunas">
+          {% for linea in carnet %}
+            <li class="lista-vacunas__fila">
+              <span class="lista-vacunas__icono" aria-hidden="true"><i class="bi bi-shield-plus"></i></span>
+              <span class="lista-vacunas__texto">
+                <strong>{{ linea.vacuna.nombre }}</strong>
+                <span>{{ linea.fecha_aplicacion|date:'j M Y' }}{% if linea.proxima_dosis %} · próxima {{ linea.proxima_dosis|date:'j M Y' }}{% endif %}</span>
+              </span>
+              <span class="lista-vacunas__estado lista-vacunas__estado--{{ linea.estado }}" title="{{ linea.estado_texto }}">
+                {% if linea.estado == 'al_dia' or linea.estado == 'reforzada' %}<i class="bi bi-check-lg" aria-hidden="true"></i>{% elif linea.estado == 'proxima' %}<i class="bi bi-clock" aria-hidden="true"></i>{% else %}<i class="bi bi-exclamation-lg" aria-hidden="true"></i>{% endif %}
+                <span class="visually-hidden">{{ linea.estado_texto }}</span>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="tarjeta-tablero__vacio">{{ mascota.nombre }} no tiene vacunas registradas.</p>
+      {% endif %}
+    </section>
+
+    {# ================= Consultas (línea de tiempo) ================= #}
+    <div class="tablero-mascota__consultas">
+      {% include 'historial/_historia_consultas.html' %}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,57 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Mis recetas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-capsule{% endblock %}
+{% block panel_seccion %}Mis recetas{% endblock %}
+{% block panel_titulo %}Mis recetas{% endblock %}
+{% block panel_subtitulo %}{% if en_curso %}{{ en_curso }} tratamiento{{ en_curso|pluralize }} en curso.{% else %}Ningún tratamiento en curso.{% endif %} Los medicamentos que recetó el veterinario a cada mascota.{% endblock %}
+
+{% block panel_contenido %}
+  <div class="historia">
+    {% if mascotas|length > 1 %}
+      {% include 'historial/cliente/_chips.html' with mascota_actual=mascota_elegida con_todas=True %}
+    {% endif %}
+
+    {% for mascota, recetas in por_mascota %}
+      <section class="bloque-panel" aria-labelledby="recetas-{{ mascota.pk }}">
+        <div class="bloque-panel__cabecera recetas-mascota__cabecera">
+          <span class="recetas-mascota__nombre">
+            <span class="filtro-mascotas__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
+            <h2 class="bloque-panel__titulo" id="recetas-{{ mascota.pk }}">{{ mascota.nombre }}</h2>
+          </span>
+          <a class="bloque-panel__meta" href="{% url 'historial:mi_historia' %}?mascota={{ mascota.pk }}">Ver su historia clínica</a>
+        </div>
+        <ul class="recetas">
+          {% for receta in recetas %}
+            <li class="receta{% if receta.en_curso %} receta--en-curso{% endif %}">
+              <div class="receta__fila">
+                <strong class="receta__medicamento"><i class="bi bi-capsule" aria-hidden="true"></i>{{ receta.medicamento }}</strong>
+                <span class="estado-receta{% if receta.en_curso %} estado-receta--en-curso{% endif %}">{% if receta.en_curso %}En curso{% else %}Terminada{% endif %}</span>
+              </div>
+              <p class="receta__dosis">{{ receta.dosis }} cada {{ receta.frecuencia_horas }} h durante {{ receta.duracion_dias }} día{{ receta.duracion_dias|pluralize }} · {{ receta.tomas }} toma{{ receta.tomas|pluralize }}</p>
+              {% if receta.indicaciones %}<p class="receta__nota">{{ receta.indicaciones }}</p>{% endif %}
+              <p class="receta__meta">
+                <i class="bi bi-calendar-range" aria-hidden="true"></i>Del {{ receta.fecha_inicio|date:'j M' }} al {{ receta.termina|date:'j M Y' }}
+                · <i class="bi bi-person-badge" aria-hidden="true"></i>{{ receta.consulta.veterinario.get_full_name|default:receta.consulta.veterinario.username }}
+                · {{ receta.consulta.diagnostico|truncatechars:70 }}
+              </p>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% empty %}
+      <section class="bloque-panel historia__vacia">
+        <i class="bi bi-capsule" aria-hidden="true"></i>
+        <p>{% if mascota_elegida %}{{ mascota_elegida.nombre }} no tiene recetas todavía.{% else %}Todavía no hay recetas. Cuando el veterinario recete algo en una consulta, aparecerá aquí.{% endif %}</p>
+      </section>
+    {% endfor %}
+  </div>
+{% endblock %}

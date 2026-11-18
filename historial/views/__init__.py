@@ -4,12 +4,14 @@ Vistas de la historia clínica, separadas por tema como en citas/views.
 - consulta: registrar la consulta de una cita atendida (veterinario, RF-20).
 - historia: ver la historia clínica de una mascota (cliente, veterinario y administrador).
 - vacunas: el catálogo de vacunas (administrador).
+- cliente: Historia clínica y Mis recetas del menú del cliente.
 """
+from .cliente import MiHistoriaClinicaView, MisRecetasView
 from .consulta import RegistrarConsultaView
-from .historia import HistoriaClinicaView
+from .historia import HistoriaClinicaView, HistoriaPdfView
 from .vacunas import VacunaCreateView, VacunaEstadoView, VacunaListView, VacunaUpdateView
 
 __all__ = [
-    'RegistrarConsultaView', 'HistoriaClinicaView',
+    'RegistrarConsultaView', 'HistoriaClinicaView', 'HistoriaPdfView', 'MiHistoriaClinicaView', 'MisRecetasView',
     'VacunaListView', 'VacunaCreateView', 'VacunaUpdateView', 'VacunaEstadoView',
 ]

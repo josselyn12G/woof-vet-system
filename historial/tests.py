@@ -526,3 +526,103 @@ class CatalogoVacunasTests(HistorialBaseTests):
         self.assertEqual(list(inactivas), [rabia])
         buscadas = self.client.get(self.url, {'q': 'rabia'}).context['vacunas']
         self.assertTrue(all('rabia' in vacuna.nombre.lower() for vacuna in buscadas))
+
+
+class HistoriaDelClienteTests(HistorialBaseTests):
+    """Menú del cliente: Historia clínica y Mis recetas por mascota; y la historia en PDF."""
+
+    def setUp(self):
+        super().setUp()
+        self.consulta_milo = self.consulta(peso_kg=Decimal('12.50'))
+        self.consulta_milo.save()
+        ahora = timezone.now()
+        self.en_curso = Prescripcion.objects.create(consulta=self.consulta_milo, medicamento='Amoxicilina 250 mg',
+                                                    dosis='1 tableta', frecuencia_horas=12, duracion_dias=7,
+                                                    fecha_inicio=ahora - timedelta(days=1))
+        self.terminada = Prescripcion.objects.create(consulta=self.consulta_milo, medicamento='Jarabe antitusivo',
+                                                     dosis='5 ml', frecuencia_horas=8, duracion_dias=3,
+                                                     fecha_inicio=ahora - timedelta(days=10))
+        VacunaAplicada.objects.create(mascota=self.milo, vacuna=self.rabia_perro(), veterinario=self.veterinario,
+                                      consulta=self.consulta_milo, fecha_aplicacion=timezone.localdate() - timedelta(days=1))
+        self.luna = crear_mascota(self.cliente, nombre='Luna', especie='gato')
+        self.client.force_login(self.cliente)
+
+    # ---------- Historia clínica ----------
+    def test_la_historia_muestra_la_primera_mascota_y_sus_consultas(self):
+        respuesta = self.client.get(reverse('historial:mi_historia'))
+        self.assertEqual(respuesta.context['mascota'], self.luna)   # por nombre: Luna va antes que Milo
+        respuesta = self.client.get(reverse('historial:mi_historia'), {'mascota': self.milo.pk})
+        self.assertEqual(respuesta.context['mascota'], self.milo)
+        self.assertContains(respuesta, 'Traqueobronquitis leve.')
+        self.assertContains(respuesta, 'Rabia')
+        self.assertContains(respuesta, reverse('mascotas:historial_pdf', args=[self.milo.pk]))
+
+    def test_una_mascota_ajena_no_se_muestra(self):
+        ajena = crear_mascota(crear_usuario('luis'), nombre='Toby')
+        respuesta = self.client.get(reverse('historial:mi_historia'), {'mascota': ajena.pk})
+        self.assertNotEqual(respuesta.context['mascota'], ajena)
+        self.assertNotContains(respuesta, 'Toby')
+
+    def test_sin_mascotas_explica_que_hacer(self):
+        self.client.force_login(crear_usuario('nuevo'))
+        self.assertContains(self.client.get(reverse('historial:mi_historia')), 'Todavía no registras mascotas')
+
+    def test_solo_la_abre_el_cliente(self):
+        self.client.force_login(self.veterinario)
+        for url in ('historial:mi_historia', 'historial:mis_recetas'):
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(reverse(url)).status_code, 403)
+
+    def test_el_menu_del_cliente_enlaza_las_dos_secciones(self):
+        respuesta = self.client.get(reverse('citas:mis_citas'))
+        self.assertContains(respuesta, reverse('historial:mi_historia'))
+        self.assertContains(respuesta, reverse('historial:mis_recetas'))
+
+    # ---------- Mis recetas ----------
+    def test_mis_recetas_agrupadas_por_mascota_y_con_su_estado(self):
+        respuesta = self.client.get(reverse('historial:mis_recetas'))
+        ((mascota, recetas),) = respuesta.context['por_mascota']
+        self.assertEqual(mascota, self.milo)
+        estados = {receta.medicamento: receta.en_curso for receta in recetas}
+        self.assertEqual(estados, {'Amoxicilina 250 mg': True, 'Jarabe antitusivo': False})
+        self.assertEqual(respuesta.context['en_curso'], 1)
+        self.assertContains(respuesta, 'En curso')
+        self.assertContains(respuesta, 'Terminada')
+
+    def test_mis_recetas_filtra_por_mascota(self):
+        respuesta = self.client.get(reverse('historial:mis_recetas'), {'mascota': self.luna.pk})
+        self.assertEqual(respuesta.context['por_mascota'], [])
+        self.assertContains(respuesta, 'Luna no tiene recetas todavía')
+
+    def test_no_muestra_recetas_de_otro_cliente(self):
+        self.client.force_login(crear_usuario('luis'))
+        self.assertEqual(self.client.get(reverse('historial:mis_recetas')).context['por_mascota'], [])
+
+    # ---------- Tablero ----------
+    def test_el_tablero_trae_el_peso_y_la_proxima_vacuna(self):
+        datos = HistorialService.de_la_mascota(self.milo)
+        tablero = HistorialService.tablero(self.milo, datos['consultas'])
+        self.assertEqual([barra['peso'] for barra in tablero['barras_peso']], [Decimal('12.50')])
+        self.assertEqual(tablero['proxima_vacuna']['linea'].vacuna.nombre, 'Rabia')
+        self.assertEqual(tablero['proxima_vacuna']['dias'], 364)
+        self.assertEqual((tablero['al_dia'], tablero['total_recetas'], tablero['recetas_en_curso']), (1, 2, 1))
+
+    # ---------- PDF ----------
+    def test_el_dueno_descarga_la_historia_en_pdf(self):
+        respuesta = self.client.get(reverse('mascotas:historial_pdf', args=[self.milo.pk]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta['Content-Type'], 'application/pdf')
+        self.assertIn('attachment; filename="historia-clinica-milo-', respuesta['Content-Disposition'])
+        self.assertTrue(respuesta.content.startswith(b'%PDF'))
+
+    def test_el_veterinario_tambien_la_descarga(self):
+        self.client.force_login(self.veterinario)
+        self.assertEqual(self.client.get(reverse('mascotas:historial_pdf', args=[self.milo.pk])).status_code, 200)
+
+    def test_el_pdf_de_una_mascota_ajena_responde_404(self):
+        self.client.force_login(crear_usuario('luis'))
+        self.assertEqual(self.client.get(reverse('mascotas:historial_pdf', args=[self.milo.pk])).status_code, 404)
+
+    def test_un_diagnostico_con_simbolos_no_rompe_el_pdf(self):
+        Consulta.objects.filter(pk=self.consulta_milo.pk).update(diagnostico='Fiebre < 39 °C & tos <b>leve</b>')
+        self.assertTrue(self.client.get(reverse('mascotas:historial_pdf', args=[self.milo.pk])).content.startswith(b'%PDF'))

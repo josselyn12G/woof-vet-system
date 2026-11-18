@@ -1,0 +1,11 @@
+{# Un chip por mascota del cliente (?mascota=<id>). Recibe mascotas, la elegida (mascota_actual) y si va "Todas" #}
+<nav class="filtro-mascotas mi-historial__chips" aria-label="Elegir mascota">
+  {% if con_todas %}
+    <a class="filtro-mascotas__opcion{% if not mascota_actual %} es-activo{% endif %}" href="?"{% if not mascota_actual %} aria-current="true"{% endif %}>Todas</a>
+  {% endif %}
+  {% for mascota in mascotas %}
+    <a class="filtro-mascotas__opcion{% if mascota == mascota_actual %} es-activo{% endif %}" href="?mascota={{ mascota.pk }}"{% if mascota == mascota_actual %} aria-current="true"{% endif %}>
+      <span class="filtro-mascotas__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>{{ mascota.nombre }}
+    </a>
+  {% endfor %}
+</nav>

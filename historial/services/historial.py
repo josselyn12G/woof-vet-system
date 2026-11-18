@@ -5,7 +5,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from citas.models import EstadoCita
-from historial.models import Consulta, Vacuna, VacunaAplicada
+from historial.models import Consulta, Prescripcion, Vacuna, VacunaAplicada
 from mascotas.models import Mascota
 
 # Una vacuna cuya próxima dosis cae dentro de estos días aparece como «próxima» en el carnet
@@ -82,6 +82,53 @@ class HistorialService:
         return lineas
 
     @staticmethod
+    def tablero(mascota, consultas, hoy=None):
+        """
+        Lo que muestran las tarjetas de la historia (y el PDF): cifras, el estado del carnet, el peso en cada
+        consulta (las últimas 6, para el gráfico de barras) y la próxima vacuna con cuánto falta.
+        Recibe las consultas ya cargadas (de_la_mascota) para no volver a pedirlas.
+        """
+        hoy = hoy or timezone.localdate()
+        carnet = HistorialService.carnet(mascota, hoy)
+        vigentes = [linea for linea in carnet if linea.estado != REFORZADA[0]]   # la última dosis de cada vacuna
+        cuenta = {clave: sum(1 for linea in vigentes if linea.estado == clave) for clave, _ in (AL_DIA, PROXIMA, VENCIDA)}
+
+        # Peso: de la consulta más vieja a la más nueva, con la altura de cada barra relativa a la más alta
+        pesos = [(c.fecha, c.peso_kg) for c in reversed(consultas) if c.peso_kg][-6:]
+        maximo = max((peso for _, peso in pesos), default=0)
+        barras = [{'fecha': fecha, 'peso': peso, 'alto': round(float(peso) * 100 / float(maximo)) if maximo else 0}
+                  for fecha, peso in pesos]
+
+        # Próxima vacuna: la próxima dosis más cercana que todavía no pasó; el anillo marca cuánto del refuerzo ya corrió
+        futuras = sorted((linea for linea in vigentes if linea.proxima_dosis and linea.proxima_dosis >= hoy),
+                         key=lambda linea: linea.proxima_dosis)
+        proxima = None
+        if futuras:
+            linea = futuras[0]
+            total = (linea.proxima_dosis - linea.fecha_aplicacion).days or 1
+            proxima = {'linea': linea, 'dias': (linea.proxima_dosis - hoy).days,
+                       'avance': min(100, round((hoy - linea.fecha_aplicacion).days * 100 / total))}
+
+        recetas = [receta for consulta in consultas for receta in consulta.prescripciones.all()]
+        ahora = timezone.now()
+        return {
+            'carnet': carnet,
+            'vigentes': vigentes,
+            'estado_carnet': [
+                {'clave': clave, 'texto': texto, 'cantidad': cuenta[clave],
+                 'porcentaje': round(cuenta[clave] * 100 / len(vigentes)) if vigentes else 0}
+                for clave, texto in (AL_DIA, PROXIMA, VENCIDA)
+            ],
+            'al_dia': cuenta[AL_DIA[0]],
+            'barras_peso': barras,
+            'proxima_vacuna': proxima,
+            'total_recetas': len(recetas),
+            'recetas_en_curso': sum(
+                1 for r in recetas if r.fecha_inicio <= ahora < r.fecha_inicio + timedelta(days=r.duracion_dias)
+            ),
+        }
+
+    @staticmethod
     def carnet_en_datos(lineas):
         """Las líneas del carnet como datos simples, para que el librito 3D (carnet-3d.js) las dibuje."""
         return [
@@ -96,6 +143,37 @@ class HistorialService:
             }
             for aplicada in lineas
         ]
+
+    @staticmethod
+    def mascota_elegida(mascotas, pedida):
+        """
+        La mascota de ?mascota=<id>, solo si está entre las del cliente; si no (vacío, inventado o ajeno), None.
+        Así un id de otra persona nunca muestra nada suyo.
+        """
+        return mascotas.filter(pk=pedida).first() if str(pedida or '').isdigit() else None
+
+    @staticmethod
+    def recetas_del_cliente(cliente, mascota=None, ahora=None):
+        """
+        Mis recetas: las líneas de receta de las mascotas del cliente, agrupadas por mascota
+        [(mascota, [receta, ...]), ...], de la más nueva a la más vieja. Cada receta trae cuándo termina
+        (inicio + días) y si sigue en curso. Con mascota, solo las de esa mascota.
+        """
+        ahora = ahora or timezone.now()
+        recetas = (
+            Prescripcion.objects.filter(consulta__mascota__dueno=cliente)
+            .select_related('consulta__mascota__especie', 'consulta__veterinario')
+            .order_by('consulta__mascota__nombre', '-fecha_inicio', 'pk')
+        )
+        if mascota is not None:
+            recetas = recetas.filter(consulta__mascota=mascota)
+
+        por_mascota = {}
+        for receta in recetas:
+            receta.termina = receta.fecha_inicio + timedelta(days=receta.duracion_dias)
+            receta.en_curso = receta.fecha_inicio <= ahora < receta.termina
+            por_mascota.setdefault(receta.consulta.mascota, []).append(receta)
+        return list(por_mascota.items())
 
     @staticmethod
     def vacunas_para(mascota):
