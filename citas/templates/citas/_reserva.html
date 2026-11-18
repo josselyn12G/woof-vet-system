@@ -12,7 +12,7 @@
   a la derecha las horas de ese día agrupadas por veterinario. Al elegir una hora se llenan
   los campos ocultos veterinario y hora: el servidor valida todo igual.
 {% endcomment %}
-<form class="reserva" method="post" action="{% url 'citas:agendar' %}" novalidate
+<form class="reserva" method="post" action="{% url 'citas:agendar' %}" novalidate data-cargando="Agendando la cita"
       data-agendar
       data-turnos-url="{% url 'citas:turnos_del_dia' %}"
       data-dias-url="{% url 'citas:dias_disponibles' %}">

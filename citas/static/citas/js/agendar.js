@@ -33,6 +33,9 @@
     const servicioElegido = () => servicio.value;
     const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+    // El cargando de la pantalla (cargando.js) mientras llega la respuesta; sin él, la promesa sigue igual
+    const conCargando = (verbo, promesa) => (window.WoofCargando ? window.WoofCargando.durante(verbo, promesa) : promesa);
+
     async function pedirJSON(url, parametros) {
       const numero = ++pedido;
       const respuesta = await fetch(`${url}?${new URLSearchParams(parametros)}`, { headers: { 'X-Requested-With': 'fetch' } });
@@ -57,10 +60,10 @@
       disponibles = new Set();
       if (servicioElegido()) {
         cuadricula.classList.add('esta-cargando');
-        const datos = await pedirJSON(formulario.dataset.diasUrl, {
+        const datos = await conCargando('Buscando días libres', pedirJSON(formulario.dataset.diasUrl, {
           servicio: servicioElegido(),
           mes: `${mes.getFullYear()}-${String(mes.getMonth() + 1).padStart(2, '0')}`,
-        }).catch(() => ({ dias: [] }));
+        })).catch(() => ({ dias: [] }));
         cuadricula.classList.remove('esta-cargando');
         if (!datos) return;                        // llegó una respuesta más nueva: esta se ignora
         disponibles = new Set(datos.dias);
@@ -129,7 +132,7 @@
       const dia = new Date(`${fecha}T00:00`);
       textoDia.textContent = `${DIAS[dia.getDay()]} ${dia.getDate()} de ${MESES[dia.getMonth()]}`;
       horas.classList.add('esta-cargando');
-      const datos = await pedirJSON(formulario.dataset.turnosUrl, { servicio: servicioElegido(), fecha })
+      const datos = await conCargando('Buscando horas libres', pedirJSON(formulario.dataset.turnosUrl, { servicio: servicioElegido(), fecha }))
         .catch(() => ({ turnos: null }));
       horas.classList.remove('esta-cargando');
       if (!datos) return;

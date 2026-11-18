@@ -72,7 +72,32 @@
     cierre = setTimeout(ocultar, 1400);
   }
 
-  window.WoofCargando = { mostrar, ocultar, terminar };
+  // Para pedidos con fetch: aparece solo si tardan más de 150 ms (sin parpadeos en lo rápido) y, una vez a la
+  // vista, se queda al menos 400 ms. Devuelve la misma promesa: await WoofCargando.durante('Buscando', fetch(...)).
+  let pendientes = 0;
+  let temporizador = null;
+  let visibleDesde = 0;
+  function durante(verbo, promesa) {
+    pendientes += 1;
+    if (pendientes === 1) {
+      temporizador = setTimeout(() => { mostrar(verbo); visibleDesde = performance.now(); }, 150);
+    } else if (visibleDesde) {
+      texto.textContent = `${verbo || 'Cargando'}…`;
+    }
+    const fin = () => {
+      pendientes -= 1;
+      if (pendientes > 0) return;
+      clearTimeout(temporizador);
+      if (!visibleDesde) return;
+      const falta = 400 - (performance.now() - visibleDesde);
+      visibleDesde = 0;
+      setTimeout(() => { if (!pendientes) ocultar(); }, Math.max(0, falta));
+    };
+    promesa.then(fin, fin);
+    return promesa;
+  }
+
+  window.WoofCargando = { mostrar, ocultar, terminar, durante };
 
   // Cualquier formulario POST que de verdad se envía (si otro script lo detuvo, no se muestra)
   document.addEventListener('submit', (evento) => {

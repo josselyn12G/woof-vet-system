@@ -93,11 +93,13 @@
     const boton = formulario.querySelector('button[type="submit"]');
     if (boton) boton.disabled = true;
     try {
-      const respuesta = await fetch(formulario.action, {
+      const envio = fetch(formulario.action, {
         method: 'POST',
         body: new FormData(formulario),
         headers: { 'X-Requested-With': 'fetch' },
       });
+      // El cargando tapa la pantalla mientras se guarda la cita (cargando.js)
+      const respuesta = await (window.WoofCargando ? window.WoofCargando.durante('Agendando la cita', envio) : envio);
       if ((respuesta.headers.get('Content-Type') || '').includes('application/json')) {
         const cita = await respuesta.json();
         cerrar(agendar, () => mostrarConfirmacion(cita));

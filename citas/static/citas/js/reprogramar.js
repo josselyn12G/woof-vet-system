@@ -37,6 +37,9 @@
 
   // Solo cuenta la última respuesta: si el cliente cambia rápido de mes o de día, las viejas se ignoran
   let ultimoPedido = 0;
+  // El cargando de la pantalla (cargando.js) mientras llega la respuesta; sin él, la promesa sigue igual
+  const conCargando = (verbo, promesa) => (window.WoofCargando ? window.WoofCargando.durante(verbo, promesa) : promesa);
+
   async function pedirJSON(url, parametros) {
     const numero = ++ultimoPedido;
     const respuesta = await fetch(`${url}?${new URLSearchParams(parametros)}`, { headers: { Accept: 'application/json' } });
@@ -47,9 +50,9 @@
 
   async function cargarDias() {
     cuadricula.classList.add('esta-cargando');
-    const datos = await pedirJSON(formulario.dataset.diasUrl, {
+    const datos = await conCargando('Buscando días libres', pedirJSON(formulario.dataset.diasUrl, {
       mes: `${mes.getFullYear()}-${String(mes.getMonth() + 1).padStart(2, '0')}`,
-    }).catch(() => ({ dias: [] }));
+    })).catch(() => ({ dias: [] }));
     cuadricula.classList.remove('esta-cargando');
     if (!datos) return;
     disponibles = new Set(datos.dias);
@@ -125,7 +128,7 @@
     const dia = new Date(`${fecha}T00:00`);
     textoDia.textContent = `${DIAS[dia.getDay()]} ${dia.getDate()} de ${MESES[dia.getMonth()]}`;
     horas.classList.add('esta-cargando');
-    const datos = await pedirJSON(formulario.dataset.horasUrl, { fecha }).catch(() => ({ horas: [] }));
+    const datos = await conCargando('Buscando horas libres', pedirJSON(formulario.dataset.horasUrl, { fecha })).catch(() => ({ horas: [] }));
     horas.classList.remove('esta-cargando');
     if (!datos) return;
     if (!datos.horas.length) {
