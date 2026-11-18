@@ -4,7 +4,7 @@
 {% block titulo %}Mis calificaciones · Woof{% endblock %}
 
 {% block panel_estilos %}
-  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}?v=3" rel="stylesheet">
 {% endblock %}
 
 {% block panel_titulo %}Mis calificaciones{% endblock %}
@@ -15,8 +15,8 @@
 
 {% block panel_contenido %}
   <div class="perfil-vet">
-    <section class="bloque-panel" aria-labelledby="opiniones-titulo">
-      <div class="bloque-panel__cabecera">
+    <section class="resenas-lista" aria-labelledby="opiniones-titulo">
+      <div class="resenas-lista__cabecera">
         <h2 class="bloque-panel__titulo" id="opiniones-titulo">Opiniones</h2>
         {# Por GET: elegir una cantidad de estrellas ya filtra #}
         <form class="filtros filtros--opiniones" method="get">
@@ -31,9 +31,9 @@
         {% include 'citas/_opinion.html' %}
       {% empty %}
         {% if hay_filtros %}
-          <p class="reputacion__vacio">Ninguna opinión tiene esa cantidad de estrellas.</p>
+          <p class="resenas-lista__vacio">Ninguna opinión tiene esa cantidad de estrellas.</p>
         {% else %}
-          <p class="reputacion__vacio">Todavía no tienes calificaciones. Cuando un cliente califique una cita que atendiste, su opinión aparecerá aquí.</p>
+          <p class="resenas-lista__vacio">Todavía no tienes calificaciones. Cuando un cliente califique una cita que atendiste, su opinión aparecerá aquí.</p>
         {% endif %}
       {% endfor %}
       {% include 'citas/_paginas_opiniones.html' %}
