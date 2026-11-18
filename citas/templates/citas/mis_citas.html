@@ -5,7 +5,7 @@
 
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
-  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-calendar-check{% endblock %}
@@ -271,5 +271,5 @@
 
 {% block panel_scripts %}
   <script src="{% static 'citas/js/agendar.js' %}" defer></script>
-  <script src="{% static 'citas/js/mis-citas.js' %}" defer></script>
+  <script src="{% static 'citas/js/mis-citas.js' %}?v=2" defer></script>
 {% endblock %}

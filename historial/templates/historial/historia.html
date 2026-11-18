@@ -6,7 +6,7 @@
 
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=2" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}{% if user.es_veterinario %}bi-people{% else %}bi-heart{% endif %}{% endblock %}
