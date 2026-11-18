@@ -692,7 +692,9 @@
   .hc-reporte.con-pestanas .hc-vista:not([hidden]) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   /* La última tarjeta de cada pestaña crece hasta el pie de la foto */
   .hc-reporte.con-pestanas .hc-vista > :last-child { flex: 1; min-height: 0; }
-  .hc-reporte.con-pestanas .hc-recientes { overflow-y: auto; }
+  /* En el Resumen, la vacunación y el tratamiento en curso se reparten el alto que queda bajo las cifras */
+  .hc-reporte.con-pestanas .hc-vista[data-panel="resumen"] > .hc-tarjeta { flex: 1 1 0; min-height: 0; }
+  .hc-reporte.con-pestanas .hc-en-curso { overflow-y: auto; overscroll-behavior: contain; }
   .hc-reporte.con-pestanas .hc-vacunas,
   .hc-reporte.con-pestanas .hc-historial { overflow-y: auto; overscroll-behavior: contain; }
   .hc-reporte.con-pestanas .hc-peso { display: flex; flex-direction: column; }
@@ -1400,9 +1402,7 @@ p.hc-vacio { padding: 24px 0 4px; }
 .hc-en-curso__barra { grid-column: 1 / -1; height: 6px; }
 .hc-en-curso__barra span { background: var(--woof-naranja-500); }
 
-/* Lo más reciente (Resumen de la historia) */
-.hc-recientes__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.hc-recientes__cabecera .hc-pastilla { margin-top: 0; }
+/* Lista de registros recientes (Consultas médicas y Vacunación del veterinario) */
 .hc-recientes__lista { list-style: none; margin: 14px 0 0; padding: 0; display: grid; }
 .hc-reciente { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 0; }
 .hc-reciente + .hc-reciente { border-top: 1px solid var(--p-linea); }
