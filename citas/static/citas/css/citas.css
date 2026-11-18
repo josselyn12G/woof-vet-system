@@ -1278,7 +1278,8 @@ fieldset.formulario-panel__campo {
 /* ---------- Al costado: el avance del día y su horario ---------- */
 .agenda__lado {
   position: sticky;
-  top: 1.5rem;
+  /* Se detiene debajo del header fijo del veterinario (.nav-arriba: 0.75rem + ~3.9rem de alto) */
+  top: 6.25rem;
   display: grid;
   gap: 1rem;
 }

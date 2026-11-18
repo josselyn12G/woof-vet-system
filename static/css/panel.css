@@ -1197,7 +1197,11 @@ button.panel-barra__boton:hover {
   margin: 0 auto;
 }
 
+/* El header del veterinario queda fijo arriba al hacer scroll (sticky), flotando sobre el contenido */
 .nav-arriba {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 40;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -1207,6 +1211,7 @@ button.panel-barra__boton:hover {
   border: 1px solid var(--p-borde);
   border-radius: 999px;
   background: var(--p-superficie);
+  box-shadow: 0 8px 24px rgba(29, 29, 31, 0.08);
 }
 
 .nav-arriba__marca img {

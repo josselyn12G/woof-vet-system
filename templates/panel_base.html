@@ -16,7 +16,7 @@
 {% block estilos %}
   {# Antes de pintar: si el sidebar quedó cerrado la última vez, se abre cerrado (sin parpadeo) #}
   <script>try { if (localStorage.getItem('woof-menu') === 'compacto') document.documentElement.classList.add('menu-compacto'); } catch (e) {}</script>
-  <link href="{% static 'css/panel.css' %}?v=13" rel="stylesheet">
+  <link href="{% static 'css/panel.css' %}?v=14" rel="stylesheet">
   {% block panel_estilos %}{% endblock %}
 {% endblock %}
 
