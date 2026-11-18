@@ -9,6 +9,7 @@ from citas.models import Cita, EstadoCita, HorarioVeterinario, Servicio
 from citas.services import CitaService, EstadisticasService, HorarioService, ServicioService
 from cuentas.models import ROLES_DEL_PERSONAL, Roles
 from mascotas.models import Mascota
+from panel.graficos import columnas, dona
 
 def variacion(actual, anterior):
     """Cambio frente al período anterior. Sin datos para comparar no se inventa un porcentaje."""
@@ -188,6 +189,8 @@ class PanelAdministradorService:
                 por_dia[fecha] += 1
 
         total, reparto = por_rol()
+        citas = CitaService.resumen_de_la_clinica()
+        especies = Mascota.objects.values_list('especie__nombre').annotate(total=Count('pk')).order_by('-total')[:6]
         return {
             'cifras': cifras,
             'grafico': grafico_de_linea(fechas, list(por_dia.values())),
@@ -196,7 +199,12 @@ class PanelAdministradorService:
             'por_rol': reparto,
             'total_mascotas': Mascota.objects.count(),
             'total_veterinarios': veterinarios,
-            'citas': CitaService.resumen_de_la_clinica(),
+            'citas': citas,
+            # Gráficos: cuentas por rol y citas de los últimos 30 días (donas), mascotas por especie (columnas)
+            'dona_roles': dona([(rol['nombre'], rol['valor']) for rol in reparto if rol['valor']]),
+            'dona_citas': dona([('Atendidas', citas['atendidas']), ('Próximos 7 días', citas['semana']),
+                                ('No asistió', citas['no_asistio']), ('Canceladas', citas['canceladas'])]),
+            'columnas_especies': columnas(list(especies)),
             'recientes': usuarios.order_by('-date_joined')[:8],
             **pasos_para_abrir_la_agenda(),
         }

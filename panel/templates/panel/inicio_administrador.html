@@ -64,26 +64,33 @@
     </figure>
   </section>
 
+  {# ---------- Gráficos de la clínica ---------- #}
+  <div class="graficos-fila entra entra--2">
+    <section class="grafico-tarjeta" aria-labelledby="dona-citas-titulo">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="dona-citas-titulo"><i class="bi bi-calendar-check" aria-hidden="true"></i>Citas</h2>
+        <a class="paneles__enlace" href="{% url 'citas:indicadores' %}">Indicadores <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      {% include 'graficos/_dona.html' with dona=dona_citas titulo='30 días' %}
+    </section>
+    <section class="grafico-tarjeta" aria-labelledby="dona-roles-titulo">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="dona-roles-titulo"><i class="bi bi-diagram-3" aria-hidden="true"></i>Cuentas por rol</h2>
+        <a class="paneles__enlace" href="{% url 'cuentas:usuarios' %}">Usuarios <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      {% include 'graficos/_dona.html' with dona=dona_roles titulo='cuentas' %}
+    </section>
+    <section class="grafico-tarjeta" aria-labelledby="especies-titulo">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="especies-titulo"><i class="bi bi-heart" aria-hidden="true"></i>Mascotas por especie</h2>
+        <span class="grafico-tarjeta__meta">{{ total_mascotas }} en total</span>
+      </header>
+      {% include 'graficos/_columnas.html' with columnas=columnas_especies %}
+    </section>
+  </div>
+
   {# Tres paneles en un solo contenedor #}
   <div class="paneles entra entra--2">
-    <section class="paneles__panel" aria-labelledby="roles-titulo">
-      <header class="paneles__cabecera">
-        <h2 class="paneles__titulo" id="roles-titulo"><i class="bi bi-diagram-3" aria-hidden="true"></i>Cuentas por rol</h2>
-        <a class="paneles__enlace" href="{% url 'cuentas:usuarios' %}">Ver usuarios <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
-      </header>
-      <p class="paneles__cifra" data-contar="{{ total_usuarios }}">{{ total_usuarios }}</p>
-      <p class="paneles__texto">cuentas en total</p>
-      {# Una barra repartida por rol, al porcentaje real #}
-      <div class="reparto" role="img" aria-label="{% for rol in por_rol %}{{ rol.nombre }}: {{ rol.valor }}{% if not forloop.last %}, {% endif %}{% endfor %}">
-        {% for rol in por_rol %}{% if rol.valor %}<span class="reparto__parte reparto__parte--{{ rol.clase }}" style="width: {{ rol.porcentaje }}%"></span>{% endif %}{% endfor %}
-      </div>
-      <ul class="reparto__leyenda">
-        {% for rol in por_rol %}
-          <li><span class="reparto__punto reparto__parte--{{ rol.clase }}" aria-hidden="true"></span>{{ rol.nombre }}<strong>{{ rol.valor }}</strong></li>
-        {% endfor %}
-      </ul>
-    </section>
-
     <section class="paneles__panel" aria-labelledby="puesta-titulo">
       <header class="paneles__cabecera">
         <h2 class="paneles__titulo" id="puesta-titulo"><i class="bi bi-flag" aria-hidden="true"></i>Abrir la agenda</h2>

@@ -1,5 +1,5 @@
 {% extends 'panel_base.html' %}
-{% load static %}
+{% load static l10n %}
 
 {% block titulo %}Indicadores · Woof{% endblock %}
 
@@ -55,6 +55,53 @@
       </div>
     </div>
   </section>
+
+  {# ---------- Gráficos del período ---------- #}
+  <div class="graficos-fila">
+    <section class="grafico-tarjeta grafico-tarjeta--ancha" aria-labelledby="titulo-por-dia">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="titulo-por-dia"><i class="bi bi-graph-up" aria-hidden="true"></i>Citas por día</h2>
+        <span class="grafico-tarjeta__meta">{{ citas_en_rango }} sin contar las canceladas</span>
+      </header>
+      <figure class="grafico">
+        {% localize off %}
+        <svg viewBox="0 0 {{ grafico.ancho }} {{ grafico.alto }}" role="img" aria-label="Citas por día: {{ citas_en_rango }} en el período">
+          {% for guia in grafico.guias %}
+            <line class="grafico__guia" x1="{{ grafico.izquierda }}" x2="{{ grafico.derecha }}" y1="{{ guia.y }}" y2="{{ guia.y }}"></line>
+            <text class="grafico__eje" x="{{ grafico.izquierda|add:'-12' }}" y="{{ guia.y }}" text-anchor="end" dominant-baseline="middle">{{ guia.texto }}</text>
+          {% endfor %}
+          <path class="grafico__area" d="{{ grafico.area }}"></path>
+          <path class="grafico__linea" d="{{ grafico.linea }}" pathLength="1"></path>
+          {% for etiqueta in grafico.etiquetas %}
+            <text class="grafico__eje" x="{{ etiqueta.x }}" y="{{ grafico.alto|add:'-8' }}" text-anchor="middle">{{ etiqueta.fecha|date:'j M' }}</text>
+          {% endfor %}
+        </svg>
+        {% endlocalize %}
+      </figure>
+    </section>
+
+    <section class="grafico-tarjeta" aria-labelledby="titulo-estados">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="titulo-estados"><i class="bi bi-pie-chart" aria-hidden="true"></i>Citas por estado</h2>
+      </header>
+      {% include 'graficos/_dona.html' with dona=dona_estados titulo='citas' %}
+    </section>
+
+    <section class="grafico-tarjeta" aria-labelledby="titulo-servicios">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="titulo-servicios"><i class="bi bi-bar-chart" aria-hidden="true"></i>Por servicio</h2>
+      </header>
+      {% include 'graficos/_columnas.html' with columnas=columnas_servicios %}
+    </section>
+
+    <section class="grafico-tarjeta" aria-labelledby="titulo-ingresos">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="titulo-ingresos"><i class="bi bi-cash-coin" aria-hidden="true"></i>Ingresos por veterinario</h2>
+        <span class="grafico-tarjeta__meta">${{ ingresos|floatformat:0 }}</span>
+      </header>
+      {% include 'graficos/_columnas.html' with columnas=columnas_ingresos unidad='$' %}
+    </section>
+  </div>
 
   {# Ocupación: Σ minutos de citas no canceladas ÷ Σ minutos de horario publicado × 100 (§2.5) #}
   <section class="bloque-panel" aria-labelledby="titulo-ocupacion">

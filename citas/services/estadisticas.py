@@ -1,7 +1,8 @@
+from collections import Counter
 from datetime import datetime, timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario
@@ -15,6 +16,20 @@ def porcentaje(parte, total):
 
 class EstadisticasService:
     """Cifras de la portada del veterinario y de los indicadores de la clínica, a partir de las citas y los horarios."""
+
+    @staticmethod
+    def series_de_indicadores(desde, hasta, veterinario=None):
+        """
+        Para los gráficos de Indicadores, en el mismo rango y veterinario: las citas no canceladas de cada día
+        ([fechas], [cantidades]) y las de cada servicio ([(servicio, cantidad)], de más a menos).
+        """
+        citas = Cita.objects.filter(inicio__date__range=(desde, hasta)).exclude(estado=EstadoCita.CANCELADA)
+        if veterinario is not None:
+            citas = citas.filter(veterinario=veterinario)
+        por_dia = Counter(timezone.localtime(inicio).date() for inicio in citas.values_list('inicio', flat=True))
+        fechas = [desde + timedelta(days=i) for i in range((hasta - desde).days + 1)]
+        por_servicio = list(citas.values_list('servicio__nombre').annotate(total=Count('pk')).order_by('-total')[:6])
+        return {'fechas': fechas, 'citas_por_dia': [por_dia.get(fecha, 0) for fecha in fechas], 'por_servicio': por_servicio}
 
     @staticmethod
     def indicadores(desde, hasta, veterinario=None):

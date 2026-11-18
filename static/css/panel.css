@@ -4104,3 +4104,53 @@ a.linea-citas__tarjeta {
 .menu-cuenta__opcion .bi { color: var(--p-acento-texto); }
 .menu-cuenta__opcion:hover, .menu-cuenta__opcion.es-activo { background: var(--p-acento-tinte); color: var(--p-texto); }
 .menu-cuenta__opcion--salir .bi { color: var(--p-texto-2); }
+
+/* ==========================================================================
+   Gráficos de los paneles (templates/graficos): dona y columnas, en tonos de naranja y sin degradados.
+   .graficos-fila acomoda dos o tres tarjetas de gráfico lado a lado.
+   ========================================================================== */
+.graficos-fila { display: grid; gap: 18px; margin-bottom: 18px; }
+@media (min-width: 900px) { .graficos-fila { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
+.grafico-tarjeta {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+  background: var(--p-superficie);
+  box-shadow: 0 1px 2px rgba(59, 42, 34, 0.04), 0 8px 24px -16px rgba(59, 42, 34, 0.22);
+  min-width: 0;
+}
+.grafico-tarjeta__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.grafico-tarjeta__titulo { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.0625rem; font-weight: 650; color: var(--p-texto); }
+.grafico-tarjeta__titulo .bi { color: var(--woof-naranja-500); }
+.grafico-tarjeta__meta { font-size: 0.8125rem; color: var(--p-texto-2); }
+.grafico-tarjeta--ancha { grid-column: 1 / -1; }
+
+/* Dona: el anillo a la izquierda y la leyenda a la derecha */
+.dona { display: grid; grid-template-columns: 124px minmax(0, 1fr); align-items: center; gap: 16px; }
+.dona__anillo { position: relative; width: 124px; height: 124px; }
+.dona__anillo svg { width: 100%; height: 100%; transform: rotate(0deg); }
+.dona__fondo { fill: none; stroke: var(--p-linea); stroke-width: 5; }
+.dona__parte { fill: none; stroke-width: 5; transition: stroke-width 0.2s; }
+.dona__centro { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.dona__centro strong { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--p-texto); font-variant-numeric: tabular-nums; }
+.dona__centro span { margin-top: 4px; font-size: 0.75rem; color: var(--p-texto-2); }
+.dona__leyenda { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dona__leyenda li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 6px 8px; font-size: 0.8125rem; }
+.dona__punto { width: 10px; height: 10px; border-radius: 50%; }
+.dona__nombre { color: var(--p-texto); line-height: 1.25; }
+.dona__leyenda strong { font-variant-numeric: tabular-nums; color: var(--p-texto); }
+.dona__porcentaje { min-width: 2.3rem; text-align: right; font-size: 0.8125rem; color: var(--p-texto-2); font-variant-numeric: tabular-nums; }
+.dona__vacio { margin: 0; padding: 20px 0; text-align: center; font-size: 0.875rem; color: var(--p-texto-2); }
+@media (max-width: 420px) { .dona { grid-template-columns: 1fr; justify-items: center; } }
+
+/* Columnas verticales con bordes redondeados arriba */
+.columnas { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-end; gap: 12px; height: 210px; }
+.columnas__item { flex: 1 1 0; min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; gap: 6px; text-align: center; }
+.columnas__valor { font-size: 0.8125rem; font-weight: 700; color: var(--p-texto); font-variant-numeric: tabular-nums; }
+.columnas__barra { display: flex; align-items: flex-end; justify-content: center; min-height: 0; }
+.columnas__barra span { display: block; width: min(56px, 100%); min-height: 4px; border-radius: 12px 12px 6px 6px; transition: height 0.4s cubic-bezier(0.23, 1, 0.32, 1); }
+.columnas__etiqueta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; color: var(--p-texto-2); }
+@media (prefers-reduced-motion: reduce) { .columnas__barra span, .dona__parte { transition: none; } }
