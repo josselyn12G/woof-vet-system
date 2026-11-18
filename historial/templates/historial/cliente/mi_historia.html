@@ -6,31 +6,28 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=3" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=5" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-journal-medical{% endblock %}
 {% block panel_seccion %}Historia clínica{% endblock %}
-{% block panel_titulo %}Historia clínica{% endblock %}
-{% block panel_subtitulo %}Consultas, recetas y vacunas de tus mascotas, de la más reciente a la más antigua.{% endblock %}
-{% block panel_acciones %}
-  {% if mascota %}
-    <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:carnet' mascota.pk %}"><i class="bi bi-shield-check" aria-hidden="true"></i>Carnet de vacunas</a>
-    <a class="boton-panel" href="{% url 'mascotas:historial_pdf' mascota.pk %}"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Descargar PDF</a>
-  {% endif %}
+
+{% block panel_cabecera %}
+  {% include 'historial/_hc_cabecera.html' %}
 {% endblock %}
 
 {% block panel_contenido %}
   {% if mascota %}
-    <div class="historia">
-      {% include 'historial/cliente/_chips.html' with mascota_actual=mascota %}
-      {% include 'historial/_historia_tablero.html' %}
-    </div>
+    {% include 'historial/_hc_vista.html' %}
   {% else %}
-    <section class="bloque-panel historia__vacia">
+    <section class="hc-tarjeta hc-vacio">
       <i class="bi bi-heart" aria-hidden="true"></i>
       <p>Todavía no registras mascotas. Cuando tengan su primera consulta, su historia aparecerá aquí.</p>
-      <a class="boton-panel" href="{% url 'mascotas:crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar mascota</a>
+      <a class="hc-boton" href="{% url 'mascotas:crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar mascota</a>
     </section>
   {% endif %}
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'historial/js/historia.js' %}?v=1" defer></script>
 {% endblock %}

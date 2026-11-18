@@ -1,25 +1,29 @@
 {% extends 'panel_base.html' %}
 {% load static %}
 
-{# Historia clínica de solo lectura. La misma plantilla para el cliente, el veterinario y la clínica #}
+{# Historia clínica de solo lectura. La misma vista (_hc_vista.html) para el cliente, el veterinario y la clínica #}
 {% block titulo %}Historia clínica de {{ mascota.nombre }} · Woof{% endblock %}
 
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=3" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=5" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}{% if user.es_veterinario %}bi-people{% else %}bi-heart{% endif %}{% endblock %}
 {% block panel_seccion %}{% if user.es_cliente %}Mis mascotas{% elif user.es_veterinario %}Pacientes{% else %}Mascotas{% endif %}{% endblock %}
-{% block panel_titulo %}Historia clínica de {{ mascota.nombre }}{% endblock %}
-{% block panel_subtitulo %}Consultas, recetas y vacunas de {{ mascota.nombre }}, de la más reciente a la más antigua.{% endblock %}
-{% block panel_acciones %}
-  <a class="boton-panel boton-panel--secundario" href="{{ volver }}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver</a>
-  <a class="boton-panel" href="{% url 'mascotas:historial_pdf' mascota.pk %}"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Descargar PDF</a>
+
+{% block panel_cabecera %}
+  {% if user.es_cliente %}
+    {% include 'historial/_hc_cabecera.html' %}
+  {% else %}
+    {% include 'historial/_hc_cabecera.html' with subtitulo='Consultas, vacunas y recetas del paciente, de lo más reciente a lo más antiguo.' %}
+  {% endif %}
 {% endblock %}
 
 {% block panel_contenido %}
-  <div class="historia">
-    {% include 'historial/_historia_tablero.html' %}
-  </div>
+  {% include 'historial/_hc_vista.html' %}
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'historial/js/historia.js' %}?v=1" defer></script>
 {% endblock %}

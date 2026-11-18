@@ -22,6 +22,7 @@ class HistoriaClinicaView(MascotaVisiblePorRolMixin, DetailView):
         contexto = super().get_context_data(**kwargs)
         contexto.update(HistorialService.de_la_mascota(self.object))   # consultas y vacunas
         contexto.update(HistorialService.tablero(self.object, contexto['consultas']))   # las tarjetas
+        contexto['historial_medico'] = HistorialService.historial_medico(contexto['consultas'], contexto['carnet'])
         contexto['volver'] = self.url_volver()
         return contexto
 

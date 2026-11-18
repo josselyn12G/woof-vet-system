@@ -1,5 +1,5 @@
 {# Un chip por mascota del cliente (?mascota=<id>). Recibe mascotas, la elegida (mascota_actual) y si va "Todas" #}
-<nav class="filtro-mascotas mi-historial__chips" aria-label="Elegir mascota">
+<nav class="filtro-mascotas" aria-label="Elegir mascota">
   {% if con_todas %}
     <a class="filtro-mascotas__opcion{% if not mascota_actual %} es-activo{% endif %}" href="?"{% if not mascota_actual %} aria-current="true"{% endif %}>Todas</a>
   {% endif %}

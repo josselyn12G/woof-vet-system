@@ -690,3 +690,51 @@ class SeguimientoDelTratamientoTests(ClienteConRecetasBase):
             with self.subTest(medicamento=medicamento):
                 receta = Prescripcion(medicamento=medicamento, dosis=dosis, frecuencia_horas=8, duracion_dias=3)
                 self.assertEqual(HistorialService.tipo_de_medicamento(receta)[0], tipo)
+
+
+class HistoriaTableroTests(ClienteConRecetasBase):
+    """La historia nueva (tarjeta de la mascota, línea de tiempo por mes, peso): la misma para todos los roles."""
+
+    def test_la_linea_de_tiempo_junta_consultas_recetas_y_vacunas_por_mes(self):
+        consultas = HistorialService.de_la_mascota(self.milo)['consultas']
+        carnet = HistorialService.carnet(self.milo)
+        meses = HistorialService.historial_medico(consultas, carnet)
+        tipos = sorted(registro['tipo'] for _, registros in meses for registro in registros)
+        self.assertEqual(tipos, ['consulta', 'receta', 'receta', 'vacuna'])
+        for mes, registros in meses:
+            self.assertEqual(mes.day, 1)
+            cuandos = [registro['cuando'] for registro in registros]
+            self.assertEqual(cuandos, sorted(cuandos, reverse=True))   # lo más nuevo arriba
+
+    def test_la_receta_en_curso_lleva_su_insignia(self):
+        consultas = HistorialService.de_la_mascota(self.milo)['consultas']
+        registros = [r for _, rs in HistorialService.historial_medico(consultas, []) for r in rs]
+        insignias = {r['titulo']: r['insignia'] for r in registros if r['tipo'] == 'receta'}
+        self.assertEqual(insignias, {'Amoxicilina 250 mg': 'En curso', 'Jarabe antitusivo': 'Receta'})
+
+    def test_el_grafico_de_peso_con_uno_y_varios_registros(self):
+        hoy = timezone.now()
+        self.assertIsNone(HistorialService.grafico_de_peso([]))
+        uno = HistorialService.grafico_de_peso([{'fecha': hoy, 'peso': Decimal('12.5')}])
+        self.assertEqual(len(uno['puntos']), 1)
+        self.assertEqual(uno['ultimo']['x'], uno['ancho'] - 12)   # línea plana de borde a borde
+        varios = HistorialService.grafico_de_peso([{'fecha': hoy, 'peso': Decimal('10')},
+                                                   {'fecha': hoy, 'peso': Decimal('12')}])
+        primero, ultimo = varios['puntos']
+        self.assertGreater(primero['y'], ultimo['y'])   # pesa más: el punto sube
+
+    def test_el_svg_no_usa_comas_decimales(self):
+        respuesta = self.client.get(reverse('historial:mi_historia'), {'mascota': self.milo.pk})
+        html = respuesta.content.decode()
+        inicio = html.index('class="hc-grafico"')
+        self.assertNotRegex(html[inicio:html.index('</svg>', inicio)], r'points="[^"]*\d,\d+,')
+        self.assertContains(respuesta, 'data-filtro="vacuna"')
+        self.assertContains(respuesta, 'Carnet de vacunas')
+
+    def test_el_veterinario_ve_la_misma_historia_sin_el_carnet_del_dueno(self):
+        self.client.force_login(self.veterinario)
+        respuesta = self.client.get(reverse('mascotas:historial', args=[self.milo.pk]))
+        self.assertTemplateUsed(respuesta, 'historial/_hc_vista.html')
+        self.assertContains(respuesta, 'Historial médico')
+        self.assertContains(respuesta, 'Amoxicilina 250 mg')
+        self.assertNotContains(respuesta, 'Carnet de vacunas')

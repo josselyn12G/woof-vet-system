@@ -1,0 +1,204 @@
+{% load l10n %}
+{% comment %}
+  La historia clínica de una mascota (la misma para el cliente, el veterinario y la clínica):
+  arriba el selector de mascota; luego dos filas con las mismas dos columnas para que los bordes coincidan:
+  fila 1: la tarjeta con la foto de la mascota · tres cifras y el estado de la vacunación;
+  fila 2: el peso y las vacunas aplicadas · el historial médico (línea de tiempo por mes con filtros y buscador).
+  Recibe mascota, consultas, historial_medico y lo de HistorialService.tablero.
+{% endcomment %}
+<div class="hc">
+  {% if mascotas|length > 1 %}
+    {% include 'historial/cliente/_chips.html' with mascota_actual=mascota %}
+  {% endif %}
+
+  {# ================= Fila 1: la mascota · cifras y vacunación (mismas columnas que la fila 2) ================= #}
+  <div class="hc-fila hc-fila--resumen">
+    {# Tarjeta de la mascota: su foto de fondo a todo el ancho y el nombre encima; sin foto, naranja con la inicial #}
+    <section class="hc-mascota{% if mascota.tiene_foto %} hc-mascota--foto{% endif %}" aria-label="{{ mascota.nombre }}">
+      {% if mascota.tiene_foto %}
+        <img class="hc-mascota__fondo" src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="">
+      {% else %}
+        <span class="hc-mascota__inicial" aria-hidden="true">{{ mascota.nombre|slice:':1'|upper }}</span>
+        <svg class="hc-mascota__huella" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <ellipse cx="32" cy="42" rx="13" ry="11"/><ellipse cx="15" cy="27" rx="6" ry="7.5"/>
+          <ellipse cx="26" cy="17" rx="6" ry="7.5"/><ellipse cx="38" cy="17" rx="6" ry="7.5"/><ellipse cx="49" cy="27" rx="6" ry="7.5"/>
+        </svg>
+      {% endif %}
+      <div class="hc-mascota__ficha">
+        <div>
+          <h2 class="hc-mascota__nombre">{{ mascota.nombre }}</h2>
+          <p class="hc-mascota__rasgos">{{ mascota.especie }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}</p>
+        </div>
+        <span class="hc-mascota__peso"><i class="bi bi-bag" aria-hidden="true"></i>{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}Sin peso{% endif %}</span>
+      </div>
+    </section>
+
+    <div class="hc-columna">
+      {# Tres cifras con su ícono #}
+      <dl class="hc-cifras">
+        <div class="hc-cifra"><span class="hc-cifra__icono" aria-hidden="true"><i class="bi bi-clipboard2-pulse"></i></span><dd>{{ consultas|length }}</dd><dt>Consultas</dt></div>
+        <div class="hc-cifra"><span class="hc-cifra__icono" aria-hidden="true"><i class="bi bi-shield-plus"></i></span><dd>{{ carnet|length }}</dd><dt>Vacunas</dt></div>
+        <div class="hc-cifra"><span class="hc-cifra__icono" aria-hidden="true"><i class="bi bi-capsule"></i></span><dd>{{ total_recetas }}</dd><dt>Recetas</dt></div>
+      </dl>
+
+      {# Vacunación: cuánto está al día y la próxima #}
+      <section class="hc-tarjeta hc-vacunacion" aria-labelledby="hc-vacunacion-titulo">
+        <div class="hc-vacunacion__estado">
+          <h2 class="hc-etiqueta" id="hc-vacunacion-titulo">Vacunación</h2>
+          <p class="hc-vacunacion__porcentaje"><strong>{{ vacunas_al_dia }}%</strong> al día</p>
+          <div class="hc-barra" role="img" aria-label="{{ vacunas_al_dia }}% de las vacunas al día"><span style="--ancho: {{ vacunas_al_dia|stringformat:'s' }}%"></span></div>
+          <ul class="hc-leyenda">
+            <li><span class="hc-punto hc-punto--ok"></span>{{ cuenta_carnet.al_dia }} al día</li>
+            <li><span class="hc-punto hc-punto--alerta"></span>{{ cuenta_carnet.vencida }} vencida{{ cuenta_carnet.vencida|pluralize }}</li>
+            <li><span class="hc-punto"></span>{{ cuenta_carnet.proxima }} próxima{{ cuenta_carnet.proxima|pluralize }}</li>
+          </ul>
+        </div>
+        <div class="hc-vacunacion__proxima">
+          <span class="hc-vacunacion__icono" aria-hidden="true"><i class="bi bi-calendar-event"></i></span>
+          <div>
+            <p class="hc-etiqueta">Próxima vacuna</p>
+            {% if proxima_vacuna %}
+              <p class="hc-vacunacion__nombre">{{ proxima_vacuna.linea.vacuna.nombre }}</p>
+              <p class="hc-vacunacion__fecha">{{ proxima_vacuna.linea.proxima_dosis|date:'j \d\e F \d\e Y' }}</p>
+            {% else %}
+              <p class="hc-vacunacion__fecha">Sin refuerzos pendientes</p>
+            {% endif %}
+          </div>
+          <a class="hc-pastilla" href="#hc-vacunas">Ver todas <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  {# ================= Fila 2: peso y vacunas (angosta) · historial médico (ancha) ================= #}
+  <div class="hc-fila hc-fila--detalle">
+    {# Historial médico: la línea de tiempo con filtros (historia.js) y un buscador #}
+    <section class="hc-tarjeta hc-historial" aria-labelledby="hc-historial-titulo" data-historial>
+      <div class="hc-historial__cabecera">
+        <h2 class="hc-titulo" id="hc-historial-titulo"><i class="bi bi-calendar3" aria-hidden="true"></i>Historial médico</h2>
+        <div class="hc-filtros" role="group" aria-label="Qué registros ver">
+          <button type="button" class="hc-filtro es-activo" data-filtro="todos" aria-pressed="true">Todas</button>
+          <button type="button" class="hc-filtro" data-filtro="consulta" aria-pressed="false">Consultas</button>
+          <button type="button" class="hc-filtro" data-filtro="vacuna" aria-pressed="false">Vacunas</button>
+          <button type="button" class="hc-filtro" data-filtro="receta" aria-pressed="false">Recetas</button>
+          <button type="button" class="hc-buscar" data-abrir-busqueda aria-label="Buscar en el historial"><i class="bi bi-search" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <label class="visually-hidden" for="hc-busqueda">Buscar en el historial</label>
+      <input class="control-panel hc-busqueda" type="search" id="hc-busqueda" placeholder="Buscar por motivo, medicamento o vacuna" data-busqueda hidden>
+
+      {% if historial_medico %}
+        <ol class="hc-meses">
+          {% for mes, registros in historial_medico %}
+            <li class="hc-mes" data-mes>
+              <p class="hc-mes__titulo"><span>{{ mes|date:'F Y'|capfirst }}</span><span class="hc-mes__cuenta" data-cuenta>{{ registros|length }} registro{{ registros|length|pluralize }}</span></p>
+              <ul class="hc-registros">
+                {% for registro in registros %}
+                  <li class="hc-registro hc-registro--{{ registro.tipo }}" data-tipo="{{ registro.tipo }}">
+                    <details>
+                      <summary class="hc-registro__fila">
+                        <span class="hc-registro__icono" aria-hidden="true"><i class="bi {{ registro.icono }}"></i></span>
+                        <span class="hc-registro__titulos">
+                          <strong>{{ registro.titulo }}</strong>
+                          <span>{{ registro.cuando|date:'j M' }}{% if registro.tipo == 'consulta' %} · {{ registro.cuando|date:'H:i' }}{% endif %} · {{ registro.veterinario.get_full_name|default:registro.veterinario.username }}</span>
+                        </span>
+                        <span class="hc-registro__resumen">{% if registro.tipo == 'consulta' %}Motivo: {{ registro.motivo|default:'sin motivo registrado' }}{% else %}{{ registro.detalle }}{% endif %}</span>
+                        <span class="hc-insignia hc-insignia--{{ registro.tono }}">{{ registro.insignia }}</span>
+                        <span class="hc-registro__flecha" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+                      </summary>
+                      <div class="hc-registro__detalle">
+                        {% if registro.tipo == 'consulta' %}
+                          <dl class="hc-datos">
+                            <div><dt>Diagnóstico</dt><dd>{{ registro.consulta.diagnostico|linebreaksbr }}</dd></div>
+                            {% if registro.consulta.indicaciones %}<div><dt>Indicaciones para el dueño</dt><dd>{{ registro.consulta.indicaciones|linebreaksbr }}</dd></div>{% endif %}
+                            {% if registro.consulta.peso_kg %}<div><dt>Peso</dt><dd>{{ registro.consulta.peso_kg }} kg</dd></div>{% endif %}
+                          </dl>
+                          {% if registro.recetas %}
+                            <p class="hc-etiqueta">Receta</p>
+                            <ul class="hc-sublista">
+                              {% for receta in registro.recetas %}<li><strong>{{ receta.medicamento }}</strong><span>{{ receta.dosis }} cada {{ receta.frecuencia_horas }} h · {{ receta.duracion_dias }} día{{ receta.duracion_dias|pluralize }}</span></li>{% endfor %}
+                            </ul>
+                          {% endif %}
+                          {% if registro.vacunas %}
+                            <p class="hc-etiqueta">Vacunas aplicadas</p>
+                            <ul class="hc-sublista">
+                              {% for aplicada in registro.vacunas %}<li><strong>{{ aplicada.vacuna.nombre }}</strong><span>{% if aplicada.proxima_dosis %}Próxima dosis: {{ aplicada.proxima_dosis|date:'j M Y' }}{% else %}Sin refuerzo{% endif %}</span></li>{% endfor %}
+                            </ul>
+                          {% endif %}
+                        {% elif registro.tipo == 'receta' %}
+                          <dl class="hc-datos">
+                            <div><dt>Dosis</dt><dd>{{ registro.receta.dosis }} cada {{ registro.receta.frecuencia_horas }} h durante {{ registro.receta.duracion_dias }} día{{ registro.receta.duracion_dias|pluralize }} ({{ registro.receta.tomas }} tomas)</dd></div>
+                            {% if registro.receta.indicaciones %}<div><dt>Indicaciones</dt><dd>{{ registro.receta.indicaciones }}</dd></div>{% endif %}
+                            <div><dt>Por</dt><dd>{{ registro.consulta.diagnostico|truncatechars:120 }}</dd></div>
+                          </dl>
+                        {% else %}
+                          <dl class="hc-datos">
+                            <div><dt>Aplicada</dt><dd>{{ registro.linea.fecha_aplicacion|date:'j \d\e F \d\e Y' }}</dd></div>
+                            <div><dt>Próxima dosis</dt><dd>{% if registro.linea.proxima_dosis %}{{ registro.linea.proxima_dosis|date:'j \d\e F \d\e Y' }}{% else %}No lleva refuerzo{% endif %}</dd></div>
+                            {% if registro.linea.lote %}<div><dt>Lote</dt><dd>{{ registro.linea.lote }}</dd></div>{% endif %}
+                          </dl>
+                        {% endif %}
+                      </div>
+                    </details>
+                  </li>
+                {% endfor %}
+              </ul>
+            </li>
+          {% endfor %}
+        </ol>
+        <p class="hc-vacio" data-sin-resultados hidden>No hay registros con ese filtro.</p>
+      {% else %}
+        <div class="hc-vacio">
+          <i class="bi bi-journal-medical" aria-hidden="true"></i>
+          <p>Aún no hay consultas registradas. Cuando el veterinario atienda a {{ mascota.nombre }}, aparecerán aquí.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <div class="hc-columna hc-lateral">
+      {# Peso: el último registro y la línea de los anteriores #}
+      <section class="hc-tarjeta hc-peso" aria-labelledby="hc-peso-titulo">
+        <h2 class="hc-titulo hc-titulo--tarjeta" id="hc-peso-titulo"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i>Peso</h2>
+        {% if grafico_peso %}
+          <p class="hc-peso__valor">{{ grafico_peso.ultimo.peso }} <span>kg</span></p>
+          <p class="hc-peso__fecha">Último registro: {{ grafico_peso.ultimo.fecha|date:'j/m/Y' }}</p>
+          {% localize off %}
+          <svg class="hc-grafico" viewBox="0 0 {{ grafico_peso.ancho }} {{ grafico_peso.alto|add:22 }}" role="img" aria-label="Peso en las últimas consultas">
+            <path class="hc-grafico__area" d="{{ grafico_peso.area }}"/>
+            <polyline class="hc-grafico__linea" points="{{ grafico_peso.linea }}"/>
+            {% for punto in grafico_peso.puntos %}
+              <circle class="hc-grafico__punto{% if forloop.last %} es-ultimo{% endif %}" cx="{{ punto.x }}" cy="{{ punto.y }}" r="{% if forloop.last %}6{% else %}4.5{% endif %}"><title>{{ punto.fecha|date:'j M Y' }}: {{ punto.peso }} kg</title></circle>
+              <text class="hc-grafico__fecha" x="{{ punto.x }}" y="{{ grafico_peso.alto|add:18 }}">{{ punto.fecha|date:'j M' }}</text>
+            {% endfor %}
+          </svg>
+          {% endlocalize %}
+        {% else %}
+          <p class="hc-peso__fecha">El peso aparece cuando el veterinario lo registra en una consulta.</p>
+        {% endif %}
+      </section>
+
+      {# Vacunas aplicadas: tarjeta oscura con cada vacuna marcada #}
+      <section class="hc-tarjeta hc-vacunas" id="hc-vacunas" aria-labelledby="hc-vacunas-titulo">
+        <div class="hc-vacunas__cabecera">
+          <h2 class="hc-titulo hc-titulo--tarjeta" id="hc-vacunas-titulo"><i class="bi bi-shield-check" aria-hidden="true"></i>Vacunas aplicadas</h2>
+          <span class="hc-vacunas__cuenta">{{ al_dia }}/{{ vigentes|length }}</span>
+        </div>
+        {% if carnet %}
+          <ul class="hc-vacunas__lista">
+            {% for linea in carnet %}
+              <li class="hc-vacuna hc-vacuna--{{ linea.estado }}">
+                <span class="hc-vacuna__marca" aria-hidden="true">{% if linea.estado == 'vencida' %}<i class="bi bi-exclamation-lg"></i>{% else %}<i class="bi bi-check-lg"></i>{% endif %}</span>
+                <span class="hc-vacuna__texto">
+                  <strong>{{ linea.vacuna.nombre }}</strong>
+                  <span>{{ linea.fecha_aplicacion|date:'j M Y' }}{% if linea.proxima_dosis %} · próxima {{ linea.proxima_dosis|date:'j M Y' }}{% endif %} · {{ linea.estado_texto|lower }}</span>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="hc-vacunas__vacio">{{ mascota.nombre }} no tiene vacunas registradas.</p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>

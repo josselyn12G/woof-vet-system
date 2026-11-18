@@ -161,116 +161,6 @@
   gap: 1.25rem;
 }
 
-.historia__titulo {
-  margin-bottom: 1rem;
-}
-
-.historia__columnas {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  align-items: start;
-  gap: 1.25rem;
-}
-
-/* Línea de tiempo: un punto naranja por consulta, unidos por una línea vertical */
-.linea-tiempo {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.linea-tiempo__punto {
-  position: relative;
-  padding: 0 0 1.5rem 1.6rem;
-  border-left: 2px solid var(--p-borde);
-  margin-left: 0.4rem;
-}
-
-.linea-tiempo__punto:last-child {
-  padding-bottom: 0;
-  border-left-color: transparent;
-}
-
-.linea-tiempo__punto::before {
-  content: '';
-  position: absolute;
-  top: 0.3rem;
-  left: -0.45rem;
-  width: 0.8rem;
-  height: 0.8rem;
-  border: 2px solid var(--p-superficie);
-  border-radius: 50%;
-  background: var(--p-acento);
-}
-
-.consulta-historia {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.consulta-historia__fecha {
-  color: var(--p-texto);
-  font-weight: 600;
-}
-
-.consulta-historia__quien {
-  margin: 0.15rem 0 0;
-  color: var(--p-texto-2);
-  font-size: 0.88rem;
-}
-
-.consulta-historia__quien .bi {
-  margin-right: 0.35rem;
-}
-
-.consulta-historia__datos {
-  display: grid;
-  gap: 0.6rem;
-  margin: 0;
-}
-
-.consulta-historia__datos dt,
-.consulta-historia__subtitulo {
-  color: var(--p-texto-2);
-  font-size: 0.78rem;
-  font-weight: 500;
-}
-
-.consulta-historia__datos dd {
-  margin: 0;
-  color: var(--p-texto);
-}
-
-.consulta-historia__subtitulo {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-}
-
-.consulta-historia__lista {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.consulta-historia__lista li {
-  display: grid;
-  gap: 0.1rem;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid var(--p-borde);
-  border-radius: var(--p-radio-control);
-  background: var(--p-acento-tinte);
-  font-size: 0.9rem;
-}
-
-.consulta-historia__lista span {
-  color: var(--p-texto-2);
-  font-variant-numeric: tabular-nums;
-}
-
 .historia__vacia {
   display: grid;
   justify-items: center;
@@ -287,51 +177,6 @@
 
 .historia__vacia p {
   margin: 0;
-}
-
-/* Lista de todas las vacunas */
-.vacunas-historia {
-  display: grid;
-  gap: 0.6rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.vacunas-historia__fila {
-  display: grid;
-  gap: 0.1rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid var(--p-linea);
-}
-
-.vacunas-historia__fila:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.vacunas-historia__nombre {
-  color: var(--p-texto);
-  font-weight: 600;
-}
-
-.vacunas-historia__dato {
-  color: var(--p-texto-2);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 991.98px) {
-  .historia__columnas {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* ==========================================================================
-   Menú del cliente: Historia clínica (chips por mascota) y Mis recetas (agrupadas por mascota)
-   ========================================================================== */
-.mi-historial__chips {
-  margin-bottom: -0.25rem;
 }
 
 .recetas-mascota__cabecera {
@@ -428,279 +273,6 @@
   color: #1e7b45;
 }
 
-/* ==========================================================================
-   Historia clínica como tablero (cada mascota y el menú del cliente): resumen arriba y tarjetas
-   redondeadas en rejilla; la de vacunas, oscura, ocupa dos filas a la derecha
-   ========================================================================== */
-.tablero-mascota {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.tablero-mascota__resumen {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem 2rem;
-}
-
-.tablero-mascota__pastillas {
-  display: flex;
-  flex: 1 1 22rem;
-  gap: 0.6rem;
-  max-width: 40rem;
-}
-
-.pastilla-estado {
-  display: grid;
-  flex: 1 1 0;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.pastilla-estado__etiqueta {
-  color: var(--p-texto-2);
-  font-size: 0.8rem;
-}
-
-.pastilla-estado__barra {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 2.4rem;
-  padding: 0 0.85rem;
-  overflow: hidden;
-  border: 1px solid var(--p-borde);
-  border-radius: 999px;
-  background: var(--p-superficie);
-  color: var(--p-texto);
-  font-size: 0.82rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  isolation: isolate;
-}
-
-/* El relleno de la pastilla es el porcentaje de vacunas en ese estado */
-.pastilla-estado__barra::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  z-index: -1;
-  width: var(--ancho, 0%);
-  border-radius: inherit;
-  background: var(--relleno);
-}
-
-.pastilla-estado__barra--al_dia { --relleno: #cfeedc; }
-.pastilla-estado__barra--proxima { --relleno: #fbe0bf; }
-.pastilla-estado__barra--vencida { --relleno: #f8cfd3; }
-
-.tablero-mascota__cifras {
-  display: flex;
-  gap: 2rem;
-  margin: 0;
-}
-
-.tablero-mascota__cifras div {
-  display: grid;
-  justify-items: end;
-}
-
-.tablero-mascota__cifras dt {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  order: 2;
-  color: var(--p-texto-2);
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.tablero-mascota__cifras dd {
-  margin: 0;
-  color: var(--p-texto);
-  font-size: 2.6rem;
-  font-weight: 300;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.tablero-mascota__rejilla {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(16rem, 1.15fr);
-  grid-template-areas:
-    'foto peso proxima vacunas'
-    'consultas consultas consultas vacunas';
-  align-items: start;
-  gap: 1.1rem;
-}
-
-.tarjeta-tablero {
-  display: grid;
-  align-content: start;
-  gap: 0.75rem;
-  min-width: 0;
-  min-height: 15rem;
-  padding: 1.15rem 1.25rem;
-  border: 1px solid var(--p-borde);
-  border-radius: 1.4rem;
-  background: var(--p-superficie);
-}
-
-.tarjeta-tablero__cabecera {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.tarjeta-tablero__titulo {
-  margin: 0;
-  color: var(--p-texto);
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.tarjeta-tablero__icono {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid var(--p-borde);
-  border-radius: 50%;
-  color: var(--p-texto-2);
-  font-size: 0.85rem;
-}
-
-.tarjeta-tablero__grande {
-  margin: 0;
-  color: var(--p-texto);
-  font-size: 2rem;
-  font-weight: 300;
-  line-height: 1;
-}
-
-.tarjeta-tablero__grande small {
-  font-size: 0.9rem;
-  color: var(--p-texto-2);
-}
-
-.tarjeta-tablero__vacio,
-.tarjeta-tablero__pie {
-  margin: 0;
-  color: var(--p-texto-2);
-  font-size: 0.85rem;
-}
-
-.tarjeta-tablero__pie {
-  text-align: center;
-}
-
-.tarjeta-tablero__pie strong {
-  color: var(--p-texto);
-}
-
-/* Foto: la imagen llena la tarjeta y el nombre va encima, sobre un degradado */
-.tarjeta-tablero--foto {
-  grid-area: foto;
-  position: relative;
-  min-height: 15rem;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-}
-
-.tarjeta-tablero--foto .avatar-inicial {
-  font-size: 4rem;
-}
-
-.tarjeta-tablero__velo {
-  position: absolute;
-  inset: auto 0 0 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 2.5rem 1rem 1rem;
-  background: linear-gradient(to top, rgba(43, 28, 20, 0.78), transparent);
-  color: #fff;
-}
-
-.tarjeta-tablero__nombre {
-  margin: 0;
-  color: #fff;
-  font-family: inherit;
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-.tarjeta-tablero__rasgos {
-  margin: 0.1rem 0 0;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.8rem;
-}
-
-.tarjeta-tablero__peso {
-  flex: none;
-  padding: 0.3rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
-  font-size: 0.82rem;
-  font-weight: 600;
-  backdrop-filter: blur(4px);
-}
-
-.tarjeta-tablero--peso { grid-area: peso; }
-.tarjeta-tablero--centro { grid-area: proxima; justify-items: center; }
-.tarjeta-tablero--centro .tarjeta-tablero__cabecera { justify-self: stretch; }
-
-/* Peso: barras finas con punta redonda, como un gráfico de progreso */
-.barras-peso {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.4rem;
-  height: 7.5rem;
-  margin: 0.5rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.barras-peso__barra {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-}
-
-.barras-peso__barra::before {
-  content: '';
-  width: 0.45rem;
-  height: calc(var(--alto, 0%) - 1.2rem);
-  min-height: 0.6rem;
-  border-radius: 999px;
-  background: var(--p-texto-2);
-  opacity: 0.55;
-}
-
-.barras-peso__barra.es-ultima::before {
-  background: var(--p-acento);
-  opacity: 1;
-}
-
-.barras-peso__fecha {
-  margin-top: 0.35rem;
-  color: var(--p-texto-2);
-  font-size: 0.68rem;
-  font-variant-numeric: tabular-nums;
-}
-
 /* Próxima vacuna: anillo que marca cuánto del refuerzo ya pasó */
 .anillo {
   display: grid;
@@ -727,125 +299,11 @@
   font-size: 0.75rem;
 }
 
-/* Vacunas: tarjeta oscura con cada vacuna como una tarea marcada */
-.tarjeta-tablero--oscura {
-  grid-area: vacunas;
-  align-self: stretch;
-  border: 0;
-  background: #4a3529;
-  color: #f5e9df;
-}
-
-.tarjeta-tablero--oscura .tarjeta-tablero__titulo {
-  color: #fff;
-}
-
-.tarjeta-tablero--oscura .tarjeta-tablero__vacio {
-  color: rgba(245, 233, 223, 0.75);
-}
-
-.tarjeta-tablero__contador {
-  color: #fff;
-  font-size: 1.6rem;
-  font-weight: 300;
-  font-variant-numeric: tabular-nums;
-}
-
-.lista-vacunas {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.lista-vacunas__fila {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.lista-vacunas__icono {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fdebd3;
-}
-
-.lista-vacunas__texto {
-  display: grid;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.lista-vacunas__texto strong {
-  overflow: hidden;
-  color: #fff;
-  font-size: 0.88rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.lista-vacunas__texto span {
-  color: rgba(245, 233, 223, 0.7);
-  font-size: 0.72rem;
-}
-
-.lista-vacunas__estado {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  font-size: 0.8rem;
-}
-
-.lista-vacunas__estado--al_dia { background: #5fbf8a; color: #fff; }
-.lista-vacunas__estado--reforzada { background: rgba(255, 255, 255, 0.25); color: #fff; }
-.lista-vacunas__estado--proxima { background: var(--p-acento); color: #fff; }
-.lista-vacunas__estado--vencida { background: #e0525c; color: #fff; }
-
-.tablero-mascota__consultas {
-  grid-area: consultas;
-  min-width: 0;
-}
-
-@media (max-width: 1199.98px) {
-  .tablero-mascota__rejilla {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-areas:
-      'foto peso proxima'
-      'vacunas vacunas vacunas'
-      'consultas consultas consultas';
-  }
-}
-
-@media (max-width: 767.98px) {
-  .tablero-mascota__rejilla {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'foto' 'peso' 'proxima' 'vacunas' 'consultas';
-  }
-
-  .tablero-mascota__cifras {
-    gap: 1.25rem;
-  }
-
-  .tablero-mascota__cifras dd {
-    font-size: 2rem;
-  }
-}
-
 /* ==========================================================================
    Historia clínica · tipografía y superficies (minimalista, al estilo de las apps de Apple)
    Roles con nombre por su función: así el mismo papel se ve igual en todas las tarjetas.
    La fuente es la del sistema (SF Pro en Mac/iPhone); la marca queda en el naranja y el café.
    ========================================================================== */
-.tablero-mascota,
 .historia {
   --h-seccion: 1.375rem;       /* "Consultas" */
   --h-tarjeta: 1.0625rem;      /* "Peso", "Próxima vacuna" */
@@ -855,13 +313,6 @@
   --h-etiqueta: 0.8125rem;     /* "Motivo", "Diagnóstico" */
   --h-sombra: 0 1px 2px rgba(59, 42, 34, 0.05), 0 12px 32px -18px rgba(59, 42, 34, 0.28);
   font-family: var(--woof-fuente-texto);
-}
-
-/* Títulos de sección: más grandes y apretados que los de tarjeta, para que se lean como capítulos */
-.historia__encabezado {
-  display: grid;
-  gap: 0.25rem;
-  margin-bottom: 1.5rem;
 }
 
 .historia__titulo-seccion {
@@ -875,179 +326,11 @@
   text-wrap: balance;
 }
 
-.historia__subtitulo,
-.tarjeta-tablero__subtitulo {
-  margin: 0;
-  color: var(--p-texto-2);
-  font-size: var(--h-subtitulo);
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.tarjeta-tablero__subtitulo {
-  margin-top: 0.15rem;
-}
-
-/* Tarjetas: sin borde, sombra suave con desplazamiento y aire generoso */
-.tarjeta-tablero,
-.tablero-mascota__consultas > .bloque-panel {
-  border: 0;
-  border-radius: 1.5rem;
-  box-shadow: var(--h-sombra);
-}
-
-.tarjeta-tablero {
-  gap: 1rem;
-  padding: 1.4rem 1.5rem;
-}
-
-.tablero-mascota__consultas > .bloque-panel {
-  padding: 1.75rem 1.75rem 1.5rem;
-}
-
-.tarjeta-tablero__cabecera {
-  align-items: flex-start;
-}
-
-.tarjeta-tablero__titulo {
-  font-size: var(--h-tarjeta);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.25;
-}
-
-.tarjeta-tablero__icono {
-  border: 0;
-  background: var(--p-fondo);
-}
-
 /* Números: semibold y apretados, con cifras tabulares (como los widgets de Salud) */
-.tarjeta-tablero__grande,
-.tablero-mascota__cifras dd,
-.anillo__dias,
-.tarjeta-tablero__contador {
+.anillo__dias {
   font-weight: 600;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
-}
-
-.tablero-mascota__cifras dd {
-  font-size: var(--h-cifra);
-}
-
-.tarjeta-tablero__grande {
-  font-size: 2.25rem;
-}
-
-.tarjeta-tablero__grande small {
-  margin-left: 0.15rem;
-  font-size: 1rem;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.tablero-mascota__cifras dt,
-.pastilla-estado__etiqueta {
-  font-size: var(--h-etiqueta);
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.pastilla-estado__barra {
-  border: 0;
-  box-shadow: inset 0 0 0 1px var(--p-borde);
-}
-
-/* Foto: el nombre como titular y los rasgos como subtítulo, sobre el degradado */
-.tarjeta-tablero--foto {
-  box-shadow: var(--h-sombra);
-}
-
-.tarjeta-tablero__nombre {
-  font-size: 1.5rem;
-  font-weight: 650;
-  letter-spacing: -0.022em;
-  line-height: 1.15;
-}
-
-.tarjeta-tablero__rasgos {
-  margin-top: 0.2rem;
-  font-size: var(--h-subtitulo);
-  line-height: 1.35;
-}
-
-/* Tarjeta oscura: texto claro con un punto más de peso e interlineado (se lee mejor sobre oscuro) */
-.tarjeta-tablero--oscura .tarjeta-tablero__subtitulo {
-  color: rgba(245, 233, 223, 0.72);
-}
-
-.lista-vacunas {
-  gap: 0.85rem;
-}
-
-.lista-vacunas__texto strong {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-}
-
-.lista-vacunas__texto span {
-  font-size: 0.78rem;
-  line-height: 1.45;
-  letter-spacing: 0.005em;
-}
-
-/* Línea de tiempo: la fecha es el titular de cada consulta; el veterinario, su subtítulo */
-.consulta-historia {
-  gap: 0.9rem;
-}
-
-.consulta-historia__fecha {
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-}
-
-.consulta-historia__quien {
-  margin-top: 0.2rem;
-  font-size: var(--h-subtitulo);
-}
-
-.consulta-historia__datos {
-  gap: 0.85rem;
-}
-
-.consulta-historia__datos div {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.consulta-historia__datos dt,
-.consulta-historia__subtitulo {
-  font-size: var(--h-etiqueta);
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.consulta-historia__datos dd {
-  max-width: 68ch;
-  font-size: var(--h-texto);
-  line-height: 1.55;
-}
-
-.consulta-historia__subtitulo {
-  margin-top: 0.25rem;
-  color: var(--p-texto);
-  font-weight: 600;
-}
-
-.consulta-historia__lista li {
-  border: 0;
-  border-radius: 0.9rem;
-}
-
-.linea-tiempo__punto {
-  padding-bottom: 2rem;
 }
 
 /* Mis recetas: el medicamento es el titular de cada receta */
@@ -1071,25 +354,6 @@
   font-size: 0.9375rem;
 }
 
-/* Ajustes de la revisión visual: la fila de tarjetas con la misma altura, la de vacunas sin hueco oscuro
-   (una sola fila, con scroll propio si son muchas) y las consultas a todo el ancho */
-.tablero-mascota__rejilla {
-  grid-template-areas:
-    'foto peso proxima vacunas'
-    'consultas consultas consultas consultas';
-  align-items: stretch;
-}
-
-.tarjeta-tablero--oscura {
-  max-height: 22rem;
-  overflow-y: auto;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
-}
-
-.tablero-mascota__consultas {
-  align-self: start;
-}
-
 /* Mis recetas: las secciones por mascota con la misma superficie que el tablero */
 .historia > .bloque-panel {
   border: 0;
@@ -1101,25 +365,6 @@
   font-size: var(--h-tarjeta);
   font-weight: 600;
   letter-spacing: -0.015em;
-}
-
-@media (max-width: 1199.98px) {
-  .tablero-mascota__rejilla {
-    grid-template-areas:
-      'foto peso proxima'
-      'vacunas vacunas vacunas'
-      'consultas consultas consultas';
-  }
-}
-
-@media (max-width: 767.98px) {
-  .tablero-mascota__rejilla {
-    grid-template-areas: 'foto' 'peso' 'proxima' 'vacunas' 'consultas';
-  }
-
-  .tarjeta-tablero--oscura {
-    min-height: 0;
-  }
 }
 
 /* ==========================================================================
@@ -1434,4 +679,553 @@
   .dia-tratamiento__boton {
     transition: none;
   }
+}
+
+/* ================================================================
+   Historia clínica (hc-): la misma para el cliente, el veterinario y la clínica.
+   Colores planos, sin degradados: naranja de la marca, crema, marrón oscuro y un verde para "al día".
+   ================================================================ */
+.hc,
+.hc-cabecera {
+  --hc-naranja: var(--woof-naranja-500);
+  --hc-naranja-texto: var(--p-acento-texto);
+  --hc-crema: #fdf6ee;
+  --hc-marron: #3b2a22;
+  --hc-verde: #2f9e5b;
+  --hc-verde-tinte: #e7f5ec;
+  --hc-rojo: #c4372c;
+  --hc-rojo-tinte: #fbeae8;
+  --hc-radio: 20px;
+  --hc-sombra: 0 1px 2px rgba(59, 42, 34, 0.04), 0 8px 24px -16px rgba(59, 42, 34, 0.22);
+  font-family: var(--woof-fuente-texto);
+  color: var(--p-texto);
+}
+
+/* ---------- Cabecera ---------- */
+.hc-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.hc-volver {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  color: var(--p-texto);
+  font-size: 1.125rem;
+  text-decoration: none;
+  transition: background-color 0.2s, transform 0.2s var(--woof-curva);
+}
+.hc-volver:hover { background: var(--hc-crema); color: var(--p-texto); }
+.hc-volver:active { transform: scale(0.96); }
+.hc-cabecera__textos { flex: 1 1 260px; min-width: 0; }
+.hc-cabecera__titulo {
+  margin: 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.625rem, 1.2rem + 1.4vw, 2.125rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--woof-marron);
+}
+.hc-cabecera__subtitulo {
+  margin: 6px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--p-texto-2);
+}
+.hc-cabecera__acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.hc-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--hc-naranja);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.2s, transform 0.2s var(--woof-curva);
+}
+.hc-boton:hover { background: var(--woof-naranja-600); color: #fff; }
+.hc-boton:active { transform: scale(0.97); }
+.hc-boton--claro { background: var(--p-superficie); border-color: var(--p-borde); color: var(--p-texto); }
+.hc-boton--claro:hover { background: var(--hc-crema); color: var(--p-texto); }
+.hc-boton--claro i { color: var(--hc-naranja-texto); }
+
+/* ---------- Rejilla ----------
+   Las dos filas comparten columnas (angosta a la izquierda, ancha a la derecha): así los bordes y los
+   espacios de 20 px coinciden en toda la página. En la fila 2 el historial va primero en el HTML (en el
+   celular se lee antes), pero en pantalla grande se pinta en la columna ancha. */
+.hc { display: grid; gap: 20px; }
+.hc-fila { display: grid; gap: 20px; }
+.hc-columna { display: grid; gap: 20px; align-content: start; min-width: 0; }
+@media (min-width: 1100px) {
+  .hc-fila { grid-template-columns: minmax(320px, 1fr) minmax(0, 2fr); }
+  .hc-fila--resumen { align-items: stretch; }
+  .hc-fila--resumen > .hc-columna { grid-template-rows: auto 1fr; }
+  .hc-fila--detalle { align-items: start; }
+  .hc-fila--detalle > .hc-historial { grid-column: 2; grid-row: 1; }
+  .hc-fila--detalle > .hc-lateral { grid-column: 1; grid-row: 1; }
+}
+
+.hc-tarjeta {
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: var(--hc-radio);
+  box-shadow: var(--hc-sombra);
+  padding: 22px 24px;
+  min-width: 0;
+}
+.hc-etiqueta {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--p-texto-2);
+}
+.hc-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.1875rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--woof-marron);
+}
+.hc-titulo i { color: var(--hc-naranja); font-size: 1.05em; }
+.hc-titulo--tarjeta { font-size: 1.0625rem; }
+
+/* ---------- Selector de mascota: control segmentado (como en las apps de Apple) ---------- */
+.hc .filtro-mascotas {
+  justify-self: start;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: #ebebee;
+}
+.hc .filtro-mascotas__opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 16px 4px 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--p-texto-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.hc .filtro-mascotas__opcion:hover { color: var(--p-texto); background: rgba(255, 255, 255, 0.55); }
+.hc .filtro-mascotas__opcion.es-activo {
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 8px -2px rgba(0, 0, 0, 0.12);
+}
+.hc .filtro-mascotas__foto {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 0.8125rem;
+}
+.hc .filtro-mascotas__foto img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Tarjeta de la mascota: la foto a sangre y el nombre encima ---------- */
+.hc-mascota {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: 300px;
+  height: 100%;
+  border-radius: var(--hc-radio);
+  background: var(--hc-naranja);
+  color: #fff;
+  box-shadow: var(--hc-sombra);
+}
+.hc-mascota__fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+/* Sin foto: la inicial grande en el naranja y la huella de adorno */
+.hc-mascota__inicial {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  z-index: -1;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 7rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.28);
+}
+.hc-mascota__huella {
+  position: absolute;
+  right: -12px;
+  top: -10px;
+  z-index: -1;
+  width: 150px;
+  height: 150px;
+  fill: rgba(255, 255, 255, 0.16);
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
+/* La ficha: una franja abajo. Sobre la foto es vidrio esmerilado oscuro (se lee en cualquier foto) */
+.hc-mascota__ficha {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 20px 22px;
+  min-width: 0;
+}
+.hc-mascota--foto .hc-mascota__ficha {
+  margin: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(30, 20, 15, 0.42);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+.hc-mascota__nombre {
+  margin: 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.625rem, 1.2rem + 1vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #fff;
+}
+.hc-mascota__rasgos { margin: 4px 0 0; font-size: 0.9375rem; font-weight: 500; line-height: 1.35; color: rgba(255, 255, 255, 0.9); }
+.hc-mascota__peso {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Cifras ---------- */
+.hc-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; }
+.hc-cifra {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icono numero" "icono texto";
+  align-items: center;
+  column-gap: 12px;
+  padding: 16px 18px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: var(--hc-radio);
+  box-shadow: var(--hc-sombra);
+  min-width: 0;
+}
+.hc-cifra__icono {
+  grid-area: icono;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1.2rem;
+}
+.hc-cifra dd {
+  grid-area: numero;
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--woof-marron);
+}
+.hc-cifra dt { grid-area: texto; margin-top: 4px; font-size: 0.8125rem; font-weight: 500; color: var(--p-texto-2); }
+
+/* ---------- Vacunación ---------- */
+.hc-vacunacion { display: grid; gap: 20px; }
+@media (min-width: 640px) {
+  .hc-vacunacion { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+  .hc-vacunacion__proxima { border-left: 1px solid var(--p-linea); padding-left: 22px; }
+}
+.hc-vacunacion__porcentaje { margin: 6px 0 12px; line-height: 1; font-size: 0.9375rem; color: var(--p-texto-2); }
+.hc-vacunacion__porcentaje strong {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--hc-verde);
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+.hc-barra { height: 8px; border-radius: 999px; background: var(--p-linea); overflow: hidden; }
+.hc-barra span { display: block; width: var(--ancho, 0%); height: 100%; border-radius: inherit; background: var(--hc-verde); }
+.hc-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-leyenda li { display: inline-flex; align-items: center; gap: 6px; }
+.hc-punto { width: 8px; height: 8px; border-radius: 50%; background: var(--hc-naranja); }
+.hc-punto--ok { background: var(--hc-verde); }
+.hc-punto--alerta { background: var(--hc-rojo); }
+.hc-vacunacion__proxima { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: start; }
+.hc-vacunacion__icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1.2rem;
+}
+.hc-vacunacion__nombre { margin: 4px 0 2px; font-size: 1.0625rem; font-weight: 700; line-height: 1.3; color: var(--p-texto); }
+.hc-vacunacion__fecha { margin: 0; font-size: 0.875rem; color: var(--p-texto-2); }
+.hc-pastilla {
+  grid-column: 2;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hc-pastilla:hover { background: var(--woof-naranja-100); color: var(--hc-naranja-texto); }
+
+/* ---------- Historial médico ---------- */
+.hc-historial { padding: 24px; }
+.hc-historial__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.hc-filtros { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hc-filtro,
+.hc-buscar {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--p-borde);
+  background: var(--p-superficie);
+  color: var(--p-texto-2);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.hc-filtro:hover, .hc-buscar:hover { color: var(--p-texto); border-color: var(--p-control); }
+.hc-filtro.es-activo { background: var(--hc-naranja); border-color: var(--hc-naranja); color: #fff; }
+.hc-buscar { width: 36px; padding: 0; display: grid; place-items: center; }
+.hc-busqueda { margin-top: 14px; width: 100%; }
+.hc-filtro:focus-visible, .hc-buscar:focus-visible, .hc-registro__fila:focus-visible, .hc-volver:focus-visible, .hc-boton:focus-visible {
+  outline: 2px solid var(--hc-naranja);
+  outline-offset: 2px;
+}
+
+.hc-meses, .hc-registros { list-style: none; margin: 0; padding: 0; }
+.hc-mes { margin-top: 22px; }
+.hc-mes[hidden], .hc-registro[hidden] { display: none; }
+.hc-mes__titulo { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.hc-mes__titulo span:first-child {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.hc-mes__cuenta { font-size: 0.8125rem; color: var(--p-texto-2); }
+
+/* Cada registro: una fila que se despliega. La línea vertical une los íconos del mes */
+.hc-registros { position: relative; }
+.hc-registros::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 22px;
+  bottom: 22px;
+  width: 2px;
+  background: var(--p-linea);
+}
+.hc-registro { position: relative; }
+.hc-registro + .hc-registro { border-top: 1px solid var(--p-linea); }
+.hc-registro details > summary { list-style: none; }
+.hc-registro details > summary::-webkit-details-marker { display: none; }
+.hc-registro__fila {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.1fr) minmax(0, 1.4fr) auto 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 6px 12px 0;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.hc-registro__icono {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1.15rem;
+  box-shadow: 0 0 0 4px var(--p-superficie);
+}
+.hc-registro--vacuna .hc-registro__icono { background: var(--hc-verde-tinte); color: var(--hc-verde); }
+.hc-registro--receta .hc-registro__icono { background: #f1ecfb; color: #6b4fbb; }
+.hc-registro__titulos { display: grid; gap: 2px; min-width: 0; }
+.hc-registro__titulos strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-registro__titulos span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-registro__resumen {
+  padding-left: 14px;
+  border-left: 1px solid var(--p-borde);
+  font-size: 0.875rem;
+  color: var(--p-texto-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hc-registro__flecha { color: var(--p-texto-2); transition: transform 0.25s var(--woof-curva); }
+.hc-registro details[open] .hc-registro__flecha { transform: rotate(180deg); }
+.hc-registro__detalle { padding: 2px 6px 16px 58px; }
+
+.hc-insignia {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--p-linea);
+  color: var(--p-texto-2);
+}
+.hc-insignia--acento { background: var(--p-acento-tinte); color: var(--hc-naranja-texto); }
+.hc-insignia--ok { background: var(--hc-verde-tinte); color: #1f7a44; }
+.hc-insignia--alerta { background: var(--hc-rojo-tinte); color: var(--hc-rojo); }
+
+.hc-datos { display: grid; gap: 10px; margin: 0 0 12px; }
+.hc-datos dt { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--p-texto-2); }
+.hc-datos dd { margin: 2px 0 0; font-size: 0.9375rem; line-height: 1.5; color: var(--p-texto); }
+.hc-sublista { list-style: none; margin: 6px 0 12px; padding: 0; display: grid; gap: 6px; }
+.hc-sublista li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--hc-crema); font-size: 0.875rem; }
+.hc-sublista span { color: var(--p-texto-2); }
+
+.hc-vacio { display: grid; justify-items: center; gap: 10px; padding: 36px 16px; text-align: center; color: var(--p-texto-2); }
+.hc-vacio i { font-size: 2rem; color: var(--hc-naranja); }
+.hc-vacio p { margin: 0; max-width: 42ch; line-height: 1.5; }
+p.hc-vacio { padding: 24px 0 4px; }
+
+/* ---------- Peso ---------- */
+.hc-peso__valor {
+  margin: 14px 0 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--woof-marron);
+  font-variant-numeric: tabular-nums;
+}
+.hc-peso__valor span { font-size: 1.125rem; font-weight: 600; color: var(--p-texto-2); letter-spacing: 0; }
+.hc-peso__fecha { margin: 6px 0 0; font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-grafico { display: block; width: 100%; height: auto; margin-top: 14px; overflow: visible; }
+.hc-grafico__area { fill: var(--p-acento-tinte); }
+.hc-grafico__linea { fill: none; stroke: var(--hc-naranja); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.hc-grafico__punto { fill: var(--p-superficie); stroke: var(--hc-naranja); stroke-width: 2.5; }
+.hc-grafico__punto.es-ultimo { fill: var(--hc-naranja); stroke: var(--p-superficie); stroke-width: 3; }
+.hc-grafico__fecha { font-size: 11px; fill: var(--p-texto-2); text-anchor: middle; font-family: var(--woof-fuente-texto); }
+
+/* ---------- Vacunas aplicadas (tarjeta oscura) ---------- */
+.hc-vacunas { background: var(--hc-marron); border-color: var(--hc-marron); color: #fff; }
+.hc-vacunas .hc-titulo { color: #fff; }
+.hc-vacunas .hc-titulo i { color: var(--woof-naranja-300); }
+.hc-vacunas__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hc-vacunas__cuenta {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.hc-vacunas__lista { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 4px; }
+.hc-vacuna { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.hc-vacuna + .hc-vacuna { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.hc-vacuna__marca {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--hc-verde);
+  color: #fff;
+  font-size: 0.95rem;
+}
+.hc-vacuna--proxima .hc-vacuna__marca { background: var(--hc-naranja); }
+.hc-vacuna--vencida .hc-vacuna__marca { background: var(--hc-rojo); }
+.hc-vacuna--reforzada { opacity: 0.6; }
+.hc-vacuna__texto { display: grid; gap: 2px; min-width: 0; }
+.hc-vacuna__texto strong { font-size: 0.9375rem; font-weight: 650; }
+.hc-vacuna__texto span { font-size: 0.8125rem; color: rgba(255, 255, 255, 0.72); }
+.hc-vacunas__vacio { margin: 14px 0 0; color: rgba(255, 255, 255, 0.72); font-size: 0.9375rem; }
+
+/* ---------- Celular ---------- */
+@media (max-width: 720px) {
+  .hc-mascota { min-height: 260px; }
+  .hc .filtro-mascotas { max-width: 100%; }
+  .hc-cifras { gap: 10px; }
+  .hc-cifra { grid-template-columns: 1fr; grid-template-areas: "icono" "numero" "texto"; justify-items: start; row-gap: 8px; padding: 14px; }
+  .hc-cifra__icono { width: 36px; height: 36px; font-size: 1rem; }
+  .hc-tarjeta, .hc-historial { padding: 18px; }
+  .hc-registro__fila { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "icono titulos flecha" "icono resumen insignia"; gap: 4px 12px; }
+  .hc-registro__icono { grid-area: icono; width: 40px; height: 40px; align-self: start; }
+  .hc-registros::before { left: 19px; }
+  .hc-registro__titulos { grid-area: titulos; }
+  .hc-registro__resumen { grid-area: resumen; padding-left: 0; border-left: 0; }
+  .hc-insignia { grid-area: insignia; }
+  .hc-registro__flecha { grid-area: flecha; }
+  .hc-registro__detalle { padding-left: 52px; }
+  .hc-cabecera__acciones { width: 100%; }
+  .hc-cabecera__acciones .hc-boton { flex: 1; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hc-volver, .hc-boton, .hc-registro__flecha { transition: none; }
 }

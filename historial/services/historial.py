@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -137,12 +137,90 @@ class HistorialService:
             ],
             'al_dia': cuenta[AL_DIA[0]],
             'barras_peso': barras,
+            'grafico_peso': HistorialService.grafico_de_peso(barras),
+            'vacunas_al_dia': round(cuenta[AL_DIA[0]] * 100 / len(vigentes)) if vigentes else 0,
+            'cuenta_carnet': cuenta,
             'proxima_vacuna': proxima,
             'total_recetas': len(recetas),
             'recetas_en_curso': sum(
                 1 for r in recetas if r.fecha_inicio <= ahora < r.fecha_inicio + timedelta(days=r.duracion_dias)
             ),
         }
+
+    @staticmethod
+    def historial_medico(consultas, carnet, hoy=None):
+        """
+        La línea de tiempo de la historia: cada consulta, cada vacuna aplicada y cada receta como un registro,
+        de lo más nuevo a lo más viejo y agrupados por mes [(primer día del mes, [registro, ...]), ...].
+        Cada registro sabe su tipo (para el filtro Todas / Consultas / Vacunas / Recetas) y su ícono.
+        """
+        hoy = hoy or timezone.localdate()
+        ahora = timezone.now()
+        registros = []
+        for consulta in consultas:
+            recetas = list(consulta.prescripciones.all())
+            vacunas = list(consulta.vacunas_aplicadas.all())
+            servicio = consulta.cita.servicio.nombre if consulta.cita_id else 'Consulta sin cita'
+            registros.append({
+                'tipo': 'consulta', 'icono': 'bi-clipboard2-pulse', 'cuando': consulta.fecha,
+                'titulo': servicio, 'veterinario': consulta.veterinario, 'motivo': consulta.motivo,
+                'insignia': f'{len(recetas)} receta{"s" if len(recetas) != 1 else ""}' if recetas else 'Atendida',
+                'tono': 'acento' if recetas else 'neutro', 'consulta': consulta, 'recetas': recetas, 'vacunas': vacunas,
+            })
+            for receta in recetas:
+                termina = receta.fecha_inicio + timedelta(days=receta.duracion_dias)
+                en_curso = receta.fecha_inicio <= ahora < termina
+                registros.append({
+                    'tipo': 'receta', 'icono': 'bi-capsule', 'cuando': receta.fecha_inicio,
+                    'titulo': receta.medicamento, 'veterinario': consulta.veterinario,
+                    'detalle': f'{receta.dosis} cada {receta.frecuencia_horas} h · {receta.duracion_dias} días',
+                    'insignia': 'En curso' if en_curso else 'Receta', 'tono': 'ok' if en_curso else 'acento',
+                    'receta': receta, 'consulta': consulta,
+                })
+        for linea in carnet:
+            cuando = timezone.make_aware(datetime.combine(linea.fecha_aplicacion, time(12, 0)))
+            registros.append({
+                'tipo': 'vacuna', 'icono': 'bi-shield-plus', 'cuando': cuando,
+                'titulo': linea.vacuna.nombre, 'veterinario': linea.veterinario,
+                'detalle': f'Vacuna · lote {linea.lote}' if linea.lote else 'Vacuna aplicada en la clínica',
+                'insignia': 'Aplicada' if linea.estado != VENCIDA[0] else 'Refuerzo vencido',
+                'tono': 'ok' if linea.estado != VENCIDA[0] else 'alerta', 'linea': linea,
+            })
+        registros.sort(key=lambda registro: registro['cuando'], reverse=True)
+        por_mes = {}
+        for registro in registros:
+            mes = timezone.localtime(registro['cuando']).date().replace(day=1)
+            por_mes.setdefault(mes, []).append(registro)
+        return list(por_mes.items())
+
+    @staticmethod
+    def grafico_de_peso(barras, ancho=300, alto=110, margen=12):
+        """
+        Los puntos del gráfico de peso (SVG): x repartido a lo ancho y y entre el peso más bajo y el más alto.
+        Con un solo registro, la línea queda plana de un borde al otro y el punto al final.
+        Devuelve los puntos, la línea y el área de abajo (la plantilla los pinta con localize off: sin comas decimales).
+        """
+        if not barras:
+            return None
+        if len(barras) == 1:
+            y = alto / 2
+            punto = {'x': ancho - margen, 'y': y, 'peso': barras[0]['peso'], 'fecha': barras[0]['fecha']}
+            return {
+                'puntos': [punto], 'linea': f'{margen},{y} {ancho - margen},{y}',
+                'area': f'M{margen},{alto} L{margen},{y} L{ancho - margen},{y} L{ancho - margen},{alto} Z',
+                'ancho': ancho, 'alto': alto, 'ultimo': punto,
+            }
+        pesos = [float(barra['peso']) for barra in barras]
+        minimo, maximo = min(pesos), max(pesos)
+        rango = (maximo - minimo) or 1
+        puntos = []
+        for i, barra in enumerate(barras):
+            x = ancho / 2 if len(barras) == 1 else margen + i * (ancho - 2 * margen) / (len(barras) - 1)
+            y = alto / 2 if maximo == minimo else margen + (maximo - float(barra['peso'])) * (alto - 2 * margen) / rango
+            puntos.append({'x': round(x, 1), 'y': round(y, 1), 'peso': barra['peso'], 'fecha': barra['fecha']})
+        linea = ' '.join(f"{p['x']},{p['y']}" for p in puntos)
+        area = f"M{puntos[0]['x']},{alto} L" + ' L'.join(f"{p['x']},{p['y']}" for p in puntos) + f" L{puntos[-1]['x']},{alto} Z"
+        return {'puntos': puntos, 'linea': linea, 'area': area, 'ancho': ancho, 'alto': alto, 'ultimo': puntos[-1]}
 
     @staticmethod
     def carnet_en_datos(lineas):
