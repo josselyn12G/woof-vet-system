@@ -116,7 +116,6 @@ class DemoDeAtencionTests(TestCase):
         self.assertEqual(Cita.objects.filter(veterinario=self.veterinario, estado=EstadoCita.CONFIRMADA).count(), 3)
 
     def test_llena_el_horario_con_atendidas_antes_y_confirmadas_despues(self):
-        from datetime import timedelta
         from citas.models import Cita, EstadoCita, HorarioVeterinario
         from panel.services.demo import DemoAtencionService
         creadas = DemoAtencionService.llenar_semana(self.veterinario, self.mascotas)
