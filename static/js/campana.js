@@ -23,15 +23,22 @@
       panel.querySelectorAll('[data-lista]').forEach((lista) => { lista.hidden = lista.dataset.lista !== clave; });
     }
 
+    // Mientras llegan los avisos: la misma forma del panel con bloques grises que laten (sin bloquear la pantalla)
+    const ESQUELETO = `
+      <div class="campana-panel__cabecera"><span class="campana-esqueleto campana-esqueleto--titulo"></span><span class="campana-esqueleto campana-esqueleto--boton"></span></div>
+      <div class="campana-esqueleto campana-esqueleto--pestanas"></div>
+      ${'<div class="campana-aviso"><span class="campana-esqueleto campana-esqueleto--icono"></span><div><span class="campana-esqueleto campana-esqueleto--linea"></span><span class="campana-esqueleto campana-esqueleto--linea campana-esqueleto--corta"></span></div></div>'.repeat(3)}`;
+
     async function abrir() {
       panel.hidden = false;
       boton.setAttribute('aria-expanded', 'true');
-      if (!panel.innerHTML.trim()) panel.innerHTML = '<p class="campana-panel__vacio">Cargando…</p>';
+      panel.setAttribute('aria-busy', 'true');
+      panel.innerHTML = ESQUELETO;
       try {
-        const pedido = fetch(campana.dataset.panelUrl, { headers: { 'X-Requested-With': 'fetch' } });
-        const respuesta = await (window.WoofCargando ? window.WoofCargando.durante('Cargando avisos', pedido) : pedido);
+        const respuesta = await fetch(campana.dataset.panelUrl, { headers: { 'X-Requested-With': 'fetch' } });
         if (!respuesta.ok) throw new Error(respuesta.status);
         panel.innerHTML = await respuesta.text();
+        panel.removeAttribute('aria-busy');
         // Ya se vieron: fuera el número rojo
         boton.querySelector('.panel-campana__numero')?.remove();
         boton.setAttribute('aria-label', 'Notificaciones');
