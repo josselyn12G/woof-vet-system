@@ -1,0 +1,84 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{# Consultas médicas del veterinario: cifras del mes, las citas atendidas por registrar y las consultas registradas #}
+{% block titulo %}Consultas médicas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=23" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-clipboard2-pulse{% endblock %}
+{% block panel_seccion %}Consultas médicas{% endblock %}
+{% block panel_titulo %}Consultas médicas{% endblock %}
+{% block panel_subtitulo %}Registra el diagnóstico, el peso, las recetas y las vacunas de cada cita atendida.{% endblock %}
+
+{% block panel_contenido %}
+  <div class="hc">
+    <dl class="rx-cifras">
+      <div class="rx-cifra rx-cifra--acento">
+        <dt>Consultas del mes</dt><dd>{{ cifras.consultas_mes }}</dd>
+        <a class="rx-cifra__ir" href="#registradas" aria-label="Ver las consultas registradas"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-calendar-event" aria-hidden="true"></i></span>Desde el 1 de {% now 'F' %}</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Por registrar</dt><dd>{{ cifras.por_registrar }}</dd>
+        <a class="rx-cifra__ir" href="#por-registrar" aria-label="Ver las citas por registrar"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>{% if cifras.por_registrar %}Citas atendidas sin consulta{% else %}Todo al día{% endif %}</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Recetas emitidas</dt><dd>{{ cifras.recetas_mes }}</dd>
+        <a class="rx-cifra__ir" href="#registradas" aria-label="Ver las recetas en las consultas"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-capsule" aria-hidden="true"></i></span>En las consultas del mes</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Pacientes atendidos</dt><dd>{{ cifras.pacientes_mes }}</dd>
+        <a class="rx-cifra__ir" href="{% url 'citas:pacientes' %}" aria-label="Ver los pacientes"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-heart" aria-hidden="true"></i></span>Distintos este mes</p>
+      </div>
+    </dl>
+
+    <div class="hc-fila vet-columnas">
+      <section class="hc-tarjeta" id="por-registrar" aria-labelledby="por-registrar-titulo">
+        <h2 class="hc-titulo hc-titulo--tarjeta" id="por-registrar-titulo"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Por registrar</h2>
+        {% if por_registrar %}
+          <ul class="hc-recientes__lista">
+            {% for cita in por_registrar %}
+              <li class="hc-reciente">
+                <span class="hc-registro__icono" aria-hidden="true"><i class="bi bi-clipboard2-plus"></i></span>
+                <span class="hc-reciente__textos">
+                  <strong>{{ cita.mascota.nombre }} · {{ cita.servicio.nombre }}</strong>
+                  <span>{{ cita.inicio|date:'j M · H:i' }}{% if cita.motivo %} · {{ cita.motivo|truncatechars:40 }}{% endif %}</span>
+                </span>
+                <a class="hc-boton vet-boton-chico" href="{% url 'historial:consulta' cita.pk %}">Registrar</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="hc-peso__fecha">No hay citas atendidas sin consulta. ¡Todo registrado!</p>
+        {% endif %}
+      </section>
+
+      <section class="hc-tarjeta" id="registradas" aria-labelledby="registradas-titulo">
+        <h2 class="hc-titulo hc-titulo--tarjeta" id="registradas-titulo"><i class="bi bi-journal-medical" aria-hidden="true"></i>Consultas registradas</h2>
+        {% if registradas %}
+          <ul class="hc-recientes__lista">
+            {% for consulta in registradas %}
+              <li class="hc-reciente">
+                <span class="hc-registro__icono" aria-hidden="true"><i class="bi bi-clipboard2-pulse"></i></span>
+                <span class="hc-reciente__textos">
+                  <strong>{{ consulta.mascota.nombre }} · {{ consulta.diagnostico|truncatechars:48 }}</strong>
+                  <span>{{ consulta.fecha|date:'j M Y' }}{% if consulta.peso_kg %} · {{ consulta.peso_kg }} kg{% endif %} · {{ consulta.prescripciones.all|length }} receta{{ consulta.prescripciones.all|length|pluralize }} · {{ consulta.vacunas_aplicadas.all|length }} vacuna{{ consulta.vacunas_aplicadas.all|length|pluralize }}</span>
+                </span>
+                <a class="hc-pastilla vet-pastilla" href="{% url 'mascotas:historial' consulta.mascota.pk %}">Historia <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="hc-peso__fecha">Todavía no registras consultas.</p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+{% endblock %}

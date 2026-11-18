@@ -26,11 +26,12 @@ if (form) {
     botonAtras.hidden = actual === 0;
     botonSiguiente.hidden = actual === pasos.length - 1;
     botonEnviar.hidden = actual !== pasos.length - 1;
-    pasos[actual].querySelector('input')?.focus();
+    pasos[actual].querySelector('input, select')?.focus();
   }
 
   // Revisión rápida en el navegador antes de avanzar (Django vuelve a validar todo al enviar)
   function mensajeDeError(input) {
+    if (input.tagName === 'SELECT' && !input.value) return 'Elige una opción de la lista.';
     if (!input.value.trim()) return 'Completa este campo.';
     if (input.type === 'email' && !input.checkValidity()) return 'Escribe un correo válido, por ejemplo ana@correo.com.';
     if (input.name === 'telefono' && !telefonoValido.test(input.value.trim())) {
@@ -45,7 +46,7 @@ if (form) {
   function pasoValido(paso) {
     let valido = true;
     paso.querySelectorAll('.campo').forEach((campo) => {
-      const input = campo.querySelector('input');
+      const input = campo.querySelector('input, select');   // select: país, provincia y ciudad
       campo.querySelector('.campo__error--js')?.remove();
       const mensaje = mensajeDeError(input);
       campo.classList.toggle('campo--con-error', Boolean(mensaje));
@@ -75,6 +76,6 @@ if (form) {
   });
 
   // Si Django devolvió errores, se abre el primer paso que tenga uno
-  const pasoConError = pasos.findIndex((paso) => paso.querySelector('.campo--con-error'));
+  const pasoConError = pasos.findIndex((paso) => paso.querySelector('.campo--con-error, .campo__error'));
   mostrar(pasoConError >= 0 ? pasoConError : 0);
 }

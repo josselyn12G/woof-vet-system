@@ -1,0 +1,35 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Notificaciones · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-bell{% endblock %}
+{% block panel_seccion %}Notificaciones{% endblock %}
+{% block panel_titulo %}Notificaciones{% endblock %}
+{% block panel_subtitulo %}Los avisos de tus citas: también te llegan por correo.{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel">
+    {% for notificacion in notificaciones %}
+      <article class="aviso{% if not notificacion.leida %} aviso--nuevo{% endif %}">
+        <span class="aviso__icono aviso__icono--{{ notificacion.tipo }}" aria-hidden="true">
+          <i class="bi {% if notificacion.tipo == 'agendada' %}bi-calendar-check{% elif notificacion.tipo == 'reprogramada' %}bi-calendar2-week{% elif notificacion.tipo == 'cancelada' %}bi-calendar-x{% else %}bi-alarm{% endif %}"></i>
+        </span>
+        <div class="aviso__cuerpo">
+          <p class="aviso__cabecera">
+            <strong>{{ notificacion.get_tipo_display }}</strong>
+            {% if not notificacion.leida %}<span class="aviso__marca">Nuevo</span>{% endif %}
+            <span class="aviso__fecha">{{ notificacion.creado|date:'j M, H:i' }}</span>
+          </p>
+          <p class="aviso__texto">{{ notificacion.mensaje }}</p>
+        </div>
+      </article>
+    {% empty %}
+      <p class="bloque-panel__vacio">Todavía no tienes avisos. Cuando agendes, reprogrames o canceles una cita, aparecerán aquí.</p>
+    {% endfor %}
+  </section>
+{% endblock %}

@@ -1,0 +1,131 @@
+"""Gestión de la clínica (administrador y superadministrador): todas las citas, los horarios y los indicadores."""
+from datetime import timedelta
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.utils import timezone
+from django.views import View
+from django.views.generic import ListView, TemplateView
+
+from cuentas.mixins import AdministradorRequeridoMixin
+from panel.graficos import columnas, dona
+from panel.services.estadisticas import grafico_de_linea
+
+from ..forms import FiltroCitasForm, IndicadoresForm
+from ..services import (
+    VISTAS_GESTION, AgendaService, CitaService, EstadisticasService, HorarioService, NotificacionService,
+)
+from ..services.horarios import semana_pedida
+
+
+class GestionCitasView(AdministradorRequeridoMixin, ListView):
+    """
+    Todas las citas de la clínica en pestañas (?vista=proximas|hoy|pasadas|todas), con buscador
+    y filtros por estado, veterinario y servicio. Desde aquí se cancela una cita confirmada.
+    """
+    template_name = 'citas/gestion/citas.html'
+    context_object_name = 'citas'
+    paginate_by = 20
+
+    def vista(self):
+        vista = self.request.GET.get('vista', 'proximas')
+        return vista if vista in VISTAS_GESTION else 'proximas'
+
+    def get_queryset(self):
+        self.filtros = FiltroCitasForm(self.request.GET, veterinarios=CitaService.veterinarios())
+        return CitaService.de_la_clinica(self.vista(), **self.filtros.filtros())
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # Los filtros sin la página, para que los enlaces de las páginas los conserven
+        consulta = self.request.GET.copy()
+        consulta.pop('page', None)
+        sin_vista = consulta.copy()
+        sin_vista.pop('vista', None)
+        resumen = CitaService.resumen_de_la_clinica()
+        hoy = timezone.localdate()
+        contexto.update({
+            'filtros': self.filtros,
+            'vista': self.vista(),
+            'vistas': VISTAS_GESTION.items(),
+            'resumen': resumen,
+            # Gráficos de los últimos 30 días: por estado (dona) y por servicio (columnas)
+            'dona_estados': dona([('Atendidas', resumen['atendidas']), ('Próximos 7 días', resumen['semana']),
+                                  ('No asistió', resumen['no_asistio']), ('Canceladas', resumen['canceladas'])]),
+            'columnas_servicios': columnas(EstadisticasService.series_de_indicadores(hoy - timedelta(days=29), hoy)['por_servicio']),
+            'consulta': consulta.urlencode(),
+            'consulta_sin_vista': sin_vista.urlencode(),
+            'hay_filtros': any(self.filtros.filtros().values()),
+            'ahora': timezone.now(),
+        })
+        return contexto
+
+
+class GestionCancelarCitaView(AdministradorRequeridoMixin, View):
+    """
+    El administrador cancela una cita confirmada que todavía no empieza (POST); el turno vuelve a quedar libre.
+    El cliente y el veterinario reciben el aviso con el motivo, si se escribió uno.
+    """
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        cita = get_object_or_404(CitaService.todas(), pk=pk)
+        try:
+            AgendaService.cancelar(cita)
+        except ValidationError as error:
+            messages.error(request, error.messages[0])
+        else:
+            motivo = request.POST.get('motivo', '')[:200]
+            NotificacionService.al_confirmar(NotificacionService.cita_cancelada, cita, cancelada_por=request.user,
+                                             motivo=motivo)
+            messages.success(request, f'Se canceló la cita de {cita.mascota}. El horario quedó libre.')
+        destino = request.POST.get('volver', '')
+        # Solo se vuelve a la propia gestión de citas (nunca a una URL de afuera)
+        if not destino.startswith(reverse('citas:gestion_citas')):
+            destino = reverse('citas:gestion_citas')
+        return redirect(destino)
+
+
+class GestionHorariosView(AdministradorRequeridoMixin, TemplateView):
+    """La semana de toda la clínica: una fila por veterinario y una columna por día, con sus bloques."""
+    template_name = 'citas/gestion/horarios.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto.update(HorarioService.semana_de_la_clinica(semana_pedida(self.request.GET.get('semana'))))
+        return contexto
+
+
+class IndicadoresView(AdministradorRequeridoMixin, TemplateView):
+    """
+    Indicadores de la agenda (RF-25, §2.5): por rango de fechas y, si se elige, de un solo veterinario.
+    Citas por estado, ocupación de cada veterinario e ingresos de las citas atendidas.
+    """
+    template_name = 'citas/gestion/indicadores.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        veterinarios = CitaService.veterinarios()
+        # Sin parámetros, el formulario se llena con los últimos 30 días (lo mismo que se muestra)
+        if self.request.GET:
+            form = IndicadoresForm(self.request.GET, veterinarios=veterinarios)
+        else:
+            desde, hasta = IndicadoresForm.rango_por_defecto()
+            form = IndicadoresForm(initial={'desde': desde, 'hasta': hasta}, veterinarios=veterinarios)
+        desde, hasta, veterinario = form.filtros()
+        contexto.update(EstadisticasService.indicadores(desde, hasta, veterinario))
+        contexto.update({'form': form, 'desde': desde, 'hasta': hasta, 'veterinario': veterinario})
+        # Gráficos: citas por estado (dona), por día (línea), por servicio e ingresos por veterinario (columnas)
+        series = EstadisticasService.series_de_indicadores(desde, hasta, veterinario)
+        contexto.update({
+            'dona_estados': dona([(nombre, cantidad) for _, nombre, cantidad in contexto['por_estado']]),
+            'grafico': grafico_de_linea(series['fechas'], series['citas_por_dia']),
+            'citas_en_rango': sum(series['citas_por_dia']),
+            'columnas_servicios': columnas(series['por_servicio']),
+            'columnas_ingresos': columnas([
+                ((fila['veterinario'].first_name or fila['veterinario'].username), int(fila['ingresos']))
+                for fila in contexto['filas']
+            ]),
+        })
+        return contexto

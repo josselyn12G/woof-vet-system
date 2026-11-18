@@ -1,0 +1,51 @@
+{% comment %}
+  Correo con un botón que lleva a un enlace (verificar el correo, crear una contraseña nueva).
+  Mismo diseño que codigo.html: tablas y estilos en cada etiqueta, que es lo que entienden Gmail y Outlook.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ titulo }}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f5f4; font-family:Arial, Helvetica, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f5f5f4; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+               style="max-width:480px; background-color:#ffffff; border-radius:20px; overflow:hidden;">
+          <tr>
+            <td align="center" style="padding:32px 32px 8px;">
+              <img src="cid:logo-woof" width="120" alt="Woof" style="display:block; width:120px; height:auto; border:0;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px 0; color:#3b2a22;">
+              <p style="margin:0 0 8px; font-size:20px; font-weight:bold; color:#573f33;">Hola, {{ nombre }}</p>
+              <p style="margin:0; font-size:15px; line-height:1.6; color:#5b4a40;">{{ texto }}</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px 32px;">
+              <a href="{{ enlace }}" style="display:inline-block; padding:14px 28px; border-radius:999px; background-color:#ee9a35;
+                 color:#ffffff; font-size:16px; font-weight:bold; text-decoration:none;">{{ boton }}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 28px; color:#5b4a40; font-size:13px; line-height:1.6;">
+              <p style="margin:0 0 12px;">{{ aviso }}</p>
+              <p style="margin:0; word-break:break-all; color:#8a7a70;">Si el botón no funciona, copia este enlace en el navegador:<br>{{ enlace }}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px; background-color:#573f33; color:#f5e9df; font-size:12px; text-align:center;">
+              Sistema Veterinario Woof
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

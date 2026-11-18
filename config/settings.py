@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -59,6 +60,8 @@ INSTALLED_APPS = [
     'cuentas',
     'mascotas',
     'citas',
+    'historial',  # la historia clínica: consultas y vacunas (nace de una cita atendida)
+    'panel',     # la portada de cada rol: depende de las otras apps, ninguna depende de ella
 ]
 
 MIDDLEWARE = [
@@ -84,6 +87,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'citas.context_processors.notificaciones',
             ],
         },
     },
@@ -167,12 +171,15 @@ AUTH_USER_MODEL = 'cuentas.Usuario'
 
 # Autenticación: a donde redirigir
 LOGIN_URL = 'cuentas:login'
-LOGIN_REDIRECT_URL = 'cuentas:panel'   # /panel/ reparte a cada usuario a la portada de su rol
+LOGIN_REDIRECT_URL = 'panel:panel'   # /panel/ reparte a cada usuario a la portada de su rol
 LOGOUT_REDIRECT_URL = 'cuentas:inicio'
 
 # Doble factor (código al correo) al iniciar sesión. Render (plan gratis) bloquea el SMTP,
 # así que allá se apaga con DJANGO_DOBLE_FACTOR=False; en local queda activo
 DOBLE_FACTOR = os.environ.get('DJANGO_DOBLE_FACTOR', 'True') == 'True'
+# Avisos de las citas por correo (F8). Por lo mismo, en Render se apagan con DJANGO_CORREO_AVISOS=False:
+# los avisos se siguen guardando y se ven en la campana del panel
+CORREO_AVISOS = os.environ.get('DJANGO_CORREO_AVISOS', 'True') == 'True'
 
 # Correo: Gmail por SMTP (credenciales en el .env)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -182,3 +189,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = f'Woof <{EMAIL_HOST_USER}>'
+# Si el SMTP no responde, se deja de esperar a los 10 segundos (sin esto la página se quedaría colgada)
+EMAIL_TIMEOUT = 10
+# Los avisos de las citas salen por correo en un hilo aparte (la reserva responde sin esperar al SMTP).
+# En las pruebas se envían en el momento para revisar mail.outbox.
+AVISOS_EN_SEGUNDO_PLANO = 'test' not in sys.argv

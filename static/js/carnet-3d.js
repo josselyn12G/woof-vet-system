@@ -81,12 +81,13 @@ export async function abrirCarnet(dialogo) {
     document.fonts.load(`700 60px ${TITULOS}`),
   ]);
 
+  const vacunas = leerVacunas(dialogo);
   const caras = {
     portada: dibujarFrente(datos, foto, logo),
     datos: dibujarDatos(datos, logo),
-    vacunas: dibujarVacunas(datos, 1),
-    vacunasMas: dibujarVacunas(datos, 2),
-    proximas: dibujarProximas(datos),
+    vacunas: dibujarVacunas(datos, 1, vacunas),
+    vacunasMas: dibujarVacunas(datos, 2, vacunas),
+    proximas: dibujarProximas(datos, vacunas),
     reverso: dibujarReverso(datos, logoBlanco),
   };
 
@@ -342,6 +343,7 @@ function dibujarReverso(d, logoBlanco) {
 
 // Corta el texto con "…" si no cabe en el ancho dado
 function recortar(ctx, texto, ancho) {
+  texto = String(texto ?? '');          // las celdas de las vacunas pueden venir vacías
   if (ctx.measureText(texto).width <= ancho) return texto;
   let corto = texto;
   while (corto.length > 1 && ctx.measureText(`${corto}…`).width > ancho) corto = corto.slice(0, -1);
@@ -437,8 +439,24 @@ function dibujarDatos(d) {
   return canvas;
 }
 
-// Páginas 2 y 3: registro de vacunas, con renglones listos para que el veterinario los llene
-function dibujarVacunas(d, parte) {
+// Las vacunas del carnet llegan como JSON dentro del pop-up (json_script). Sin él, el registro va vacío
+function leerVacunas(dialogo) {
+  const nodo = dialogo.querySelector('script[type="application/json"]');
+  if (!nodo) return [];
+  try {
+    const lista = JSON.parse(nodo.textContent);
+    return Array.isArray(lista) ? lista : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Color de cada estado, como las etiquetas de la vista plana
+const COLOR_ESTADO = { al_dia: '#1e7b45', proxima: '#9a5b00', vencida: '#b4232a', reforzada: COLOR.gris };
+const FILAS_POR_PAGINA = 6;
+
+// Páginas 2 y 3: registro de vacunas, seis renglones por página (las más recientes primero)
+function dibujarVacunas(d, parte, vacunas = []) {
   const lomo = parte === 1 ? 'izquierda' : 'derecha';
   const [canvas, ctx] = hoja(lomo);
   const x = 110;
@@ -460,7 +478,7 @@ function dibujarVacunas(d, parte) {
 
   ctx.strokeStyle = COLOR.linea;
   ctx.lineWidth = 4;                    // grueso: la textura se ve reducida en pantalla
-  for (let fila = 1; fila <= 6; fila += 1) {
+  for (let fila = 1; fila <= FILAS_POR_PAGINA; fila += 1) {
     const y = 316 + fila * 108;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -469,7 +487,7 @@ function dibujarVacunas(d, parte) {
   }
 
   // Sin vacunas: lo dice en el primer renglón (no se inventan registros)
-  if (parte === 1 && !Number(d.vacunas)) {
+  if (parte === 1 && !vacunas.length) {
     ctx.fillStyle = COLOR.marron;
     ctx.font = `700 36px ${TEXTO}`;
     ctx.fillText('Aún no hay vacunas registradas.', x, 380);
@@ -477,19 +495,58 @@ function dibujarVacunas(d, parte) {
     ctx.font = `500 30px ${TEXTO}`;
     ctx.fillText(`El veterinario anotará aquí cada vacuna que reciba ${d.nombre}.`, x, 470);
   }
+
+  // Los renglones de esta página: la 2 lleva las 6 primeras y la 3 las 6 siguientes
+  const desde = (parte - 1) * FILAS_POR_PAGINA;
+  const enEstaPagina = vacunas.slice(desde, desde + FILAS_POR_PAGINA);
+  const anchoColumna = (i) => ((columnas[i + 1]?.[1] ?? 1) - columnas[i][1]) * anchoTabla - 24;
+  enEstaPagina.forEach((vacuna, i) => {
+    const y = 316 + (i + 1) * 108 - 40;   // texto centrado en el renglón
+    const celdas = [vacuna.fecha, vacuna.vacuna, vacuna.lote, vacuna.proxima, vacuna.veterinario];
+    celdas.forEach((texto, columna) => {
+      const esNombre = columna === 1;
+      ctx.font = `${esNombre ? 700 : 500} 30px ${TEXTO}`;
+      ctx.fillStyle = esNombre ? COLOR.marron : COLOR.gris;
+      if (columna === 3 && vacuna.estado) ctx.fillStyle = COLOR_ESTADO[vacuna.estado] || COLOR.gris;
+      ctx.fillText(recortar(ctx, texto, anchoColumna(columna)), x + columnas[columna][1] * anchoTabla, y);
+    });
+  });
+
+  // Si no caben todas, la última página lo avisa: la lista completa está en la vista plana
+  const restantes = vacunas.length - FILAS_POR_PAGINA * 2;
+  if (parte === 2 && restantes > 0) {
+    ctx.fillStyle = COLOR.naranjaTexto;
+    ctx.font = `600 28px ${TEXTO}`;
+    ctx.fillText(`Y ${restantes} más: míralas todas en la vista «Plano».`, x, 316 + FILAS_POR_PAGINA * 108 + 60);
+  }
   numeroDePagina(ctx, parte + 1, lomo);
   return canvas;
 }
 
-// Página 4 (derecha, sobre la contratapa): próximas dosis
-function dibujarProximas(d) {
+// dd/mm/aaaa → número comparable (aaaammdd), para ordenar las próximas dosis
+function comoNumero(fecha) {
+  const [dia, mes, anio] = String(fecha).split('/');
+  return Number(`${anio}${mes}${dia}`) || 0;
+}
+
+// Página 4 (derecha, sobre la contratapa): próximas dosis, de la más cercana a la más lejana
+function dibujarProximas(d, vacunas = []) {
   const [canvas, ctx] = hoja('izquierda');
   const x = 110;
   const derecha = ANCHO - 110;
   tituloDePagina(ctx, 'Próximas dosis', x, 180);
+
+  // Solo la última dosis de cada vacuna (las «reforzadas» ya se renovaron) y solo las que llevan refuerzo
+  const pendientes = vacunas
+    .filter((vacuna) => vacuna.estado !== 'reforzada' && vacuna.proxima && vacuna.proxima !== '—')
+    .sort((a, b) => comoNumero(a.proxima) - comoNumero(b.proxima))
+    .slice(0, 6);
+
   ctx.fillStyle = COLOR.gris;
   ctx.font = `500 32px ${TEXTO}`;
-  ctx.fillText(`Tu veterinario anotará aquí cuándo le toca a ${d.nombre} su siguiente vacuna.`, x, 245);
+  ctx.fillText(pendientes.length
+    ? `Cuándo le toca a ${d.nombre} cada refuerzo.`
+    : `Tu veterinario anotará aquí cuándo le toca a ${d.nombre} su siguiente vacuna.`, x, 245);
 
   ctx.strokeStyle = COLOR.linea;
   ctx.lineWidth = 4;
@@ -500,6 +557,21 @@ function dibujarProximas(d) {
     ctx.lineTo(derecha, y);
     ctx.stroke();
   }
+
+  pendientes.forEach((vacuna, i) => {
+    const y = 360 + i * 100 - 32;
+    ctx.font = `700 32px ${TEXTO}`;
+    ctx.fillStyle = COLOR.marron;
+    ctx.fillText(recortar(ctx, vacuna.vacuna, (derecha - x) * 0.5), x, y);
+    ctx.font = `600 30px ${TEXTO}`;
+    ctx.fillStyle = COLOR.gris;
+    ctx.fillText(vacuna.proxima, x + (derecha - x) * 0.55, y);
+    ctx.fillStyle = COLOR_ESTADO[vacuna.estado] || COLOR.gris;
+    ctx.textAlign = 'right';
+    ctx.fillText(vacuna.estado_texto || '', derecha, y);
+    ctx.textAlign = 'left';
+  });
+
   huellas(ctx, [[derecha - 60, ALTO - 150, -0.4]], 40, 'rgba(238, 154, 53, 0.18)');
   numeroDePagina(ctx, 4, 'izquierda');
   return canvas;

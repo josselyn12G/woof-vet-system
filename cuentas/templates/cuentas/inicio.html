@@ -243,8 +243,8 @@
           <p class="sobretitulo" data-revelar>Servicios</p>
           <h2 class="titulo-seccion" data-revelar data-revelar-retraso="1">Todo lo que tu mascota necesita.</h2>
         </div>
-        {# TODO(backend): cuando exista la agenda (Fase 3), enlazar a la página para agendar #}
-        <a href="#" class="btn btn-outline-primary rounded-pill px-4" data-revelar>Agendar una cita</a>
+        {# Sin sesión, la página de agendar manda al login y, al entrar, vuelve aquí (RF-01) #}
+        <a href="{% url 'citas:agendar' %}" class="btn btn-outline-primary rounded-pill px-4" data-revelar>Agendar una cita</a>
       </div>
       <div class="row g-4">
         <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="0">
@@ -306,7 +306,7 @@
   </section>
 
   {# ================= Nuestros veterinarios ================= #}
-  {# Datos de ejemplo: en la Fase 3 vendrán de la tabla PerfilVeterinario (nombre, especialidad, experiencia) #}
+  {# Los veterinarios verificados con su calificación real (PerfilVeterinarioService.destacados); sin ninguno, ejemplos #}
   <section class="transicion seccion" style="--arriba: #fff; --color: #fff; --abajo: #fff;">
     <div class="container">
       <div class="encabezado-fila">
@@ -314,9 +314,39 @@
           <p class="sobretitulo" data-revelar>Nuestro equipo médico</p>
           <h2 class="titulo-seccion" data-revelar data-revelar-retraso="1">Conoce a nuestros veterinarios.</h2>
         </div>
-        <a href="#" class="btn btn-outline-primary rounded-pill px-4" data-revelar>Ver todos</a>
+        <a href="{% url 'citas:agendar' %}" class="btn btn-outline-primary rounded-pill px-4" data-revelar>Agendar con ellos</a>
       </div>
       <div class="row g-4">
+        {% for veterinario in veterinarios %}
+          {% with perfil=veterinario.perfil_veterinario %}
+            <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="{{ forloop.counter0 }}">
+              <article class="veterinario">
+                {# Foto ilustrativa mientras los veterinarios no suben la suya. La ruta se arma completa antes de static: #}
+                {# con el manifiesto de WhiteNoise (producción), static solo acepta archivos que existen #}
+                {% with numero=forloop.counter|stringformat:"s" %}{% with foto="img/veterinarios/veterinario-"|add:numero|add:".webp" %}
+                  <img class="veterinario__foto" src="{% static foto %}" width="600" height="640" alt="" loading="lazy">
+                {% endwith %}{% endwith %}
+                <div class="veterinario__cuerpo">
+                  <h3 class="veterinario__nombre">{{ veterinario.get_full_name|default:veterinario.username }}</h3>
+                  <p class="veterinario__especialidad">{{ perfil.especialidad|default:"Medicina veterinaria" }}</p>
+                  <p class="veterinario__datos">
+                    {% if veterinario.promedio %}
+                      <span class="veterinario__estrellas" aria-label="Calificación {{ veterinario.promedio|floatformat:1 }} de 5"><i class="bi bi-star-fill"></i></span>
+                      <span>{{ veterinario.promedio|floatformat:1 }} · {{ veterinario.opiniones }} opin{{ veterinario.opiniones|pluralize:"ión,iones" }}</span>
+                    {% else %}
+                      <span>Aún sin opiniones</span>
+                    {% endif %}
+                    {% if perfil.anios_experiencia %}
+                      <span class="veterinario__separador">·</span>
+                      <span><i class="bi bi-award"></i> {{ perfil.anios_experiencia }} año{{ perfil.anios_experiencia|pluralize }} de experiencia</span>
+                    {% endif %}
+                  </p>
+                </div>
+              </article>
+            </div>
+          {% endwith %}
+        {% empty %}
+          {# Todavía no hay veterinarios verificados: se muestran ejemplos para que la portada no quede vacía #}
         <div class="col-md-6 col-lg-4" data-revelar data-revelar-retraso="0">
           <article class="veterinario">
             <img class="veterinario__foto" src="{% static 'img/veterinarios/veterinario-1.webp' %}" width="600" height="640" alt="Retrato de Dra. Ana Pérez" loading="lazy">
@@ -362,6 +392,7 @@
             </div>
           </article>
         </div>
+        {% endfor %}
       </div>
     </div>
   </section>
@@ -456,7 +487,7 @@
             <img class="etapa__imagen" src="{% static 'img/etapas/fase-2.webp' %}" width="128" height="128" alt="" loading="lazy">
             <span class="etapa__estado">Fase 2</span>
             <h3 class="etapa__titulo">Cuenta</h3>
-            <p class="etapa__texto">Inicio de sesión con Google, verificación de correo y recuperar contraseña.</p>
+            <p class="etapa__texto">Verificación de correo, recuperar y cambiar la contraseña, y editar tus datos.</p>
           </div>
         </div>
         <div class="col-md-6 col-lg-3" data-revelar data-revelar-retraso="2">

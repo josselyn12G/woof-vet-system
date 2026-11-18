@@ -1,0 +1,19 @@
+{# Un campo del formulario del panel: etiqueta, control, ayuda y errores. Recibe "campo" #}
+{% if campo.field.widget.input_type == 'checkbox' %}
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__casilla">
+      {{ campo }}
+      <span class="formulario-panel__etiqueta">{{ campo.label }}</span>
+    </label>
+    {% if campo.help_text %}<p class="formulario-panel__ayuda">{{ campo.help_text }}</p>{% endif %}
+    {% for error in campo.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+{% else %}
+  <div class="formulario-panel__campo">
+    <label class="formulario-panel__etiqueta" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+    {{ campo }}
+    {# La ayuda de las contraseñas de Django viene como una lista HTML #}
+    {% if campo.help_text %}<div class="formulario-panel__ayuda">{{ campo.help_text|safe }}</div>{% endif %}
+    {% for error in campo.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </div>
+{% endif %}

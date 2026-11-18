@@ -1,0 +1,17 @@
+{% comment %}
+  Columnas verticales (panel.graficos.columnas). Recibe: columnas y unidad (opcional). La más alta en naranja
+  fuerte; las demás en naranja suave; el valor encima y la etiqueta debajo.
+{% endcomment %}
+{% if columnas %}
+  <ol class="columnas" aria-label="{% for c in columnas %}{{ c.etiqueta }}: {{ unidad|default:'' }}{{ c.valor }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+    {% for c in columnas %}
+      <li class="columnas__item">
+        <span class="columnas__valor">{{ unidad|default:'' }}{{ c.valor }}</span>
+        <span class="columnas__barra"><span style="height: {{ c.alto|stringformat:'s' }}%; background: {{ c.color }}"></span></span>
+        <span class="columnas__etiqueta" title="{{ c.etiqueta }}">{{ c.etiqueta }}</span>
+      </li>
+    {% endfor %}
+  </ol>
+{% else %}
+  <p class="dona__vacio">Sin datos en este período.</p>
+{% endif %}

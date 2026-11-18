@@ -1,0 +1,12 @@
+{% extends 'cuentas/acceso/_pagina.html' %}
+{% block titulo %}Recuperar contraseña · Woof{% endblock %}
+{% block titulo_pagina %}¿Olvidaste tu contraseña?{% endblock %}
+{% block subtitulo %}Escribe el correo de tu cuenta y te enviaremos un enlace para crear una nueva.{% endblock %}
+{% block cuerpo %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include 'cuentas/_campo.html' with campo=form.email icono='bi-envelope' %}
+    <button type="submit" class="acceso__boton registro__boton">Enviar enlace</button>
+  </form>
+  <p class="registro__pie"><a href="{% url 'cuentas:login' %}">Volver a iniciar sesión</a></p>
+{% endblock %}

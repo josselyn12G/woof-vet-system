@@ -1,0 +1,34 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{# Crear o editar una especie o una raza del catálogo: la vista manda form y, al editar, object #}
+{% block titulo %}{% if object %}Editar {{ object }}{% elif form.plural %}Nueva especie{% else %}Nueva raza{% endif %} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-tags{% endblock %}
+{% block panel_seccion %}Especies y razas{% endblock %}
+{% block panel_titulo %}{% if object %}Editar {{ object }}{% elif form.plural %}Nueva especie{% else %}Nueva raza{% endif %}{% endblock %}
+{% block panel_subtitulo %}{% if form.plural %}Las especies activas aparecen al registrar una mascota; las de menor orden salen primero.{% else %}Las razas activas aparecen al registrar una mascota de su especie.{% endif %}{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel bloque-panel--angosto">
+    <form class="formulario-panel" method="post" novalidate>
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}
+        <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+      {% endfor %}
+
+      {% for campo in form %}
+        {% include 'cuentas/superadmin/_campo.html' %}
+      {% endfor %}
+
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel"><i class="bi bi-check2" aria-hidden="true"></i>{% if object %}Guardar cambios{% else %}Agregar{% endif %}</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:especies' %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

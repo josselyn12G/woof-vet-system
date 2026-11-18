@@ -1,0 +1,71 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Mi cuenta · Woof{% endblock %}
+
+{% block panel_icono %}bi-person-circle{% endblock %}
+{% block panel_seccion %}Mi cuenta{% endblock %}
+{% block panel_titulo %}Mi cuenta{% endblock %}
+{% block panel_subtitulo %}{{ user.username }} · cédula {{ user.cedula }} · {{ user.get_rol_display }}{% endblock %}
+
+{% block panel_contenido %}
+  <div class="mi-cuenta">
+    {# HU-22: mis datos. País → provincia → ciudad con los mismos desplegables del registro (ubicacion.js) #}
+    <section class="bloque-panel" aria-labelledby="titulo-datos">
+      <div class="bloque-panel__cabecera"><h2 class="bloque-panel__titulo" id="titulo-datos">Mis datos</h2></div>
+      <form class="formulario-panel" method="post" novalidate
+            data-url-provincias="{% url 'cuentas:provincias' %}" data-url-ciudades="{% url 'cuentas:ciudades' %}">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>{% endfor %}
+        {% with campo=form.first_name %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=form.last_name %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=form.email %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=form.telefono %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=form.pais %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=form.provincia %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        {% with campo=form.ciudad %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+        <p class="formulario-panel__ayuda">Si cambias el correo, te enviaremos un enlace para verificar el nuevo.</p>
+        <div class="formulario-panel__acciones">
+          <button type="submit" class="boton-panel">Guardar cambios</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="mi-cuenta__lado">
+      {# HU-13: el estado del correo #}
+      <section class="bloque-panel" aria-labelledby="titulo-correo">
+        <h2 class="bloque-panel__titulo" id="titulo-correo">Correo</h2>
+        <p class="mi-cuenta__dato">{{ user.email }}</p>
+        {% if user.correo_verificado %}
+          <p class="mi-cuenta__estado mi-cuenta__estado--ok"><i class="bi bi-patch-check-fill" aria-hidden="true"></i>Verificado</p>
+        {% else %}
+          <p class="mi-cuenta__estado"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>Sin verificar</p>
+          <form method="post" action="{% url 'cuentas:reenviar_verificacion' %}">
+            {% csrf_token %}
+            <button type="submit" class="boton-panel boton-panel--secundario">Enviar el enlace otra vez</button>
+          </form>
+        {% endif %}
+      </section>
+
+      {# HU-21: la contraseña #}
+      <section class="bloque-panel" aria-labelledby="titulo-contrasena">
+        <h2 class="bloque-panel__titulo" id="titulo-contrasena">Contraseña</h2>
+        <p class="formulario-panel__ayuda">Cámbiala si crees que alguien más la conoce.</p>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:cambiar_contrasena' %}"><i class="bi bi-key" aria-hidden="true"></i>Cambiar contraseña</a>
+      </section>
+
+      {# HU-23: cuándo aceptó los términos #}
+      <section class="bloque-panel" aria-labelledby="titulo-terminos">
+        <h2 class="bloque-panel__titulo" id="titulo-terminos">Términos y datos</h2>
+        <p class="formulario-panel__ayuda">
+          {% if user.terminos_aceptados_en %}Los aceptaste el {{ user.terminos_aceptados_en|date:'j \d\e F \d\e Y' }}.{% else %}Tu cuenta se creó antes de que existieran.{% endif %}
+          <a href="{% url 'cuentas:terminos' %}">Leer los términos y la política de datos</a>
+        </p>
+      </section>
+    </aside>
+  </div>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'cuentas/js/ubicacion.js' %}" defer></script>
+{% endblock %}

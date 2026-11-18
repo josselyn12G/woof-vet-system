@@ -23,8 +23,33 @@ urlpatterns = [
     path('agendar/dias/', views.DiasDisponiblesView.as_view(), name='dias_disponibles'),
     path('mis-citas/', views.MisCitasView.as_view(), name='mis_citas'),
     path('mis-citas/<int:pk>/cancelar/', views.CancelarCitaView.as_view(), name='cancelar'),
+    path('mis-citas/<int:pk>/reprogramar/', views.ReprogramarCitaView.as_view(), name='reprogramar'),
+    path('mis-citas/<int:pk>/reprogramar/dias/', views.ReprogramarDiasView.as_view(), name='reprogramar_dias'),
+    path('mis-citas/<int:pk>/reprogramar/horas/', views.ReprogramarHorasView.as_view(), name='reprogramar_horas'),
+    path('mis-citas/<int:pk>/calificar/', views.CalificarCitaView.as_view(), name='calificar'),
     # Core: la agenda del veterinario (solo sus citas)
     path('agenda/', views.AgendaVeterinarioView.as_view(), name='agenda'),
     path('agenda/<int:pk>/resultado/', views.ResultadoCitaView.as_view(), name='resultado'),
     path('pacientes/', views.PacientesView.as_view(), name='pacientes'),
+    # Los avisos de las citas (la campana del panel, cualquiera con sesión)
+    path('notificaciones/', views.NotificacionesView.as_view(), name='notificaciones'),
+    path('notificaciones/panel/', views.PanelNotificacionesView.as_view(), name='panel_notificaciones'),
+    # El perfil del veterinario con su calificación (cualquiera con sesión)
+    path('veterinarios/<int:pk>/', views.PerfilVeterinarioView.as_view(), name='perfil_veterinario'),
+    # Gestión de la clínica: administrador y superadministrador (403 para los demás)
+    path('gestion/', views.GestionCitasView.as_view(), name='gestion_citas'),
+    path('gestion/<int:pk>/cancelar/', views.GestionCancelarCitaView.as_view(), name='gestion_cancelar'),
+    path('gestion/horarios/', views.GestionHorariosView.as_view(), name='gestion_horarios'),
+    # RF-25: indicadores de la agenda por rango de fechas y veterinario
+    path('gestion/indicadores/', views.IndicadoresView.as_view(), name='indicadores'),
+    # El horario y los servicios de un veterinario: solo el superadministrador (403 para los demás)
+    path('gestion/horarios/<int:vet>/', views.GestionHorarioView.as_view(), name='gestion_horario'),
+    path('gestion/horarios/<int:vet>/bloques/<int:pk>/editar/', views.GestionHorarioEditarView.as_view(),
+         name='gestion_horario_editar'),
+    path('gestion/horarios/<int:vet>/bloques/<int:pk>/eliminar/', views.GestionHorarioEliminarView.as_view(),
+         name='gestion_horario_eliminar'),
+    path('gestion/horarios/<int:vet>/copiar-semana/', views.GestionCopiarSemanaView.as_view(),
+         name='gestion_horario_copiar'),
+    path('gestion/horarios/<int:vet>/servicios/', views.GestionServiciosVeterinarioView.as_view(),
+         name='gestion_horario_servicios'),
 ]

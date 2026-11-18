@@ -5,6 +5,7 @@ from itertools import count
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.db.models import ProtectedError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
@@ -14,7 +15,7 @@ from PIL import Image
 from cuentas.models import Usuario
 
 from .forms import MascotaForm
-from .models import Especies, Mascota
+from .models import Especie, Mascota, Raza
 
 
 _cedulas_usadas = count(1)
@@ -43,10 +44,35 @@ def crear_usuario(username='ana', **datos):
     return Usuario.objects.create_user(**valores)
 
 
+def especie(codigo):
+    """Una especie del catálogo que carga la migración 0003 (perro, gato, conejo...)."""
+    return Especie.objects.get(codigo=codigo)
+
+
+def raza(codigo_especie, nombre):
+    return Raza.objects.get(especie__codigo=codigo_especie, nombre=nombre)
+
+
 def crear_mascota(dueno, **datos):
-    valores = {'nombre': 'Firulais', 'especie': Especies.PERRO}
+    """La especie se puede pasar como código ('gato') y la raza como nombre ('Siamés')."""
+    valores = {'nombre': 'Firulais', 'especie': 'perro'}
     valores.update(datos)
+    if isinstance(valores['especie'], str):
+        valores['especie'] = especie(valores['especie'])
+    if isinstance(valores.get('raza'), str):
+        valores['raza'] = raza(valores['especie'].codigo, valores['raza'])
     return Mascota.objects.create(dueno=dueno, **valores)
+
+
+def con_ids(datos):
+    """Datos de un formulario con la especie como código y la raza como nombre -> con sus ids (lo que manda el navegador)."""
+    datos = dict(datos)
+    if datos.get('especie'):
+        codigo = datos['especie']
+        datos['especie'] = especie(codigo).pk
+        if datos.get('raza'):
+            datos['raza'] = raza(codigo, datos['raza']).pk
+    return datos
 
 
 def crear_foto(nombre='foto.png', formato='PNG', tamano=(10, 10), relleno=0):
@@ -67,7 +93,7 @@ def datos_validos(**cambios):
         'peso_kg': '4.20',
     }
     datos.update(cambios)
-    return datos
+    return con_ids(datos)
 
 
 class MascotaModelTests(TestCase):
@@ -95,7 +121,7 @@ class MascotaModelTests(TestCase):
         self.assertEqual(mascota.edad, 'Menos de un mes')
 
     def test_fecha_futura_no_es_valida(self):
-        mascota = Mascota(dueno=self.ana, nombre='Max', especie='perro',
+        mascota = Mascota(dueno=self.ana, nombre='Max', especie=especie('perro'),
                           fecha_nacimiento=timezone.localdate() + timedelta(days=1))
         with self.assertRaises(ValidationError) as error:
             mascota.full_clean()
@@ -106,10 +132,16 @@ class MascotaModelTests(TestCase):
         with self.assertRaises(IntegrityError):
             crear_mascota(self.ana, peso_kg=Decimal('0'))
 
-    def test_la_base_rechaza_una_especie_invalida(self):
+    def test_la_raza_tiene_que_ser_de_la_especie(self):
+        mascota = Mascota(dueno=self.ana, nombre='Max', especie=especie('perro'), raza=raza('gato', 'Siamés'))
+        with self.assertRaises(ValidationError) as error:
+            mascota.full_clean()
+        self.assertIn('raza', error.exception.message_dict)
+
+    def test_una_especie_con_mascotas_no_se_borra(self):
         crear_mascota(self.ana)
-        with self.assertRaises(IntegrityError):
-            Mascota.objects.update(especie='dragon')
+        with self.assertRaises(ProtectedError):
+            especie('perro').delete()
 
 
 class MascotaFormTests(TestCase):
@@ -139,10 +171,28 @@ class MascotaFormTests(TestCase):
                 self.assertFalse(form.is_valid())
                 self.assertIn('nombre', form.errors)
 
-    def test_la_raza_solo_acepta_letras(self):
-        form = MascotaForm(data=datos_validos(raza='Siamés 2'))
+    def test_una_raza_de_otra_especie_no_pasa(self):
+        form = MascotaForm(data={**datos_validos(), 'raza': raza('perro', 'Pug').pk})
         self.assertFalse(form.is_valid())
-        self.assertIn('raza', form.errors)
+        self.assertIn('Esa raza no es de la especie elegida.', form.errors['raza'])
+
+    def test_solo_ofrece_especies_y_razas_activas(self):
+        Raza.objects.filter(nombre='Persa').update(activa=False)
+        Especie.objects.filter(codigo='pez').update(activa=False)
+        form = MascotaForm()
+        self.assertFalse(form.fields['raza'].queryset.filter(nombre='Persa').exists())
+        self.assertFalse(form.fields['especie'].queryset.filter(codigo='pez').exists())
+        self.assertFalse(MascotaForm(data=datos_validos(raza='Persa')).is_valid())
+
+    def test_al_editar_conserva_la_raza_aunque_se_haya_desactivado(self):
+        michi = crear_mascota(crear_usuario(), nombre='Michi', especie='gato', raza='Persa')
+        Raza.objects.filter(nombre='Persa').update(activa=False)
+        self.assertTrue(MascotaForm(instance=michi).fields['raza'].queryset.filter(nombre='Persa').exists())
+
+    def test_las_razas_van_agrupadas_por_especie_con_mestizo_primero(self):
+        grupos = dict(MascotaForm().fields['raza'].widget.choices[1:])
+        self.assertEqual(grupos['Gato'][0][1], 'Mestizo')
+        self.assertIn('Pug', [nombre for _, nombre in grupos['Perro']])
 
     def test_no_se_repite_el_nombre_entre_mis_mascotas(self):
         ana = crear_usuario()
@@ -257,7 +307,7 @@ class MascotaViewTests(TestCase):
     def test_crear_con_errores_no_guarda(self):
         respuesta = self.client.post(reverse('mascotas:crear'), datos_validos(nombre='', peso_kg='0'))
         self.assertEqual(respuesta.status_code, 200)
-        self.assertFalse(Mascota.objects.filter(especie='gato').exists())
+        self.assertFalse(Mascota.objects.filter(especie__codigo='gato').exists())
         self.assertContains(respuesta, 'is-invalid')
 
     # ----- HU-08: ver el detalle -----
@@ -285,7 +335,7 @@ class MascotaViewTests(TestCase):
     def test_editar_cambia_los_datos(self):
         respuesta = self.client.post(
             reverse('mascotas:editar', args=[self.firulais.pk]),
-            datos_validos(nombre='Max', especie='perro'),
+            datos_validos(nombre='Max', especie='perro', raza='Labrador Retriever'),
             follow=True,
         )
         self.firulais.refresh_from_db()
@@ -415,7 +465,7 @@ class FotoMascotaTests(TestCase):
 
         self.client.post(reverse('mascotas:editar', args=[michi.pk]), datos_validos(raza='Persa'))
         michi.refresh_from_db()
-        self.assertEqual(michi.raza, 'Persa')
+        self.assertEqual(michi.raza.nombre, 'Persa')
         self.assertEqual(bytes(michi.foto), foto_original)
 
     def test_editar_puede_cambiar_la_foto(self):
@@ -456,3 +506,282 @@ class FotoMascotaTests(TestCase):
         self.client.post(reverse('mascotas:crear'), datos_validos())
         michi = Mascota.objects.get(nombre='Michi')
         self.assertEqual(self.client.get(reverse('mascotas:foto', args=[michi.pk])).status_code, 404)
+
+
+class GestionMascotasTests(TestCase):
+    """El administrador ve todas las mascotas con su dueño; un cliente o un veterinario no entran (403)."""
+
+    def setUp(self):
+        self.administrador = crear_usuario('laura', rol='administrador')
+        self.ana = crear_usuario('ana', first_name='Ana')
+        self.firulais = crear_mascota(self.ana, nombre='Firulais')
+        self.michi = crear_mascota(crear_usuario('luis'), nombre='Michi', especie='gato')
+        self.client.force_login(self.administrador)
+
+    def test_solo_entra_quien_gestiona_la_clinica(self):
+        for usuario in (self.ana, crear_usuario('sofia', rol='veterinario')):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('mascotas:gestion')).status_code, 403)
+                self.assertEqual(self.client.get(reverse('mascotas:gestion_detalle', args=[self.firulais.pk])).status_code, 403)
+
+    def test_ve_las_mascotas_de_todos_los_duenos(self):
+        respuesta = self.client.get(reverse('mascotas:gestion'))
+        self.assertEqual(list(respuesta.context['mascotas']), [self.firulais, self.michi])
+        self.assertEqual(respuesta.context['resumen']['total'], 2)
+
+    def test_busca_por_el_dueno_y_filtra_por_especie(self):
+        url = reverse('mascotas:gestion')
+        self.assertEqual(list(self.client.get(url, {'q': self.ana.cedula}).context['mascotas']), [self.firulais])
+        self.assertEqual(list(self.client.get(url, {'especie': 'gato'}).context['mascotas']), [self.michi])
+        self.assertEqual(len(self.client.get(url, {'especie': 'dragon'}).context['mascotas']), 2)
+
+    def test_la_ficha_de_cualquier_mascota(self):
+        respuesta = self.client.get(reverse('mascotas:gestion_detalle', args=[self.michi.pk]))
+        self.assertContains(respuesta, 'Michi')
+        self.assertEqual(self.client.get(reverse('mascotas:gestion_detalle', args=[999])).status_code, 404)
+
+    def test_el_administrador_ve_la_foto(self):
+        self.firulais.foto = b'imagen'
+        self.firulais.save()
+        self.assertEqual(self.client.get(reverse('mascotas:foto', args=[self.firulais.pk])).status_code, 200)
+
+
+class GestionMascotasSuperadminTests(TestCase):
+    """El superadministrador crea, corrige (también el dueño) y elimina cualquier ficha; el administrador no."""
+
+    def setUp(self):
+        self.superadmin = crear_usuario('sara', rol='superadmin')
+        self.ana = crear_usuario('ana', first_name='Ana')
+        self.luis = crear_usuario('luis', first_name='Luis')
+        self.firulais = crear_mascota(self.ana, nombre='Firulais', sexo='M', fecha_nacimiento=date(2022, 1, 10),
+                                      peso_kg=Decimal('12.5'))
+        self.client.force_login(self.superadmin)
+
+    def datos(self, **cambios):
+        valores = {'dueno': self.luis.pk, 'nombre': 'Max', 'especie': 'perro', 'raza': 'Mestizo', 'sexo': 'M',
+                   'fecha_nacimiento': '2021-05-01', 'peso_kg': '8.5'}
+        valores.update(cambios)
+        return con_ids(valores)
+
+    def test_el_administrador_y_los_demas_reciben_403(self):
+        for usuario in (crear_usuario('laura', rol='administrador'), crear_usuario('sofia', rol='veterinario'),
+                        self.ana):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('mascotas:gestion_crear')).status_code, 403)
+                self.assertEqual(self.client.get(reverse('mascotas:gestion_editar', args=[self.firulais.pk])).status_code, 403)
+                self.assertEqual(self.client.post(reverse('mascotas:gestion_eliminar', args=[self.firulais.pk])).status_code, 403)
+        self.assertTrue(Mascota.objects.filter(pk=self.firulais.pk).exists())
+
+    def test_registra_una_mascota_para_un_cliente(self):
+        respuesta = self.client.post(reverse('mascotas:gestion_crear'), self.datos())
+        max_ = Mascota.objects.get(nombre='Max')
+        self.assertRedirects(respuesta, reverse('mascotas:gestion_detalle', args=[max_.pk]))
+        self.assertEqual(max_.dueno, self.luis)
+
+    def test_el_dueno_es_obligatorio_y_solo_un_cliente(self):
+        veterinaria = crear_usuario('sofia', rol='veterinario')
+        for dueno in ('', veterinaria.pk):
+            with self.subTest(dueno=dueno):
+                respuesta = self.client.post(reverse('mascotas:gestion_crear'), self.datos(dueno=dueno))
+                self.assertIn('dueno', respuesta.context['form'].errors)
+        self.assertFalse(Mascota.objects.filter(nombre='Max').exists())
+
+    def test_no_repite_el_nombre_entre_las_mascotas_del_mismo_dueno(self):
+        respuesta = self.client.post(reverse('mascotas:gestion_crear'), self.datos(dueno=self.ana.pk, nombre='firulais'))
+        self.assertIn('nombre', respuesta.context['form'].errors)
+        # con otro dueño, el mismo nombre sí se puede
+        self.client.post(reverse('mascotas:gestion_crear'), self.datos(nombre='Firulais'))
+        self.assertEqual(Mascota.objects.filter(nombre='Firulais').count(), 2)
+
+    def test_corrige_los_datos_y_el_dueno(self):
+        url = reverse('mascotas:gestion_editar', args=[self.firulais.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        respuesta = self.client.post(url, self.datos(nombre='Firulais', peso_kg='13'))
+        self.assertRedirects(respuesta, reverse('mascotas:gestion_detalle', args=[self.firulais.pk]))
+        self.firulais.refresh_from_db()
+        self.assertEqual((self.firulais.dueno, self.firulais.peso_kg), (self.luis, Decimal('13')))
+
+    def test_eliminar_pide_confirmacion_y_borra_con_post(self):
+        url = reverse('mascotas:gestion_eliminar', args=[self.firulais.pk])
+        self.assertContains(self.client.get(url), '¿Eliminar a Firulais?')
+        self.assertTrue(Mascota.objects.filter(pk=self.firulais.pk).exists())
+        self.assertRedirects(self.client.post(url), reverse('mascotas:gestion'))
+        self.assertFalse(Mascota.objects.filter(pk=self.firulais.pk).exists())
+
+    def test_los_botones_solo_los_ve_el_superadministrador(self):
+        editar = reverse('mascotas:gestion_editar', args=[self.firulais.pk])
+        self.assertContains(self.client.get(reverse('mascotas:gestion_detalle', args=[self.firulais.pk])), editar)
+        self.client.force_login(crear_usuario('laura', rol='administrador'))
+        self.assertNotContains(self.client.get(reverse('mascotas:gestion_detalle', args=[self.firulais.pk])), editar)
+
+
+class CatalogoEspeciesTests(TestCase):
+    """El catálogo de especies y razas: lo carga la migración y lo gestiona solo el superadministrador."""
+
+    def setUp(self):
+        self.superadmin = crear_usuario('sara', rol='superadmin')
+        self.client.force_login(self.superadmin)
+
+    def test_la_migracion_carga_especies_y_muchas_razas_de_perro_y_gato(self):
+        self.assertEqual(Especie.objects.filter(codigo__in=['perro', 'gato', 'conejo', 'ave', 'pez', 'otro']).count(), 6)
+        self.assertGreaterEqual(Raza.objects.filter(especie__codigo='perro').count(), 40)
+        self.assertGreaterEqual(Raza.objects.filter(especie__codigo='gato').count(), 15)
+        self.assertTrue(Raza.objects.filter(especie__codigo='perro', nombre='Mestizo').exists())
+
+    def test_solo_entra_el_superadministrador(self):
+        for usuario in (crear_usuario('laura', rol='administrador'), crear_usuario('sofia', rol='veterinario'),
+                        crear_usuario('ana')):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('mascotas:especies')).status_code, 403)
+                self.assertEqual(self.client.get(reverse('mascotas:especie_crear')).status_code, 403)
+
+    def test_las_pantallas_del_catalogo_abren(self):
+        respuesta = self.client.get(reverse('mascotas:especies'))
+        self.assertContains(respuesta, 'Shih Tzu')
+        self.assertContains(respuesta, reverse('mascotas:especie_eliminar', args=[especie('pez').pk]))
+        for url, texto in [(reverse('mascotas:especie_crear'), 'Nueva especie'),
+                           (reverse('mascotas:especie_editar', args=[especie('gato').pk]), 'Editar Gato'),
+                           (reverse('mascotas:raza_crear'), 'Nueva raza'),
+                           (reverse('mascotas:raza_editar', args=[raza('gato', 'Persa').pk]), 'Editar Persa')]:
+            with self.subTest(url=url):
+                self.assertContains(self.client.get(url), texto)
+
+    def test_crea_una_especie_con_su_codigo(self):
+        respuesta = self.client.post(reverse('mascotas:especie_crear'),
+                                     {'nombre': ' Erizo ', 'plural': 'Erizos', 'orden': 10, 'activa': 'on'})
+        self.assertRedirects(respuesta, reverse('mascotas:especies'))
+        erizo = Especie.objects.get(nombre='Erizo')
+        self.assertEqual((erizo.codigo, erizo.estilo), ('erizo', 'otro'))
+
+    def test_no_repite_una_especie(self):
+        respuesta = self.client.post(reverse('mascotas:especie_crear'), {'nombre': 'gato', 'plural': 'Gatos', 'orden': 1})
+        self.assertIn('nombre', respuesta.context['form'].errors)
+
+    def test_crea_una_raza_sin_repetirla_en_la_misma_especie(self):
+        gato = especie('gato')
+        respuesta = self.client.post(reverse('mascotas:raza_crear'), {'especie': gato.pk, 'nombre': 'Snowshoe', 'activa': 'on'})
+        self.assertRedirects(respuesta, reverse('mascotas:especies'))
+        repetida = self.client.post(reverse('mascotas:raza_crear'), {'especie': gato.pk, 'nombre': 'persa'})
+        self.assertIn('nombre', repetida.context['form'].errors)
+        # el mismo nombre en otra especie sí se puede
+        self.client.post(reverse('mascotas:raza_crear'), {'especie': especie('conejo').pk, 'nombre': 'Persa'})
+        self.assertTrue(Raza.objects.filter(especie__codigo='conejo', nombre='Persa').exists())
+
+    def test_desactiva_una_raza_al_editarla(self):
+        persa = raza('gato', 'Persa')
+        self.client.post(reverse('mascotas:raza_editar', args=[persa.pk]), {'especie': persa.especie_id, 'nombre': 'Persa'})
+        persa.refresh_from_db()
+        self.assertFalse(persa.activa)
+
+    def test_elimina_solo_lo_que_no_tiene_mascotas(self):
+        persa, siames = raza('gato', 'Persa'), raza('gato', 'Siamés')
+        crear_mascota(crear_usuario('ana'), especie='gato', raza='Siamés')
+        self.client.post(reverse('mascotas:raza_eliminar', args=[persa.pk]))
+        respuesta = self.client.post(reverse('mascotas:raza_eliminar', args=[siames.pk]), follow=True)
+        self.assertFalse(Raza.objects.filter(pk=persa.pk).exists())
+        self.assertTrue(Raza.objects.filter(pk=siames.pk).exists())
+        self.assertContains(respuesta, 'no se puede eliminar')
+        self.client.post(reverse('mascotas:especie_eliminar', args=[especie('gato').pk]))
+        self.assertTrue(Especie.objects.filter(codigo='gato').exists())
+        self.client.post(reverse('mascotas:especie_eliminar', args=[especie('pez').pk]))
+        self.assertFalse(Especie.objects.filter(codigo='pez').exists())
+
+    def test_una_mascota_de_otra_especie_se_ve_en_la_gestion(self):
+        crear_mascota(crear_usuario('ana'), nombre='Coco', especie='conejo', raza='Belier')
+        crear_mascota(crear_usuario('luis'), nombre='Firulais')
+        respuesta = self.client.get(reverse('mascotas:gestion'))
+        self.assertContains(respuesta, 'foto-mascota--otro')
+        cifras = {fila['plural']: fila['cantidad'] for fila in respuesta.context['resumen']['cifras_especie']}
+        self.assertEqual(cifras, {'Perros': 1, 'Otras especies': 1})
+        filtrada = self.client.get(reverse('mascotas:gestion'), {'especie': 'conejo'})
+        self.assertEqual([m.nombre for m in filtrada.context['mascotas']], ['Coco'])
+        self.assertEqual(filtrada.context['especie_elegida'], 'conejo')
+
+
+class CarnetVacunacionTests(TestCase):
+    """HU-36: el carnet muestra las vacunas que registró el veterinario, con su estado."""
+
+    def setUp(self):
+        from cuentas.models import Roles
+        from historial.models import Vacuna
+
+        self.ana = crear_usuario('ana')
+        self.firulais = crear_mascota(self.ana, nombre='Firulais')
+        self.sofia = crear_usuario('sofia', rol=Roles.VETERINARIO, first_name='Sofía', last_name='Paredes')
+        self.hoy = timezone.localdate()
+        self.rabia = Vacuna.objects.create(nombre='Antirrábica de prueba', refuerzo_cada_dias=365)
+        self.url = reverse('mascotas:carnet', args=[self.firulais.pk])
+        self.client.force_login(self.ana)
+
+    def aplicar(self, vacuna=None, hace_dias=10, proxima_en_dias=355, lote='L-2026-11'):
+        from historial.models import VacunaAplicada
+
+        fecha = self.hoy - timedelta(days=hace_dias)
+        proxima = self.hoy + timedelta(days=proxima_en_dias) if proxima_en_dias is not None else None
+        return VacunaAplicada.objects.create(
+            mascota=self.firulais, vacuna=vacuna or self.rabia, veterinario=self.sofia,
+            fecha_aplicacion=fecha, proxima_dosis=proxima, lote=lote,
+        )
+
+    def estados(self, respuesta):
+        return [(linea.vacuna.nombre, linea.estado) for linea in respuesta.context['vacunas']]
+
+    def test_el_carnet_muestra_las_vacunas_aplicadas(self):
+        aplicada = self.aplicar()
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, 'Antirrábica de prueba')
+        self.assertContains(respuesta, aplicada.fecha_aplicacion.strftime('%d/%m/%Y'))
+        self.assertContains(respuesta, aplicada.proxima_dosis.strftime('%d/%m/%Y'))
+        self.assertContains(respuesta, 'L-2026-11')
+        self.assertContains(respuesta, 'Sofía Paredes')
+        self.assertContains(respuesta, 'data-vacunas="1"')
+        self.assertNotContains(respuesta, 'Aún no hay vacunas registradas')
+        self.assertEqual(self.estados(respuesta), [('Antirrábica de prueba', 'al_dia')])
+
+    def test_los_datos_para_el_librito_van_como_json(self):
+        self.aplicar()
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, f'id="carnet-datos-{self.firulais.pk}"')
+        self.assertEqual(respuesta.context['vacunas_datos'][0]['vacuna'], 'Antirrábica de prueba')
+
+    def test_una_vacuna_con_la_proxima_dosis_pasada_aparece_vencida(self):
+        self.aplicar(hace_dias=400, proxima_en_dias=-35)
+        respuesta = self.client.get(self.url)
+        self.assertEqual(self.estados(respuesta), [('Antirrábica de prueba', 'vencida')])
+        self.assertContains(respuesta, 'Vencida')
+
+    def test_menos_de_30_dias_para_la_proxima_dosis_es_proxima(self):
+        self.aplicar(hace_dias=340, proxima_en_dias=25)
+        self.assertEqual(self.estados(self.client.get(self.url)), [('Antirrábica de prueba', 'proxima')])
+
+    def test_sin_refuerzo_queda_al_dia(self):
+        from historial.models import Vacuna
+        unica = Vacuna.objects.create(nombre='Dosis única de prueba')   # sin refuerzo: no hay próxima dosis
+        self.aplicar(vacuna=unica, proxima_en_dias=None)
+        respuesta = self.client.get(self.url)
+        self.assertEqual(self.estados(respuesta), [('Dosis única de prueba', 'al_dia')])
+        self.assertContains(respuesta, 'Sin refuerzo')
+
+    def test_una_dosis_vieja_ya_renovada_no_aparece_vencida(self):
+        self.aplicar(hace_dias=400, proxima_en_dias=-35)   # la del año pasado
+        self.aplicar(hace_dias=30, proxima_en_dias=335)    # el refuerzo de este año
+        estados = [estado for _, estado in self.estados(self.client.get(self.url))]
+        self.assertEqual(estados, ['al_dia', 'reforzada'])
+
+    def test_una_vacuna_desactivada_se_sigue_viendo_en_el_carnet(self):
+        self.aplicar()
+        self.rabia.activa = False
+        self.rabia.save()
+        self.assertContains(self.client.get(self.url), 'Antirrábica de prueba')
+
+    def test_no_muestra_las_vacunas_de_otra_mascota(self):
+        rocky = crear_mascota(self.ana, nombre='Rocky')
+        from historial.models import VacunaAplicada
+        VacunaAplicada.objects.create(mascota=rocky, vacuna=self.rabia, veterinario=self.sofia,
+                                      fecha_aplicacion=self.hoy, lote='DE-ROCKY')
+        respuesta = self.client.get(self.url)
+        self.assertNotContains(respuesta, 'DE-ROCKY')
+        self.assertContains(respuesta, 'Aún no hay vacunas registradas')

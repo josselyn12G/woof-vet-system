@@ -1,0 +1,137 @@
+{% extends 'panel_base.html' %}
+{% load static l10n %}
+
+{% block titulo %}Panel del veterinario · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=23" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-grid{% endblock %}
+{% block panel_seccion %}Panel principal{% endblock %}
+{% block panel_titulo %}<span class="saludo-vet">{{ saludo }}, {{ user.first_name|default:user.username }}</span>{% endblock %}
+{% block panel_subtitulo %}{% now 'l j \d\e F' %} · {% if citas_hoy %}{{ citas_hoy }} cita{{ citas_hoy|pluralize }} hoy{% else %}sin citas hoy{% endif %}{% endblock %}
+
+{% block panel_acciones %}
+  {# La agenda del día (cerrar citas) y la acción principal del veterinario: publicar su horario #}
+  <a class="boton-panel boton-panel--secundario" href="{% url 'citas:agenda' %}"><i class="bi bi-calendar-day" aria-hidden="true"></i>Agenda de hoy</a>
+  <a class="boton-panel" href="{% url 'citas:horario' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Publicar horario</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  {% comment %}
+    Panel principal en una sola pantalla: cuatro cifras arriba; abajo, Mi semana más pequeña y, al costado,
+    las citas por día del período, las citas por servicio y la agenda de hoy (con lo que falta registrar).
+  {% endcomment %}
+  <div class="vp hc">
+    <dl class="rx-cifras">
+      <div class="rx-cifra rx-cifra--acento">
+        <dt>Citas hoy</dt><dd>{{ citas_hoy }}</dd>
+        <a class="rx-cifra__ir" href="{% url 'citas:agenda' %}" aria-label="Ver la agenda de hoy"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-clock" aria-hidden="true"></i></span>{% with siguiente=agenda_hoy|first %}{% if siguiente %}Primera a las {{ siguiente.inicio|time:'H:i' }}{% else %}Día libre{% endif %}{% endwith %}</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Citas del período</dt><dd>{{ estadisticas.citas }}</dd>
+        <a class="rx-cifra__ir" href="{% url 'citas:agenda' %}" aria-label="Ver la agenda"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>{{ variaciones.citas.texto|default:'Sin período anterior' }}</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Atendidas</dt><dd>{{ estadisticas.atendidas }}</dd>
+        <a class="rx-cifra__ir" href="{% url 'historial:consultas_veterinario' %}" aria-label="Ver las consultas"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-person-x" aria-hidden="true"></i></span>{{ estadisticas.no_asistio }} no asisti{{ estadisticas.no_asistio|pluralize:"ó,eron" }}</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Ganancias</dt><dd>${{ estadisticas.ganancias|floatformat:0 }}</dd>
+        <a class="rx-cifra__ir" href="{% url 'citas:horario' %}" aria-label="Ver mi horario"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-pie-chart" aria-hidden="true"></i></span>{{ estadisticas.ocupacion }}% del horario ocupado</p>
+      </div>
+    </dl>
+
+    {# Abajo: la semana (más pequeña) y, alrededor, las cifras: citas por día, por servicio y la agenda de hoy #}
+    <div class="vp__cuerpo">
+      <div class="vp__semana">
+        {% include 'panel/_mi_semana.html' with semana=semana %}
+      </div>
+
+      <div class="vp__lado">
+          <section class="hc-tarjeta vp-grafico" aria-labelledby="grafico-titulo">
+          <header class="vp__cabecera">
+            <h2 class="hc-titulo hc-titulo--tarjeta" id="grafico-titulo"><i class="bi bi-graph-up" aria-hidden="true"></i>Citas por día</h2>
+            <nav class="segmentos" aria-label="Período del resumen" data-segmentos>
+              <span class="segmentos__pildora" aria-hidden="true"></span>
+              {% for valor, nombre in periodos %}
+                <a class="segmentos__opcion{% if valor == periodo %} es-activo{% endif %}" href="?periodo={{ valor }}{% if not semana.es_semana_actual %}&semana={{ semana.lunes|date:'Y-m-d' }}{% endif %}" data-cargando="Cargando el período"{% if valor == periodo %} aria-current="true"{% endif %}>{{ nombre }}</a>
+              {% endfor %}
+            </nav>
+          </header>
+          <figure class="grafico">
+            {# localize off: en español Django escribe 44,0; el SVG necesita 44.0 #}
+            {% localize off %}
+            <svg viewBox="0 0 {{ grafico.ancho }} {{ grafico.alto }}" role="img" aria-label="Citas por día en el período: {{ estadisticas.citas }} en total">
+              {% for guia in grafico.guias %}
+                <line class="grafico__guia" x1="{{ grafico.izquierda }}" x2="{{ grafico.derecha }}" y1="{{ guia.y }}" y2="{{ guia.y }}"></line>
+                <text class="grafico__eje" x="{{ grafico.izquierda|add:'-12' }}" y="{{ guia.y }}" text-anchor="end" dominant-baseline="middle">{{ guia.texto }}</text>
+              {% endfor %}
+              <path class="grafico__area" d="{{ grafico.area }}"></path>
+              <path class="grafico__linea" d="{{ grafico.linea }}" pathLength="1"></path>
+              {% for etiqueta in grafico.etiquetas %}
+                <text class="grafico__eje" x="{{ etiqueta.x }}" y="{{ grafico.alto|add:'-8' }}" text-anchor="middle">{{ etiqueta.fecha|date:'j M' }}</text>
+              {% endfor %}
+            </svg>
+            {% endlocalize %}
+          </figure>
+        </section>
+
+          <section class="hc-tarjeta" aria-labelledby="servicios-titulo">
+          <h2 class="hc-titulo hc-titulo--tarjeta" id="servicios-titulo"><i class="bi bi-bar-chart" aria-hidden="true"></i>Por servicio</h2>
+          {% if por_servicio %}
+            <ul class="vp-barras">
+              {% for fila in por_servicio %}
+                <li>
+                  <span class="vp-barras__nombre">{{ fila.nombre }}</span>
+                  <span class="vp-barras__barra" aria-hidden="true"><span style="--ancho: {{ fila.porcentaje|stringformat:'s' }}%"></span></span>
+                  <span class="vp-barras__cifra">{{ fila.cantidad }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="hc-peso__fecha">Sin citas en este período.</p>
+          {% endif %}
+        </section>
+
+        <section class="hc-tarjeta vp-hoy" aria-labelledby="hoy-titulo">
+          <header class="vp__cabecera">
+            <h2 class="hc-titulo hc-titulo--tarjeta" id="hoy-titulo"><i class="bi bi-calendar-day" aria-hidden="true"></i>Hoy</h2>
+            <a class="hc-pastilla" href="{% url 'citas:agenda' %}">Agenda <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+          </header>
+          {% if agenda_hoy %}
+            <ul class="hc-recientes__lista">
+              {% for cita in agenda_hoy %}
+                <li class="hc-reciente">
+                  <span class="vp-hoy__hora">{{ cita.inicio|time:'H:i' }}</span>
+                  <span class="hc-reciente__textos">
+                    <strong>{{ cita.mascota.nombre }}</strong>
+                    <span>{{ cita.servicio.nombre }}</span>
+                  </span>
+                  <span class="hc-insignia{% if cita.estado == 'atendida' %} hc-insignia--ok{% elif cita.estado == 'confirmada' %} hc-insignia--acento{% endif %}">{{ cita.get_estado_display }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="hc-peso__fecha">Sin citas hoy.</p>
+          {% endif %}
+          {% if por_registrar %}
+            <a class="vp-hoy__pendiente" href="{% url 'historial:consultas_veterinario' %}"><i class="bi bi-clipboard2-plus" aria-hidden="true"></i>{{ por_registrar }} consulta{{ por_registrar|pluralize }} por registrar<i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+          {% endif %}
+        </section>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'js/segmentos.js' %}" defer></script>
+  <script src="{% static 'js/panel-veterinario.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'mascotas/formulario.html' %}
+
+{# El formulario del cliente con el dueño arriba: el superadministrador registra o corrige cualquier ficha #}
+{% block panel_seccion %}Mascotas{% endblock %}
+
+{% block campos_extra %}
+  <div class="col-12">{% include 'mascotas/_campo.html' with campo=form.dueno %}</div>
+{% endblock %}

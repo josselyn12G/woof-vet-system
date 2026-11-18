@@ -1,0 +1,29 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{# Historia clínica de solo lectura. La misma vista (_hc_vista.html) para el cliente, el veterinario y la clínica #}
+{% block titulo %}Historia clínica de {{ mascota.nombre }} · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=23" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}{% if user.es_veterinario %}bi-people{% else %}bi-heart{% endif %}{% endblock %}
+{% block panel_seccion %}{% if user.es_cliente %}Mis mascotas{% elif user.es_veterinario %}Pacientes{% else %}Mascotas{% endif %}{% endblock %}
+
+{% block panel_cabecera %}
+  {% if user.es_cliente %}
+    {% include 'historial/_hc_cabecera.html' %}
+  {% else %}
+    {% include 'historial/_hc_cabecera.html' with subtitulo='Consultas, vacunas y recetas del paciente, de lo más reciente a lo más antiguo.' %}
+  {% endif %}
+{% endblock %}
+
+{% block panel_contenido %}
+  {% include 'historial/_hc_vista.html' %}
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'historial/js/historia.js' %}?v=4" defer></script>
+{% endblock %}

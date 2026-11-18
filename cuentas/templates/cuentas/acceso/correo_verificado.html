@@ -1,0 +1,7 @@
+{% extends 'cuentas/acceso/_pagina.html' %}
+{% block titulo %}{% if usuario %}Correo verificado{% else %}Enlace no válido{% endif %} · Woof{% endblock %}
+{% block titulo_pagina %}{% if usuario %}¡Correo verificado!{% else %}El enlace ya no sirve{% endif %}{% endblock %}
+{% block subtitulo %}{% if usuario %}Gracias, {{ usuario.first_name|default:usuario.username }}. Desde ahora te llegarán aquí los avisos de tus citas.{% else %}Venció o no es correcto. Inicia sesión y pide otro desde Mi cuenta.{% endif %}{% endblock %}
+{% block cuerpo %}
+  <a class="acceso__boton registro__boton d-block text-center text-decoration-none" href="{% if user.is_authenticated %}{% url 'cuentas:mi_cuenta' %}{% else %}{% url 'cuentas:login' %}{% endif %}">{% if user.is_authenticated %}Ir a Mi cuenta{% else %}Iniciar sesión{% endif %}</a>
+{% endblock %}

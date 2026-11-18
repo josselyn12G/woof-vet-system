@@ -1,0 +1,85 @@
+import secrets
+import time
+
+from django.contrib.auth import get_user_model, login
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+
+from .correo import adjuntar_logo
+from .verificacion import marcar_verificado
+
+MINUTOS_VALIDEZ = 5
+
+
+def generar_codigo():
+    """Devuelve un código de 6 dígitos, generado de forma segura."""
+    codigo = secrets.randbelow(1_000_000)
+    return f'{codigo:06d}'
+
+
+def enviar_codigo(request, usuario):
+    """Genera un código, lo guarda en la sesión con su vencimiento y lo envía al correo del usuario."""
+    codigo = generar_codigo()
+    vence = time.time() + MINUTOS_VALIDEZ * 60
+    request.session['codigo_2fa'] = codigo
+    request.session['codigo_2fa_vence'] = vence
+
+    contexto = {
+        'nombre': usuario.first_name or usuario.username,
+        'codigo': codigo,
+        'minutos': MINUTOS_VALIDEZ,
+    }
+    texto = render_to_string('cuentas/correos/codigo.txt', contexto)
+    html = render_to_string('cuentas/correos/codigo.html', contexto)
+
+    correo = EmailMultiAlternatives('Tu código de acceso a Woof', texto, None, [usuario.email])
+    correo.attach_alternative(html, 'text/html')
+    adjuntar_logo(correo)                      # el logo viaja dentro del correo, no como adjunto aparte
+    correo.send()
+
+
+def verificar_codigo(request, codigo_escrito):
+    """Devuelve True si el código es correcto y no venció. Si es correcto, lo borra de la sesión."""
+    codigo_guardado = request.session.get('codigo_2fa')
+    vence = request.session.get('codigo_2fa_vence', 0)
+    if not codigo_guardado or time.time() > vence:
+        return False
+
+    if not secrets.compare_digest(codigo_escrito.strip(), codigo_guardado):
+        return False
+
+    # El código coincide: se borra para que no se pueda usar dos veces
+    del request.session['codigo_2fa']
+    del request.session['codigo_2fa_vence']
+    return True
+
+
+def iniciar_login_pendiente(request, usuario, siguiente):
+    """Primer paso: recuerda en la sesión quién pasó la contraseña y a dónde iba, y le envía el código."""
+    request.session['pre_2fa_user'] = usuario.pk   # la sesión es JSON: se guarda el pk, no el objeto
+    request.session['pre_2fa_next'] = siguiente    # a dónde ir al terminar (respeta ?next=)
+    enviar_codigo(request, usuario)
+
+
+def completar_login(request):
+    """Segundo paso, con el código ya verificado: inicia la sesión y devuelve a dónde ir.
+
+    Los datos se sacan de la sesión antes del login(), que cambia la llave de la sesión por seguridad.
+    """
+    pk = request.session.pop('pre_2fa_user')
+    siguiente = request.session.pop('pre_2fa_next', '/')
+    usuario = get_user_model().objects.get(pk=pk)
+    marcar_verificado(usuario)   # el código llegó a su correo: el correo es suyo (HU-13)
+    login(request, usuario)
+    return siguiente
+
+
+def hay_login_pendiente(request):
+    """True si alguien pasó la contraseña y su código todavía no vence."""
+    return bool(request.session.get('pre_2fa_user')) and time.time() <= request.session.get('codigo_2fa_vence', 0)
+
+
+def cancelar_login_pendiente(request):
+    """Borra el "login a medias": quién pasó la contraseña, a dónde iba y su código."""
+    for clave in ('pre_2fa_user', 'pre_2fa_next', 'codigo_2fa', 'codigo_2fa_vence'):
+        request.session.pop(clave, None)

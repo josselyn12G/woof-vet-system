@@ -1,4 +1,7 @@
-{# Campos del bloque (fecha, hora de inicio y de fin): los usan "Nuevo bloque" y "Editar bloque" #}
+{% comment %}
+  Campos del bloque (fecha, hora de inicio y de fin): los usan "Nuevo bloque" y "Editar bloque".
+  Sin JavaScript son los controles del navegador; selector-hora.js agrega los atajos y la grilla de horas.
+{% endcomment %}
 {% csrf_token %}
 
 {% for error in form.non_field_errors %}
@@ -6,9 +9,27 @@
 {% endfor %}
 
 <div class="formulario-panel__campo">
-  <label class="formulario-panel__etiqueta" for="{{ form.fecha.id_for_label }}">Fecha</label>
+  <label class="formulario-panel__etiqueta" for="{{ form.fecha.id_for_label }}">Día</label>
+  {% if dias %}
+    {# Los días de la semana que se está viendo, como botones; los que ya pasaron no se pueden elegir #}
+    <div class="dias-rapidos" role="group" aria-label="Días de esta semana" data-dias-rapidos hidden>
+      {% for dia in dias %}
+        <button type="button" class="dia-rapido{% if dia.bloques %} tiene-bloques{% endif %}" data-dia="{{ dia.fecha|date:'Y-m-d' }}" aria-pressed="false"{% if dia.ya_paso %} disabled{% endif %} title="{{ dia.fecha|date:'l j \d\e F'|capfirst }}{% if dia.total %} · ya tienes {{ dia.total }}{% endif %}">
+          <span class="dia-rapido__nombre">{{ dia.fecha|date:'D' }}</span>
+          <span class="dia-rapido__numero">{{ dia.fecha|date:'j' }}</span>
+        </button>
+      {% endfor %}
+    </div>
+  {% endif %}
   {{ form.fecha }}
   {% for error in form.fecha.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+</div>
+
+{# Turnos frecuentes: llenan "Desde" y "Hasta" de un toque #}
+<div class="turnos-rapidos" role="group" aria-label="Turnos frecuentes" data-turnos-rapidos hidden>
+  <button type="button" class="turno-rapido" data-desde="08:00" data-hasta="12:00"><i class="bi bi-sunrise" aria-hidden="true"></i>Mañana<small>08:00 – 12:00</small></button>
+  <button type="button" class="turno-rapido" data-desde="14:00" data-hasta="18:00"><i class="bi bi-sunset" aria-hidden="true"></i>Tarde<small>14:00 – 18:00</small></button>
+  <button type="button" class="turno-rapido" data-desde="08:00" data-hasta="17:00"><i class="bi bi-sun" aria-hidden="true"></i>Jornada<small>08:00 – 17:00</small></button>
 </div>
 
 <div class="formulario-servicio__par">
@@ -23,3 +44,6 @@
     {% for error in form.hora_fin.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
   </div>
 </div>
+
+{# Cuánto dura el bloque, mientras se eligen las horas #}
+<p class="resumen-bloque" data-resumen-bloque aria-live="polite" hidden></p>

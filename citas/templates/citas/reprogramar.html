@@ -1,0 +1,136 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Reprogramar cita · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-calendar2-week{% endblock %}
+{% block panel_seccion %}Reprogramar cita{% endblock %}
+{% block panel_cabecera %}{% endblock %}
+
+{% block panel_contenido %}
+{% comment %}
+  Mismo diseño que la reserva: a la izquierda la cita como está ahora, al centro el mes con los días
+  en que su veterinario tiene horas libres para el mismo servicio y a la derecha las horas de ese día.
+  Al elegir una hora se llenan los campos ocultos fecha y hora; AgendaService.reprogramar() valida todo
+  otra vez dentro de una transacción y, si el turno ya no está libre, la cita se queda en su hora.
+{% endcomment %}
+<form class="reserva" method="post" action="{% url 'citas:reprogramar' cita.pk %}" novalidate data-cargando="Reprogramando la cita"
+      data-reprogramar
+      data-dias-url="{% url 'citas:reprogramar_dias' cita.pk %}"
+      data-horas-url="{% url 'citas:reprogramar_horas' cita.pk %}"
+      data-mes-inicial="{{ cita.inicio|date:'Y-m' }}">
+  {% csrf_token %}
+
+  {# ================= Izquierda: la cita como está ahora ================= #}
+  <aside class="reserva__lado">
+    <h1 class="reserva__titulo">Reprogramar cita</h1>
+
+    {% for error in form.non_field_errors %}
+      <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+    {% endfor %}
+
+    {# Antes → después: la cita como está ahora y, debajo, la nueva fecha que se llena al elegir una hora #}
+    <div class="cambio-cita">
+      <p class="reserva__paso">Tu cita ahora</p>
+      <article class="cita-actual" aria-label="Tu cita ahora">
+        <header class="cita-actual__cabecera">
+          {# El día como una hoja de calendario #}
+          <span class="cita-actual__dia" aria-hidden="true">
+            <span class="cita-actual__mes">{{ cita.inicio|date:'M' }}</span>
+            <span class="cita-actual__numero">{{ cita.inicio|date:'j' }}</span>
+          </span>
+          <span class="cita-actual__cuando">
+            <strong>{{ cita.inicio|date:'l j \d\e F' }}</strong>
+            <span><i class="bi bi-clock" aria-hidden="true"></i>{{ cita.inicio|date:'H:i' }} – {{ cita.fin|date:'H:i' }}</span>
+          </span>
+        </header>
+
+        <p class="cita-actual__servicio">{{ cita.servicio }}</p>
+
+        <ul class="cita-actual__datos">
+          <li>
+            {% with mascota=cita.mascota %}
+              <span class="cita-actual__avatar foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
+              <span><span class="cita-actual__etiqueta">Mascota</span>{{ mascota }}</span>
+            {% endwith %}
+          </li>
+          <li>
+            <span class="cita-actual__icono" aria-hidden="true"><i class="bi bi-person-badge"></i></span>
+            <span><span class="cita-actual__etiqueta">Veterinario</span>{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</span>
+          </li>
+          <li>
+            <span class="cita-actual__icono" aria-hidden="true"><i class="bi bi-hourglass-split"></i></span>
+            <span><span class="cita-actual__etiqueta">Duración</span>{{ cita.servicio.duracion_min }} min</span>
+          </li>
+          <li>
+            <span class="cita-actual__icono" aria-hidden="true"><i class="bi bi-cash-coin"></i></span>
+            <span><span class="cita-actual__etiqueta">Precio</span>${{ cita.precio|floatformat:2 }}</span>
+          </li>
+        </ul>
+        {% if cita.motivo %}<p class="cita-actual__motivo">«{{ cita.motivo }}»</p>{% endif %}
+      </article>
+
+      <span class="cambio-cita__flecha" aria-hidden="true"><i class="bi bi-arrow-down"></i></span>
+
+      {# La nueva fecha: reprogramar.js la escribe al elegir día y hora #}
+      <div class="cita-nueva" data-nueva aria-live="polite">
+        <span class="cita-nueva__icono" aria-hidden="true"><i class="bi bi-calendar-plus"></i></span>
+        <span>
+          <span class="cita-actual__etiqueta">Nueva fecha</span>
+          <strong class="cita-nueva__texto" data-nueva-texto>Elige un día y una hora en el calendario</strong>
+        </span>
+      </div>
+
+      <p class="cambio-cita__nota"><i class="bi bi-info-circle" aria-hidden="true"></i>Se mantienen el veterinario, el servicio, el precio y el motivo. Si el nuevo turno ya no está libre al confirmar, tu cita se queda como está.</p>
+    </div>
+    <a class="boton-cita" href="{% url 'citas:mis_citas' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver a Mis citas</a>
+  </aside>
+
+  {# ================= Centro: el mes ================= #}
+  <section class="reserva__calendario" aria-labelledby="calendario-titulo">
+    <h2 class="reserva__subtitulo" id="calendario-titulo">Elige la nueva fecha y hora</h2>
+    <div class="calendario" data-calendario>
+      <div class="calendario__cabecera">
+        <button type="button" class="calendario__flecha" data-mes-anterior aria-label="Mes anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <span class="calendario__mes" data-mes-texto aria-live="polite"></span>
+        <button type="button" class="calendario__flecha" data-mes-siguiente aria-label="Mes siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      </div>
+      <div class="calendario__semana" aria-hidden="true">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div class="calendario__dias" data-dias></div>
+    </div>
+    <p class="reserva__zona"><i class="bi bi-globe-americas" aria-hidden="true"></i>Hora de Ecuador (America/Guayaquil)</p>
+    <input type="hidden" name="{{ form.fecha.html_name }}" value="{{ form.fecha.value|default:''|stringformat:'s' }}" data-fecha>
+    <input type="hidden" name="{{ form.hora.html_name }}" value="{{ form.hora.value|default:''|stringformat:'s'|slice:':5' }}" data-hora>
+    <noscript>
+      <input class="control-panel" type="date" name="{{ form.fecha.html_name }}" min="{% now 'Y-m-d' %}">
+      <input class="control-panel" type="time" name="{{ form.hora.html_name }}" step="900">
+      <button type="submit" class="boton-panel reserva__boton">Reprogramar</button>
+    </noscript>
+    {% for error in form.fecha.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+  </section>
+
+  {# ================= Derecha: las horas libres del día y confirmar ================= #}
+  <section class="reserva__horas" aria-labelledby="dia-elegido">
+    <p class="reserva__dia" id="dia-elegido" data-dia-texto>Elige un día</p>
+    <div class="horas horas--columna" data-horas aria-live="polite">
+      <p class="horas__aviso">Los días resaltados tienen horas libres.</p>
+    </div>
+    {% for error in form.hora.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+
+    <div class="reserva__confirmar" data-confirmar hidden>
+      <button type="submit" class="boton-panel reserva__boton"><i class="bi bi-calendar-check" aria-hidden="true"></i>Reprogramar cita</button>
+    </div>
+  </section>
+</form>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'citas/js/reprogramar.js' %}?v=2" defer></script>
+{% endblock %}

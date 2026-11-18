@@ -1,31 +1,25 @@
-// Panel del veterinario: la línea de "ahora" en la agenda de hoy se ubica en la hora actual y avanza cada minuto.
+// Panel del veterinario (Mi semana): la línea de "ahora" se ubica en la columna de hoy, a la hora actual,
+// y avanza cada minuto. El detalle de cada cita no necesita JavaScript: es un pop-up nativo (atributo popover).
 // (Las cifras que cuentan están en panel.js, para todo el panel.)
-// Con "reducir movimiento" activado, la línea se ubica sin deslizarse.
 (function () {
   const reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const linea = document.querySelector('[data-linea-tiempo]');
-  if (!linea) return;
+  const semana = document.querySelector('[data-semana-vet]');
+  const marca = semana && semana.querySelector('[data-ahora]');
+  if (marca) {
+    const desde = Number(semana.dataset.inicio);
+    const hasta = Number(semana.dataset.fin);
 
-  const marca = linea.querySelector('[data-ahora]');
-  const textoHora = linea.querySelector('[data-ahora-hora]');
-  const desde = Number(linea.dataset.inicio);
-  const hasta = Number(linea.dataset.fin);
-
-  function ubicar() {
-    const ahora = new Date();
-    const horas = ahora.getHours() + ahora.getMinutes() / 60;
-    // Fuera del horario de la agenda (antes de las 8 o después de las 18) no se muestra
-    if (horas < desde || horas > hasta) {
-      marca.hidden = true;
-      return;
+    function ubicar() {
+      const ahora = new Date();
+      const horas = ahora.getHours() + ahora.getMinutes() / 60;
+      // Fuera de las horas que muestra la grilla no se dibuja
+      marca.hidden = horas < desde || horas > hasta;
+      if (!marca.hidden) marca.style.top = `${((horas - desde) / (hasta - desde)) * 100}%`;
     }
-    marca.hidden = false;
-    marca.style.top = `${((horas - desde) / (hasta - desde)) * 100}%`;
-    textoHora.textContent = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
-  }
 
-  ubicar();
-  if (!reducir) requestAnimationFrame(() => linea.classList.add('esta-listo'));
-  setInterval(ubicar, 60 * 1000);
+    ubicar();
+    if (!reducir) requestAnimationFrame(() => semana.classList.add('esta-listo'));
+    setInterval(ubicar, 60 * 1000);
+  }
 })();

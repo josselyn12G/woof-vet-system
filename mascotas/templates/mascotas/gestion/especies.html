@@ -1,0 +1,66 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Especies y razas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-tags{% endblock %}
+{% block panel_seccion %}Especies y razas{% endblock %}
+{% block panel_titulo %}Especies y razas{% endblock %}
+{% block panel_subtitulo %}Lo que se ofrece al registrar una mascota. Una especie o raza con mascotas no se elimina: desactívala y deja de ofrecerse, pero las fichas la conservan.{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel boton-panel--secundario" href="{% url 'mascotas:raza_crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva raza</a>
+  <a class="boton-panel" href="{% url 'mascotas:especie_crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva especie</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  <div class="catalogo-especies">
+    {% for especie in especies %}
+      <section class="bloque-panel catalogo-especie{% if not especie.activa %} esta-inactiva{% endif %}" aria-labelledby="especie-{{ especie.pk }}">
+        <header class="catalogo-especie__cabecera">
+          <span class="punto-especie punto-especie--{{ especie.estilo }}" aria-hidden="true"></span>
+          <div class="catalogo-especie__titulo">
+            <h2 class="bloque-panel__titulo" id="especie-{{ especie.pk }}">{{ especie.nombre }}</h2>
+            <p class="bloque-panel__meta">{{ especie.total_razas }} raza{{ especie.total_razas|pluralize }} · {{ especie.total_mascotas }} mascota{{ especie.total_mascotas|pluralize }}</p>
+          </div>
+          {% if not especie.activa %}<span class="estado">Desactivada</span>{% endif %}
+          <span class="acciones-fila">
+            <a class="boton-fila" href="{% url 'mascotas:raza_crear' %}?especie={{ especie.pk }}" title="Agregar una raza"><i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Agregar una raza a {{ especie.nombre }}</span></a>
+            <a class="boton-fila" href="{% url 'mascotas:especie_editar' especie.pk %}" title="Editar"><i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Editar {{ especie.nombre }}</span></a>
+            {% if not especie.total_mascotas %}
+              {# Eliminar: POST con confirmación del navegador; con mascotas no se ofrece (se desactiva) #}
+              <form method="post" action="{% url 'mascotas:especie_eliminar' especie.pk %}" onsubmit="return confirm('¿Eliminar la especie {{ especie.nombre|escapejs }} y sus {{ especie.total_razas }} razas?');">
+                {% csrf_token %}
+                <button type="submit" class="boton-fila boton-fila--peligro" title="Eliminar"><i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Eliminar {{ especie.nombre }}</span></button>
+              </form>
+            {% endif %}
+          </span>
+        </header>
+
+        {% if especie.razas.all %}
+          <ul class="chips-razas" aria-label="Razas de {{ especie.nombre }}">
+            {% for raza in especie.razas.all %}
+              <li class="chip-raza{% if not raza.activa %} esta-inactiva{% endif %}">
+                <a href="{% url 'mascotas:raza_editar' raza.pk %}" title="Editar{% if not raza.activa %} (desactivada){% endif %}">{{ raza.nombre }}{% if raza.total_mascotas %} <span class="chip-raza__total">{{ raza.total_mascotas }}</span>{% endif %}</a>
+                {% if not raza.total_mascotas %}
+                  <form method="post" action="{% url 'mascotas:raza_eliminar' raza.pk %}" onsubmit="return confirm('¿Eliminar la raza {{ raza.nombre|escapejs }}?');">
+                    {% csrf_token %}
+                    <button type="submit" class="chip-raza__quitar" title="Eliminar"><i class="bi bi-x" aria-hidden="true"></i><span class="visually-hidden">Eliminar {{ raza.nombre }}</span></button>
+                  </form>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="bloque-panel__vacio">Sin razas todavía. <a class="bloque-panel__enlace" href="{% url 'mascotas:raza_crear' %}?especie={{ especie.pk }}">Agrega la primera</a>.</p>
+        {% endif %}
+      </section>
+    {% empty %}
+      <p class="bloque-panel__vacio">Todavía no hay especies. <a class="bloque-panel__enlace" href="{% url 'mascotas:especie_crear' %}">Crea la primera</a>.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

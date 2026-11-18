@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load static %}
+{% comment %}
+  Base de las pantallas sueltas de la cuenta (recuperar contraseña, correo verificado, términos): el mismo
+  diseño que el login, con la foto de fondo y el panel de vidrio. Cada pantalla llena titulo_pagina,
+  subtitulo y cuerpo.
+{% endcomment %}
+
+{% block menu %}{% endblock %}
+{% block pie %}{% endblock %}
+{% block main_clase %}{% endblock %}
+
+{% block estilos %}
+  <link href="{% static 'cuentas/css/cuentas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contenido %}
+  <section class="registro registro--derecha">
+    <img class="registro__fondo" src="{% static 'cuentas/img/login.webp' %}" width="2400" height="1340" alt="">
+
+    <a class="acceso__inicio" href="{% url 'cuentas:inicio' %}" aria-label="Volver a la portada">
+      <i class="bi bi-house-door" aria-hidden="true"></i>
+      <span class="acceso__inicio-texto">Inicio</span>
+    </a>
+
+    <div class="registro__panel{% block panel_clase %}{% endblock %}">
+      <a class="registro__logo" href="{% url 'cuentas:inicio' %}"><img src="{% static 'img/logo-blanco.png' %}" alt="Woof, ir a la portada"></a>
+      <h1 class="registro__titulo">{% block titulo_pagina %}{% endblock %}</h1>
+      <p class="registro__subtitulo">{% block subtitulo %}{% endblock %}</p>
+      {% block cuerpo %}{% endblock %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'cuentas/js/ver-contrasena.js' %}" defer></script>
+{% endblock %}

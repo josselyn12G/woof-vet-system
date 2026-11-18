@@ -12,7 +12,7 @@
   a la derecha las horas de ese día agrupadas por veterinario. Al elegir una hora se llenan
   los campos ocultos veterinario y hora: el servidor valida todo igual.
 {% endcomment %}
-<form class="reserva" method="post" action="{% url 'citas:agendar' %}" novalidate
+<form class="reserva" method="post" action="{% url 'citas:agendar' %}" novalidate data-cargando="Agendando la cita"
       data-agendar
       data-turnos-url="{% url 'citas:turnos_del_dia' %}"
       data-dias-url="{% url 'citas:dias_disponibles' %}">
@@ -32,7 +32,7 @@
         {% for mascota in form.fields.mascota.queryset %}
           <label class="opcion-mascota">
             <input type="radio" name="{{ form.mascota.html_name }}" value="{{ mascota.pk }}" data-mascota="{{ mascota.nombre }}"{% if mascota.pk|stringformat:'s' == form.mascota.value|stringformat:'s' or form.fields.mascota.queryset.count == 1 %} checked{% endif %} required>
-            <span class="opcion-mascota__foto foto-mascota foto-mascota--{{ mascota.especie }}">{% include 'mascotas/_avatar.html' %}</span>
+            <span class="opcion-mascota__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>
             <span class="opcion-mascota__nombre">{{ mascota.nombre }}</span>
           </label>
         {% endfor %}

@@ -10,6 +10,7 @@
   const listo = dialogo.querySelector('[data-registro-listo]');
   const nombreListo = dialogo.querySelector('[data-registro-nombre]');
   const scriptVistaPrevia = document.currentScript.dataset.vistaPrevia;
+  const scriptRazas = document.currentScript.dataset.razas;
   const sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)');
   let urlCrear = null;
 
@@ -97,12 +98,15 @@
     if (primero) primero.focus();
   }
 
-  // vista-previa-foto.js (de Adrián) busca el campo de la foto al cargarse: se vuelve a cargar con cada formulario nuevo
+  // vista-previa-foto.js (de Adrián) busca el campo de la foto al cargarse, y razas.js los desplegables de
+  // especie y raza: se vuelven a cargar con cada formulario nuevo
   function cargarVistaPrevia() {
-    if (!scriptVistaPrevia) return;
-    const script = document.createElement('script');
-    script.src = scriptVistaPrevia;
-    cuerpo.appendChild(script);
+    [scriptVistaPrevia, scriptRazas].forEach(function (src) {
+      if (!src) return;
+      const script = document.createElement('script');
+      script.src = src;
+      cuerpo.appendChild(script);
+    });
   }
 
   function enviar(evento) {

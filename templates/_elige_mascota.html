@@ -1,0 +1,24 @@
+{% comment %}
+  Elegir mascota con su foto (Mis citas, Mis recetas). Recibe:
+    mascotas · elegida (la mascota actual o None = Todas) · extra (otros parámetros de la URL, por ejemplo "vista=proximas&")
+  Cada enlace muestra el cargando (cargando.js) mientras llega la página de esa mascota.
+{% endcomment %}
+<nav class="elige-mascotas" aria-label="Elegir mascota">
+  {% if mascotas|length > 1 %}
+    <a class="elige-mascota{% if not elegida %} es-activo{% endif %}" href="?{{ extra }}" data-cargando="Cargando todas"{% if not elegida %} aria-current="true"{% endif %}>
+      {# "Todas": un mosaico con las fotos de sus mascotas, como los álbumes de Fotos #}
+      <span class="elige-mascota__foto elige-mascota__foto--todas" data-n="{% if mascotas|length > 4 %}4{% else %}{{ mascotas|length }}{% endif %}" aria-hidden="true">
+        {% for mascota in mascotas|slice:':4' %}
+          <span class="elige-mascota__pieza">{% if mascota.tiene_foto %}<img src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="">{% else %}<span class="elige-mascota__inicial">{{ mascota.nombre|slice:':1'|upper }}</span>{% endif %}</span>
+        {% endfor %}
+      </span>
+      <span class="elige-mascota__nombre">Todas</span>
+    </a>
+  {% endif %}
+  {% for mascota in mascotas %}
+    <a class="elige-mascota{% if mascota == elegida %} es-activo{% endif %}" href="?{{ extra }}mascota={{ mascota.pk }}" data-cargando="Cargando a {{ mascota.nombre }}"{% if mascota == elegida %} aria-current="true"{% endif %}>
+      <span class="elige-mascota__foto" aria-hidden="true">{% if mascota.tiene_foto %}<img src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="">{% else %}<span class="elige-mascota__inicial">{{ mascota.nombre|slice:':1'|upper }}</span>{% endif %}</span>
+      <span class="elige-mascota__nombre">{{ mascota.nombre }}</span>
+    </a>
+  {% endfor %}
+</nav>

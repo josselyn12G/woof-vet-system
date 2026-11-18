@@ -1,0 +1,7 @@
+{% autoescape off %}Hola, {{ nombre }}
+
+{{ notificacion.mensaje }}
+
+Puedes ver tus citas cuando quieras entrando a Woof.
+
+Sistema Veterinario Woof{% endautoescape %}

@@ -1,0 +1,72 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Calificar la atención · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-star{% endblock %}
+{% block panel_seccion %}Mis citas{% endblock %}
+{% block panel_titulo %}Calificar la atención{% endblock %}
+{% block panel_subtitulo %}Tu opinión ayuda a otros dueños y a la clínica.{% endblock %}
+
+{% block panel_contenido %}
+  <div class="calificar">
+    <form class="bloque-panel calificar__principal" method="post" novalidate>
+      {% csrf_token %}
+
+      {# La cita que se califica #}
+      <div class="calificar__cita">
+        <span class="calificar__fecha"><strong>{{ cita.inicio|date:'d' }}</strong><span>{{ cita.inicio|date:'M' }}</span></span>
+        <span>
+          <strong>{{ cita.servicio }} de {{ cita.mascota }}</strong>
+          <span class="calificar__detalle">{{ cita.inicio|date:'l j/m' }} · {{ cita.inicio|date:'H:i' }} – {{ cita.fin|date:'H:i' }}</span>
+          <span class="estado-cita estado-cita--{{ cita.estado }}">{{ cita.get_estado_display }}</span>
+        </span>
+      </div>
+
+      {% for error in form.non_field_errors %}
+        <p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>
+      {% endfor %}
+
+      {# Estrellas: radios de verdad (funcionan sin JavaScript y con el teclado); el CSS las dibuja #}
+      <fieldset class="estrellas">
+        <legend class="estrellas__pregunta">¿Cómo fue la atención de {{ cita.veterinario.get_full_name|default:cita.veterinario.username }}?</legend>
+        <div class="estrellas__opciones">
+          {% for valor, texto in form.fields.estrellas.choices reversed %}
+            <input class="estrellas__radio" type="radio" name="{{ form.estrellas.html_name }}" id="estrellas-{{ valor }}" value="{{ valor }}"{% if form.estrellas.value|stringformat:'s' == valor|stringformat:'s' %} checked{% endif %}>
+            <label class="estrellas__estrella" for="estrellas-{{ valor }}" title="{{ texto }}">
+              <i class="bi bi-star-fill" aria-hidden="true"></i><span class="visually-hidden">{{ valor }} de 5: {{ texto }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <p class="formulario-panel__ayuda">1 estrella es Mala y 5 es Excelente.</p>
+        {% for error in form.estrellas.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+      </fieldset>
+
+      <div class="formulario-panel__campo">
+        <label class="formulario-panel__etiqueta" for="{{ form.comentario.id_for_label }}">{{ form.comentario.label }}</label>
+        {{ form.comentario }}
+        {% for error in form.comentario.errors %}<p class="formulario-panel__error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <p class="formulario-panel__ayuda">Solo puedes calificar una vez cada cita atendida.</p>
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel"><i class="bi bi-send" aria-hidden="true"></i>Enviar calificación</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'citas:mis_citas' %}?vista=pasadas">Ahora no</a>
+      </div>
+    </form>
+
+    {# El veterinario que atendió la cita y su reputación #}
+    <aside class="bloque-panel calificar__lado" aria-label="Veterinario">
+      <span class="inicial inicial--veterinario calificar__avatar" aria-hidden="true">{{ cita.veterinario.first_name|default:cita.veterinario.username|slice:':1'|upper }}{{ cita.veterinario.last_name|slice:':1'|upper }}</span>
+      <h2 class="bloque-panel__titulo">{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</h2>
+      {% with perfil=cita.veterinario.perfil_veterinario %}
+        {% if perfil.especialidad %}<p class="calificar__detalle">{{ perfil.especialidad }}{% if perfil.anios_experiencia %} · {{ perfil.anios_experiencia }} año{{ perfil.anios_experiencia|pluralize }} de experiencia{% endif %}</p>{% endif %}
+      {% endwith %}
+      {% include 'citas/_reputacion.html' %}
+    </aside>
+  </div>
+{% endblock %}
