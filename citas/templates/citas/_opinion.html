@@ -1,0 +1,21 @@
+{# Una opinión vista desde la clínica: estrellas, quién la dejó, de qué cita y el comentario. Recibe "opinion"; con con_veterinario muestra también a quién calificaron #}
+{% with cita=opinion.cita %}
+<article class="opinion opinion--interna">
+  <p class="opinion__cabecera">
+    <span class="opinion__estrellas" aria-label="{{ opinion.estrellas }} de 5 estrellas">{% for n in '12345' %}<i class="bi {% if forloop.counter <= opinion.estrellas %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</span>
+    <strong>{{ cita.mascota.dueno.get_full_name|default:cita.mascota.dueno.username }}</strong>
+    <span class="opinion__fecha">{{ opinion.creado|date:'j M Y' }}</span>
+  </p>
+  <p class="opinion__cita">
+    <span><i class="bi bi-heart" aria-hidden="true"></i>{{ cita.mascota }}</span>
+    <span><i class="bi {{ cita.servicio.icono }}" aria-hidden="true"></i>{{ cita.servicio }}</span>
+    <span><i class="bi bi-calendar-event" aria-hidden="true"></i>Cita del {{ cita.inicio|date:'j M Y' }}</span>
+    {% if con_veterinario %}<span><i class="bi bi-person-badge" aria-hidden="true"></i><a href="{% url 'citas:perfil_veterinario' cita.veterinario.pk %}">{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}</a></span>{% endif %}
+  </p>
+  {% if opinion.comentario %}
+    <p class="opinion__texto">“{{ opinion.comentario }}”</p>
+  {% else %}
+    <p class="opinion__texto opinion__texto--vacio">Sin comentario.</p>
+  {% endif %}
+</article>
+{% endwith %}

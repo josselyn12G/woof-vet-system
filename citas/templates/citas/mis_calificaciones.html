@@ -1,0 +1,54 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Mis calificaciones · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_titulo %}Mis calificaciones{% endblock %}
+{% block panel_subtitulo %}Lo que opinan tus clientes de la atención que recibieron en sus citas.{% endblock %}
+{% block panel_acciones %}
+  <a class="boton-panel boton-panel--secundario" href="{% url 'citas:perfil_veterinario' user.pk %}"><i class="bi bi-person-badge" aria-hidden="true"></i>Ver mi perfil público</a>
+{% endblock %}
+
+{% block panel_contenido %}
+  <div class="perfil-vet">
+    <section class="bloque-panel" aria-labelledby="opiniones-titulo">
+      <div class="bloque-panel__cabecera">
+        <h2 class="bloque-panel__titulo" id="opiniones-titulo">Opiniones</h2>
+        {# Por GET: elegir una cantidad de estrellas ya filtra #}
+        <form class="filtros filtros--opiniones" method="get">
+          <label class="visually-hidden" for="{{ filtros.estrellas.id_for_label }}">Estrellas</label>
+          {{ filtros.estrellas }}
+          <noscript><button type="submit" class="boton-panel boton-panel--secundario">Filtrar</button></noscript>
+          {% if hay_filtros %}<a class="boton-panel boton-panel--secundario" href="{% url 'citas:mis_calificaciones' %}">Quitar filtro</a>{% endif %}
+        </form>
+      </div>
+
+      {% for opinion in calificaciones %}
+        {% include 'citas/_opinion.html' %}
+      {% empty %}
+        {% if hay_filtros %}
+          <p class="reputacion__vacio">Ninguna opinión tiene esa cantidad de estrellas.</p>
+        {% else %}
+          <p class="reputacion__vacio">Todavía no tienes calificaciones. Cuando un cliente califique una cita que atendiste, su opinión aparecerá aquí.</p>
+        {% endif %}
+      {% endfor %}
+      {% include 'citas/_paginas_opiniones.html' %}
+    </section>
+
+    <aside class="bloque-panel perfil-vet__lado" aria-label="Mi calificación">
+      <h2 class="bloque-panel__titulo">Mi calificación</h2>
+      {% include 'citas/_reputacion.html' with texto_vacio='Todavía nadie te ha calificado.' %}
+      {% if reputacion.total %}
+        <dl class="resenas-datos">
+          <div><dt>Clientes satisfechos</dt><dd>{{ reputacion.satisfaccion }} %</dd></div>
+          <div><dt>Con comentario</dt><dd>{{ reputacion.con_comentario }}</dd></div>
+        </dl>
+        <p class="resenas-nota">Satisfechos: opiniones de 4 o 5 estrellas.</p>
+      {% endif %}
+    </aside>
+  </div>
+{% endblock %}

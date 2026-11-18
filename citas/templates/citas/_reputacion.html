@@ -15,6 +15,6 @@
       {% endfor %}
     </ul>
   {% else %}
-    <p class="reputacion__vacio">Todavía nadie lo ha calificado.</p>
+    <p class="reputacion__vacio">{{ texto_vacio|default:'Todavía nadie lo ha calificado.' }}</p>
   {% endif %}
 </div>

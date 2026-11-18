@@ -4379,3 +4379,95 @@ button.cal-cita {
     animation: none;
   }
 }
+
+
+/* ==========================================================================
+   Reseñas (administrador) y Mis calificaciones (veterinario)
+   ========================================================================== */
+.resenas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  align-items: start;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.resenas__estrella {
+  color: var(--p-acento);
+  font-size: 0.8em;
+}
+
+.tabla-panel tr.es-elegida td {
+  background: var(--p-acento-tinte);
+}
+
+.filtros--opiniones {
+  margin: 0;
+}
+
+.opinion--interna .opinion__estrellas {
+  font-size: 0.95rem;
+}
+
+.opinion__cita {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.35rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+}
+
+.opinion__cita span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.opinion__cita a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.opinion__texto--vacio {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.resenas-datos {
+  display: grid;
+  margin: 0.25rem 0 0;
+  border-top: 1px solid var(--p-linea);
+}
+
+.resenas-datos div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--p-linea);
+  font-size: 0.88rem;
+}
+
+.resenas-datos dt {
+  color: var(--p-texto-2);
+  font-weight: 500;
+}
+
+.resenas-datos dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.resenas-nota {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .resenas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
