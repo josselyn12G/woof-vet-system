@@ -1,0 +1,94 @@
+/* ==========================================================================
+   Cargando (como el LatticeLoader de React Bits, en CSS y sin React): una cuadrícula de 3 x 3 puntos
+   que se encienden en órbita, el verbo ("Guardando") y un cronómetro. Mientras se envía un formulario POST
+   (o corre algo asíncrono, WoofCargando en cargando.js) un velo cubre toda la pantalla y bloquea cualquier
+   otro clic; el resto de la página queda inert para el teclado. Al terminar, la cuadrícula se convierte
+   en un visto (listo) o en una cruz (error).
+   ========================================================================== */
+/* El velo es un <dialog> abierto con showModal(): queda encima de cualquier pop-up y el navegador
+   bloquea solo el resto de la página (clics, teclado y foco) mientras está abierto */
+.cargando-velo {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: transparent;
+  cursor: progress;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.cargando-velo[open] { display: grid; place-items: center; }
+.cargando-velo::backdrop {
+  background: rgba(29, 24, 20, 0.28);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.cargando-velo.es-visible { opacity: 1; }
+.cargando-velo:focus { outline: none; }
+
+.cargando {
+  --cg-celda: 7px;
+  --cg-espacio: 2px;
+  --cg-tinta: #fff;
+  --cg-luz: var(--woof-naranja-300, #f7c27a);
+  --cg-apagada: 0.18;
+  --cg-ciclo: 864ms;
+  --cg-marca: #7fd6a1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 14px 16px;
+  border-radius: 999px;
+  background: rgba(31, 23, 20, 0.92);
+  color: var(--cg-tinta);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: 0 18px 44px -16px rgba(0, 0, 0, 0.6);
+  transform: translateY(8px) scale(0.97);
+  transition: transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.cargando-velo.es-visible .cargando { transform: none; }
+.cargando[data-estado="error"] { --cg-marca: #ff8a80; }
+
+.cargando__rejilla { display: grid; flex: none; }
+.cargando__capa {
+  grid-area: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(3, var(--cg-celda));
+  gap: var(--cg-espacio);
+}
+.cargando__celda {
+  width: var(--cg-celda);
+  height: var(--cg-celda);
+  border-radius: 50%;
+  background: var(--cg-luz);
+  opacity: var(--cg-apagada);
+}
+.cargando__giro .cargando__celda { animation: cargando-luz var(--cg-ciclo) cubic-bezier(0.77, 0, 0.175, 1) infinite; }
+.cargando__giro .cargando__celda--hueco { animation: none; opacity: calc(var(--cg-apagada) * 0.5); }
+.cargando__marca { opacity: 0; transform: scale(0.9); transition: opacity 160ms ease, transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+.cargando__marca .cargando__celda { background: var(--cg-tinta); opacity: 0.12; }
+.cargando__marca .cargando__celda.es-encendida { background: var(--cg-marca); opacity: 1; }
+.cargando:not([data-estado="trabajando"]) .cargando__giro { opacity: 0; }
+.cargando:not([data-estado="trabajando"]) .cargando__giro .cargando__celda { animation-play-state: paused; }
+.cargando:not([data-estado="trabajando"]) .cargando__marca { opacity: 1; transform: none; }
+
+.cargando__texto { white-space: nowrap; }
+.cargando__tiempo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8125rem; font-variant-numeric: tabular-nums; opacity: 0.6; }
+
+@keyframes cargando-luz {
+  0%, 100% { opacity: var(--cg-apagada); }
+  18%, 42% { opacity: 1; }
+  62% { opacity: var(--cg-apagada); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cargando { transition: none; transform: none; }
+  .cargando-velo { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .cargando__giro .cargando__celda { animation-delay: 0ms !important; animation-duration: 1400ms; }
+  .cargando__marca { transform: none; }
+}

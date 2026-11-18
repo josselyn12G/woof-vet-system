@@ -93,11 +93,13 @@
     const boton = formulario.querySelector('button[type="submit"]');
     if (boton) boton.disabled = true;
     try {
-      const respuesta = await fetch(formulario.action, {
+      const envio = fetch(formulario.action, {
         method: 'POST',
         body: new FormData(formulario),
         headers: { 'X-Requested-With': 'fetch' },
       });
+      // El cargando tapa la pantalla mientras se guarda la cita (cargando.js)
+      const respuesta = await (window.WoofCargando ? window.WoofCargando.durante('Agendando la cita', envio) : envio);
       if ((respuesta.headers.get('Content-Type') || '').includes('application/json')) {
         const cita = await respuesta.json();
         cerrar(agendar, () => mostrarConfirmacion(cita));
@@ -137,4 +139,60 @@
   // Al cargar: ?agendar (desde el inicio) abre la reserva; un mensaje de "cita agendada" abre la confirmación
   if ('abrirAlCargar' in confirmacion.dataset) confirmacion.showModal();
   else if ('abrirAlCargar' in agendar.dataset) abrirAgendar();
+})();
+
+// ---------- Calificar en un pop-up ----------
+// "Calificar" abre el pop-up con los datos de la cita y envía el mismo POST que la página de calificar
+// (el servidor vuelve a validar todo). "Enviar" se habilita al elegir las estrellas. Sin JavaScript, el enlace
+// lleva a la página de calificar.
+(function () {
+  const dialogo = document.querySelector('[data-dialogo-calificar]');
+  const enlaces = document.querySelectorAll('[data-calificar]');
+  if (!dialogo || typeof dialogo.showModal !== 'function' || !enlaces.length) return;
+
+  const formulario = dialogo.querySelector('[data-calificar-formulario]');
+  const enviar = dialogo.querySelector('[data-calificar-enviar]');
+  const textoEstrellas = dialogo.querySelector('[data-calificar-texto]');
+  const sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const poner = (selector, valor) => { dialogo.querySelector(selector).textContent = valor; };
+
+  enlaces.forEach((enlace) => {
+    enlace.addEventListener('click', (evento) => {
+      evento.preventDefault();
+      formulario.reset();
+      formulario.action = enlace.href;   // la misma URL de la página de calificar, por POST
+      poner('[data-calificar-mascota]', enlace.dataset.mascota);
+      poner('[data-calificar-servicio]', enlace.dataset.servicio);
+      poner('[data-calificar-veterinario]', enlace.dataset.veterinario);
+      poner('[data-calificar-cuando]', enlace.dataset.cuando);
+      textoEstrellas.textContent = 'Elige de 1 a 5 estrellas';
+      enviar.disabled = true;
+      dialogo.showModal();
+      dialogo.querySelector('.estrellas__radio')?.focus();
+    });
+  });
+
+  formulario.addEventListener('change', (evento) => {
+    if (!evento.target.matches('.estrellas__radio')) return;
+    textoEstrellas.textContent = evento.target.dataset.texto;
+    enviar.disabled = false;
+  });
+
+  formulario.addEventListener('submit', () => { enviar.disabled = true; });   // evita el doble envío
+
+  function cerrar() {
+    if (sinMovimiento.matches) {
+      dialogo.close();
+      return;
+    }
+    dialogo.classList.add('es-cerrando');
+    window.setTimeout(() => {
+      dialogo.classList.remove('es-cerrando');
+      dialogo.close();
+    }, 160);
+  }
+
+  dialogo.querySelector('[data-calificar-cerrar]').addEventListener('click', cerrar);
+  dialogo.addEventListener('cancel', (evento) => { evento.preventDefault(); cerrar(); });   // tecla Escape
+  dialogo.addEventListener('click', (evento) => { if (evento.target === dialogo) cerrar(); });   // clic afuera
 })();

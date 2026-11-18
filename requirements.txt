@@ -5,3 +5,4 @@ python-dotenv>=1.0,<2
 Pillow>=11,<12
 gunicorn>=23,<24
 whitenoise>=6.8,<7
+reportlab>=4.2,<5

@@ -1,0 +1,18 @@
+{# Cabecera de la historia clínica y de Mis recetas: volver, título y las acciones (carnet y PDF; se ocultan con sin_acciones). #}
+<header class="hc-cabecera">
+  {# La flecha solo en las páginas internas (el tratamiento, la historia desde la ficha); las del menú no la llevan #}
+  {% if volver %}<a class="hc-volver" href="{{ volver }}" aria-label="Volver"><i class="bi bi-arrow-left" aria-hidden="true"></i></a>{% endif %}
+  <div class="hc-cabecera__textos">
+    <h1 class="hc-cabecera__titulo">{{ titulo|default:'Historia clínica' }}</h1>
+    <p class="hc-cabecera__subtitulo">{{ subtitulo|default:'Consulta el historial médico y el estado de salud de tus mascotas.' }}</p>
+  </div>
+  {% if mascota and not sin_acciones %}
+    <div class="hc-cabecera__acciones">
+      {# El carnet es una página del dueño; el personal ve las vacunas aquí mismo #}
+      {% if user.es_cliente %}
+        <a class="hc-boton hc-boton--claro" href="{% url 'mascotas:carnet' mascota.pk %}"><i class="bi bi-shield-check" aria-hidden="true"></i>Carnet de vacunas</a>
+      {% endif %}
+      <a class="hc-boton" href="{% url 'mascotas:historial_pdf' mascota.pk %}"><i class="bi bi-download" aria-hidden="true"></i>Descargar PDF</a>
+    </div>
+  {% endif %}
+</header>

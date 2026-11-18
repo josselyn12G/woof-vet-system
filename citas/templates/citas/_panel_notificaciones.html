@@ -1,0 +1,34 @@
+{% comment %}
+  El panel de la campana (PanelNotificacionesView): el título con "Ver todas", las pestañas Hoy / Esta semana / Antes
+  y cada aviso con su ícono, su título, cuánto hace y el mensaje. campana.js cambia de pestaña.
+{% endcomment %}
+<div class="campana-panel__cabecera">
+  <h2 class="campana-panel__titulo" id="campana-titulo">Notificaciones</h2>
+  <a class="campana-panel__todas" href="{% url 'citas:notificaciones' %}">Ver todas</a>
+</div>
+<div class="campana-panel__pestanas" role="tablist" aria-label="Cuándo">
+  {% for clave, titulo, avisos in grupos %}
+    <button type="button" role="tab" class="campana-panel__pestana{% if clave == grupo_inicial %} es-activa{% endif %}" id="campana-pestana-{{ clave }}"
+            aria-controls="campana-lista-{{ clave }}" aria-selected="{% if clave == grupo_inicial %}true{% else %}false{% endif %}" data-pestana="{{ clave }}">{{ titulo }}</button>
+  {% endfor %}
+</div>
+{% for clave, titulo, avisos in grupos %}
+  <div class="campana-panel__lista" role="tabpanel" id="campana-lista-{{ clave }}" aria-labelledby="campana-pestana-{{ clave }}" data-lista="{{ clave }}"{% if clave != grupo_inicial %} hidden{% endif %}>
+    {% for aviso in avisos %}
+      <article class="campana-aviso{% if not aviso.leida %} es-nuevo{% endif %}">
+        <span class="campana-aviso__icono" aria-hidden="true">
+          <i class="bi {% if aviso.tipo == 'agendada' %}bi-calendar-check{% elif aviso.tipo == 'reprogramada' %}bi-calendar2-week{% elif aviso.tipo == 'cancelada' %}bi-calendar-x{% else %}bi-alarm{% endif %}"></i>
+        </span>
+        <div class="campana-aviso__cuerpo">
+          <p class="campana-aviso__cabecera">
+            <strong>{{ aviso.get_tipo_display }}</strong>
+            <span class="campana-aviso__hace">{{ aviso.hace }}</span>
+          </p>
+          <p class="campana-aviso__texto">{{ aviso.mensaje|truncatechars:120 }}</p>
+        </div>
+      </article>
+    {% empty %}
+      <p class="campana-panel__vacio">{% if clave == 'hoy' %}Nada nuevo hoy.{% elif clave == 'semana' %}Sin avisos esta semana.{% else %}No hay avisos anteriores.{% endif %}</p>
+    {% endfor %}
+  </div>
+{% endfor %}

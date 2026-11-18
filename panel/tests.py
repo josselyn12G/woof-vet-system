@@ -91,3 +91,55 @@ class CargarDemoTests(TestCase):
             with self.assertRaisesMessage(CommandError, '--confirmar'):
                 self.cargar(confirmar=False)
         self.assertFalse(get_user_model().objects.filter(username='paredes').exists())
+
+
+class DemoDeAtencionTests(TestCase):
+    """preparar_demo_atencion: el horario lleno y una cita que ya empezó para mostrar el flujo de atención."""
+
+    def setUp(self):
+        from citas.tests import crear_servicio, crear_veterinario
+        from mascotas.tests import crear_mascota, crear_usuario
+        self.veterinario = crear_veterinario(username='dra.paredes')
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+        self.ana = crear_usuario('ana.perez')
+        self.mascotas = [crear_mascota(self.ana, nombre='Jasper'), crear_mascota(self.ana, nombre='Lila', especie='gato')]
+
+    def test_la_primera_cita_ya_empezo_y_se_puede_marcar_como_atendida(self):
+        from citas.models import Cita, EstadoCita
+        from panel.services.demo import DemoAtencionService
+        citas = DemoAtencionService.preparar(self.veterinario, self.mascotas)
+        self.assertEqual(len(citas), 3)
+        self.assertLessEqual(citas[0].inicio, timezone.now())
+        AgendaService.registrar_resultado(citas[0], EstadoCita.ATENDIDA)   # el paso 2 del recorrido funciona
+        DemoAtencionService.preparar(self.veterinario, self.mascotas)       # se puede volver a correr
+        self.assertEqual(Cita.objects.filter(veterinario=self.veterinario, estado=EstadoCita.CONFIRMADA).count(), 3)
+
+    def test_llena_el_horario_con_atendidas_antes_y_confirmadas_despues(self):
+        from citas.models import Cita, EstadoCita, HorarioVeterinario
+        from panel.services.demo import DemoAtencionService
+        creadas = DemoAtencionService.llenar_semana(self.veterinario, self.mascotas)
+        hoy = timezone.localdate()
+        self.assertGreater(creadas, 0)
+        self.assertTrue(HorarioVeterinario.objects.filter(veterinario=self.veterinario, fecha__gt=hoy).exists())
+        citas = Cita.objects.filter(veterinario=self.veterinario)
+        self.assertFalse(citas.filter(inicio__date=hoy).exists())                   # hoy queda para el flujo
+        self.assertFalse(citas.filter(inicio__date__lt=hoy).exclude(estado=EstadoCita.ATENDIDA).exists())
+        self.assertFalse(citas.filter(inicio__date__gt=hoy).exclude(estado=EstadoCita.CONFIRMADA).exists())
+        # Otra vez: las mismas citas, sin repetir; una que ya tiene consulta no se borra
+        pasada = citas.filter(inicio__date__lt=hoy).first()
+        if pasada:
+            Consulta.objects.create(cita=pasada, mascota=pasada.mascota, veterinario=self.veterinario,
+                                    fecha=pasada.inicio, diagnostico='Sano.')
+        self.assertEqual(DemoAtencionService.llenar_semana(self.veterinario, self.mascotas), creadas - (1 if pasada else 0))
+        self.assertEqual(citas.count(), creadas)
+
+    def test_en_neon_pide_confirmar(self):
+        with patch.object(connection, 'vendor', 'postgresql'):
+            with self.assertRaises(CommandError):
+                call_command('preparar_demo_atencion', stdout=StringIO())
+
+    def test_el_comando_imprime_el_recorrido(self):
+        salida = StringIO()
+        call_command('preparar_demo_atencion', confirmar=True, stdout=salida)   # en PostgreSQL lo pide
+        self.assertIn('Registrar consulta', salida.getvalue())

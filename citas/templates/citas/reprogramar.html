@@ -19,7 +19,7 @@
   Al elegir una hora se llenan los campos ocultos fecha y hora; AgendaService.reprogramar() valida todo
   otra vez dentro de una transacción y, si el turno ya no está libre, la cita se queda en su hora.
 {% endcomment %}
-<form class="reserva" method="post" action="{% url 'citas:reprogramar' cita.pk %}" novalidate
+<form class="reserva" method="post" action="{% url 'citas:reprogramar' cita.pk %}" novalidate data-cargando="Reprogramando la cita"
       data-reprogramar
       data-dias-url="{% url 'citas:reprogramar_dias' cita.pk %}"
       data-horas-url="{% url 'citas:reprogramar_horas' cita.pk %}"
@@ -132,5 +132,5 @@
 {% endblock %}
 
 {% block panel_scripts %}
-  <script src="{% static 'citas/js/reprogramar.js' %}" defer></script>
+  <script src="{% static 'citas/js/reprogramar.js' %}?v=2" defer></script>
 {% endblock %}

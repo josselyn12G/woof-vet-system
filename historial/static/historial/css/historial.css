@@ -153,768 +153,1528 @@
 }
 
 /* ==========================================================================
-   Historia clínica (solo lectura): la ficha del paciente arriba, luego el tratamiento
-   en curso (lo que más le importa al dueño), la línea de tiempo de las consultas a la
-   izquierda y todas las vacunas aplicadas a la derecha
+   Anillo de avance (Mis recetas y el tratamiento) y los días del tratamiento:
+   un check por día, como los pasos de un proceso
    ========================================================================== */
-.historia {
+.anillo {
+  position: relative;
   display: grid;
-  gap: 1.25rem;
+  place-content: center;
+  justify-items: center;
+  width: 8.5rem;
+  height: 8.5rem;
 }
+.anillo__svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.anillo__fondo { fill: none; stroke: var(--p-linea); stroke-width: 3.2; }
+.anillo__avance { fill: none; stroke: var(--woof-naranja-500); stroke-width: 3.2; stroke-linecap: round; }
 
-.ficha-paciente__titulo {
-  font-size: 1.2rem;
-}
-
-.ficha-paciente__datos dt .bi {
-  margin-right: 0.3rem;
-  color: var(--p-acento-texto);
-}
-
-.historia__cabecera {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.historia__cabecera .bloque-panel__titulo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.historia__cabecera .bloque-panel__titulo .bi {
-  color: var(--p-acento);
-}
-
-.historia__contador {
-  min-width: 1.75rem;
-  padding: 0.1rem 0.55rem;
-  border-radius: 999px;
-  background: var(--p-acento-tinte);
-  color: var(--p-acento-texto);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-align: center;
+/* Números: semibold y apretados, con cifras tabulares (como los widgets de Salud) */
+.anillo__dias {
+  color: var(--p-texto);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-.historia__columnas {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
-  align-items: start;
-  gap: 1.25rem;
-}
-
-/* --------------------------------------------------------------------------
-   Tratamiento en curso: bloque naranja arriba de todo
-   -------------------------------------------------------------------------- */
-.tratamientos {
-  padding: 1.4rem;
-  border: 1px solid var(--woof-naranja-300);
-  border-radius: var(--p-radio);
-  background: linear-gradient(135deg, #fff4e6 0%, #fffaf3 60%, var(--p-superficie) 100%);
-  box-shadow: 0 10px 30px -18px rgba(196, 106, 10, 0.45);
-}
-
-.tratamientos__cabecera {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  margin-bottom: 1.1rem;
-}
-
-.tratamientos__icono {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex: none;
-  border-radius: 50%;
-  background: var(--p-acento);
-  color: #fff;
-  font-size: 1.3rem;
-}
-
-.tratamientos__titulo {
-  margin: 0;
-  color: var(--woof-naranja-900);
-  font-family: var(--woof-fuente-titulos);
-  font-size: 1.2rem;
-  font-weight: 800;
-}
-
-.tratamientos__bajada {
-  margin: 0.1rem 0 0;
-  color: var(--p-texto-2);
-  font-size: 0.9rem;
-}
-
-.tratamientos__lista {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
-  gap: 1rem;
-}
-
-/* --------------------------------------------------------------------------
-   Tarjeta de una receta: el medicamento grande y la pauta en casillas
-   -------------------------------------------------------------------------- */
-.receta {
-  display: grid;
-  gap: 0.85rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--p-borde);
-  border-radius: var(--p-radio);
-  background: var(--p-superficie);
-}
-
-.receta--en-curso {
-  border-color: var(--woof-naranja-300);
-  border-left: 4px solid var(--p-acento);
-}
-
-.receta--destacada {
-  padding: 1.15rem 1.25rem;
-  box-shadow: 0 6px 18px rgba(87, 63, 51, 0.07);
-}
-
-.receta__cabecera {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.receta__icono {
-  display: grid;
-  place-items: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  flex: none;
-  border-radius: 0.75rem;
-  background: var(--p-acento-tinte);
-  color: var(--p-acento-texto);
-  font-size: 1.15rem;
-}
-
-.receta__titulo {
-  min-width: 0;
-  flex: 1;
-}
-
-.receta__medicamento {
-  margin: 0;
-  color: var(--p-texto);
-  font-family: var(--woof-fuente-titulos);
-  font-size: 1.05rem;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.receta--destacada .receta__medicamento {
-  font-size: 1.2rem;
-}
-
-.receta__origen {
-  margin: 0.1rem 0 0;
-  color: var(--p-texto-2);
-  font-size: 0.8rem;
-}
-
-.receta__estado {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex: none;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  background: var(--p-linea);
+.anillo__texto {
   color: var(--p-texto-2);
   font-size: 0.75rem;
-  font-weight: 700;
 }
 
-.receta__estado--en-curso {
-  background: #e7f5ec;
-  color: #1e7b45;
-}
-
-/* Punto verde que late: el tratamiento sigue */
-.receta__pulso {
-  width: 0.5rem;
-  height: 0.5rem;
-  flex: none;
-  border-radius: 50%;
-  background: #22a35a;
-  box-shadow: 0 0 0 0 rgba(34, 163, 90, 0.5);
-  animation: pulso-receta 1.8s ease-out infinite;
-}
-
-@keyframes pulso-receta {
-  70% { box-shadow: 0 0 0 0.45rem rgba(34, 163, 90, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 163, 90, 0); }
-}
-
-.receta__pauta {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.receta__casilla {
-  display: grid;
-  gap: 0.1rem;
-  padding: 0.55rem 0.65rem;
-  border-radius: var(--p-radio-control);
-  background: var(--p-fondo);
-}
-
-.receta__casilla dt {
-  color: var(--p-texto-2);
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.receta__casilla dd {
-  margin: 0;
-  color: var(--p-texto);
-  font-size: 0.98rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
-.receta__casilla--dosis {
-  background: var(--p-acento-tinte);
-}
-
-.receta__casilla--dosis dd {
-  color: var(--woof-naranja-900);
-}
-
-.receta__nota {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--p-radio-control);
-  background: #fffbeb;
-  color: #7a4b00;
-  font-size: 0.9rem;
+.anillo__dias small {
+  margin-left: 0.05rem;
+  font-size: 1rem;
   font-weight: 500;
 }
 
-.receta__nota .bi {
-  margin-top: 0.1rem;
-}
-
-.receta__avance {
+/* Los días del tratamiento: un "spring check" por día (como el de React Bits, en CSS y sin React).
+   Sin marcar: aro tenue. Al marcar, el relleno verde crece con un resorte (pasa un poco de su tamaño y vuelve),
+   el visto se dibuja y el texto se apaga con una raya que entra desde la izquierda. */
+.dias-tratamiento {
   display: grid;
-  gap: 0.4rem;
-}
-
-.receta__barra {
-  height: 0.45rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--p-linea);
-}
-
-.receta__barra span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--woof-naranja-300), var(--p-acento));
-}
-
-.receta__fechas {
-  margin: 0;
-  color: var(--p-texto-2);
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.receta__fechas strong {
-  color: var(--p-texto);
-}
-
-/* --------------------------------------------------------------------------
-   Línea de tiempo: un punto naranja por consulta, unidos por una línea vertical
-   -------------------------------------------------------------------------- */
-.linea-tiempo {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.linea-tiempo__punto {
+.dia-tratamiento {
   position: relative;
-  padding: 0 0 1.25rem 1.6rem;
-  border-left: 2px dashed var(--p-borde);
-  margin-left: 0.4rem;
 }
 
-.linea-tiempo__punto:last-child {
-  padding-bottom: 0;
-  border-left-color: transparent;
-}
-
-.linea-tiempo__punto::before {
+/* La línea que une las cajas (verde cuando el día ya está hecho) */
+.dia-tratamiento:not(:last-child)::after {
   content: '';
   position: absolute;
-  top: 1.35rem;
-  left: -0.5rem;
-  width: 0.9rem;
-  height: 0.9rem;
-  border: 3px solid var(--p-superficie);
-  border-radius: 50%;
-  background: var(--p-acento);
-  box-shadow: 0 0 0 2px var(--woof-naranja-100);
+  top: 40px;
+  bottom: -6px;
+  left: 13px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--p-linea);
 }
 
-.consulta-historia {
-  display: grid;
-  gap: 1rem;
-  padding: 1.1rem 1.2rem;
-  border: 1px solid var(--p-borde);
-  border-radius: var(--p-radio);
-  background: var(--p-superficie);
+.dia-tratamiento--hecho:not(:last-child)::after {
+  background: var(--woof-naranja-300);
 }
 
-.consulta-historia__cabecera {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-/* El día de la consulta como una hojita de calendario */
-.consulta-historia__dia {
-  display: grid;
-  place-items: center;
-  width: 3.2rem;
-  flex: none;
-  padding: 0.35rem 0;
-  border-radius: 0.8rem;
-  background: var(--p-acento-tinte);
-  color: var(--woof-naranja-900);
-  line-height: 1.05;
-}
-
-.consulta-historia__numero {
-  font-family: var(--woof-fuente-titulos);
-  font-size: 1.3rem;
-  font-weight: 800;
-}
-
-.consulta-historia__mes {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.consulta-historia__resumen {
-  min-width: 0;
-}
-
-.consulta-historia__fecha {
-  color: var(--p-texto);
-  font-weight: 700;
-}
-
-.consulta-historia__quien {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin: 0.4rem 0 0;
-}
-
-.chip-historia {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  background: var(--p-fondo);
-  color: var(--p-texto-2);
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.chip-historia .bi {
-  color: var(--p-acento-texto);
-}
-
-.consulta-historia__datos {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-  margin: 0;
-}
-
-.dato-historia {
-  padding: 0.7rem 0.85rem;
-  border-radius: var(--p-radio-control);
-  background: var(--p-fondo);
-}
-
-.dato-historia dt {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.2rem;
-  color: var(--p-texto-2);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.dato-historia dd {
-  margin: 0;
-  color: var(--p-texto);
-  overflow-wrap: anywhere;
-}
-
-/* Las indicaciones son para el dueño: ocupan todo el ancho y se resaltan */
-.dato-historia--indicaciones {
-  grid-column: 1 / -1;
-  border-left: 3px solid var(--p-acento);
-  background: var(--p-acento-tinte);
-}
-
-.dato-historia--indicaciones dt {
-  color: var(--p-acento-texto);
-}
-
-.consulta-historia__bloque {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.consulta-historia__subtitulo {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0;
-  color: var(--p-texto);
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.consulta-historia__subtitulo .bi {
-  color: var(--p-acento);
-}
-
-.consulta-historia__recetas {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.consulta-historia__vacunas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.consulta-historia__vacunas li {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.45rem;
-  padding: 0.45rem 0.8rem;
-  border: 1px solid #cfe9d9;
-  border-radius: var(--p-radio-control);
-  background: #f2faf5;
-  font-size: 0.88rem;
-}
-
-.consulta-historia__vacunas .bi {
-  color: #1e7b45;
-}
-
-.consulta-historia__vacunas span {
-  color: var(--p-texto-2);
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.historia__vacia {
-  display: grid;
-  justify-items: center;
-  gap: 0.75rem;
-  padding: 2rem 1rem;
-  color: var(--p-texto-2);
-  text-align: center;
-}
-
-.historia__vacia .bi {
-  font-size: 2rem;
-  color: var(--p-acento);
-}
-
-.historia__vacia p {
-  max-width: 32rem;
-  margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   Lista de todas las vacunas, con su estado
-   -------------------------------------------------------------------------- */
-.historia__vacunas {
-  position: sticky;
-  top: 1rem;
-}
-
-.vacunas-historia {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.vacunas-historia__fila {
+.spring-check {
+  --sc-tinta: var(--p-texto);
+  --sc-relleno: var(--woof-naranja-500);
+  --sc-visto: #fff;
+  --sc-resorte: cubic-bezier(0.34, 1.56, 0.64, 1);   /* pasa del final y vuelve: el "bounce" */
+  --sc-salida: cubic-bezier(0.23, 1, 0.32, 1);
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--p-linea);
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 8px 8px 8px 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--sc-tinta);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.vacunas-historia__fila:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
+.spring-check.es-futuro {
+  cursor: default;
 }
 
-.vacunas-historia__icono {
+.spring-check:focus-visible {
+  outline: none;
+}
+
+.spring-check:focus-visible .spring-check__caja {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 3px;
+}
+
+/* La caja: aro + relleno + visto. Al presionar se hunde un poco */
+.spring-check__caja {
+  position: relative;
+  z-index: 1;
   display: grid;
+  flex: none;
   place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  flex: none;
-  border-radius: 50%;
-  background: #e7f5ec;
-  color: #1e7b45;
-}
-
-.vacunas-historia__icono--proxima { background: #fdf1e3; color: #9a5b00; }
-.vacunas-historia__icono--vencida { background: #fdecee; color: #b4232a; }
-.vacunas-historia__icono--reforzada { background: var(--p-linea); color: var(--p-texto-2); }
-
-.vacunas-historia__texto {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.vacunas-historia__linea {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.5rem;
-}
-
-.vacunas-historia__linea .estado-vacuna {
-  margin-top: 0;
-}
-
-.vacunas-historia__nombre {
-  color: var(--p-texto);
-  font-weight: 700;
-}
-
-.vacunas-historia__dato {
-  color: var(--p-texto-2);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   «Historial médico» del cliente: una tarjeta por mascota
-   ========================================================================== */
-.historiales {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: 1.25rem;
-}
-
-.historial-mascota {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.25rem;
-  border: 1px solid var(--p-borde);
-  border-radius: var(--p-radio);
+  width: 28px;
+  height: 28px;
+  margin-top: 1px;
+  border-radius: 9px;
+  overflow: hidden;
   background: var(--p-superficie);
+  box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.24);
+  transition: transform 160ms var(--sc-salida), box-shadow 120ms ease;
 }
 
-.historial-mascota--tratamiento {
-  border-color: var(--woof-naranja-300);
-  box-shadow: 0 10px 30px -18px rgba(196, 106, 10, 0.45);
+.spring-check:not(.es-futuro):active .spring-check__caja {
+  transform: scale(0.95);
 }
 
-.historial-mascota__cabecera {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
+@media (hover: hover) and (pointer: fine) {
+  .spring-check:not(.es-futuro):not(.es-hecho):hover .spring-check__caja {
+    box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.45);
+  }
 }
 
-.historial-mascota__foto {
-  width: 3.5rem;
-  height: 3.5rem;
-  flex: none;
-  border-radius: 50%;
+.dia-tratamiento--hoy .spring-check:not(.es-hecho) .spring-check__caja {
+  box-shadow: inset 0 0 0 2px var(--p-acento);
 }
 
-.historial-mascota__nombre {
+.dia-tratamiento--sin_marcar .spring-check:not(.es-hecho) .spring-check__caja {
+  box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.24);
+}
+
+.spring-check.es-futuro .spring-check__caja {
+  box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.1);
+}
+
+.spring-check__relleno {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--sc-relleno);
+  transform: scale(0);
+  transition: transform 300ms var(--sc-resorte);
+}
+
+.spring-check__visto {
+  position: relative;
+  width: 70%;
+  height: 70%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--sc-visto);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 200ms var(--sc-salida);
+}
+
+/* El texto: el título se tacha; el detalle (fecha y estado) va debajo */
+.spring-check__texto {
+  display: grid;
+  gap: 2px;
   min-width: 0;
 }
 
-.historial-mascota__nombre h2 {
-  margin: 0;
-  color: var(--p-texto);
-  font-family: var(--woof-fuente-titulos);
-  font-size: 1.15rem;
-  font-weight: 800;
+.spring-check__titulo {
+  position: relative;
+  justify-self: start;
+  font-size: 0.9875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
-.historial-mascota__nombre p {
-  margin: 0.1rem 0 0;
+.spring-check__palabras {
+  display: inline-block;
+  transition: opacity 260ms var(--sc-salida);
+}
+
+.spring-check__raya {
+  position: absolute;
+  top: 52%;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 260ms var(--sc-salida);
+  pointer-events: none;
+}
+
+.spring-check__detalle {
   color: var(--p-texto-2);
-  font-size: 0.88rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
-.historial-mascota__datos {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.historial-mascota__datos div {
-  padding: 0.55rem 0.7rem;
-  border-radius: var(--p-radio-control);
-  background: var(--p-fondo);
-}
-
-.historial-mascota__datos dt {
-  color: var(--p-texto-2);
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.historial-mascota__datos dd {
-  margin: 0;
-  color: var(--p-texto);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.historial-mascota__tratamientos {
-  display: grid;
-  gap: 0.5rem;
-  padding: 0.8rem 0.9rem;
-  border-radius: var(--p-radio-control);
-  background: var(--p-acento-tinte);
-}
-
-.historial-mascota__aviso {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0;
-  color: var(--woof-naranja-900);
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.historial-mascota__tratamientos ul {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.historial-mascota__tratamientos li {
-  display: flex;
-  gap: 0.5rem;
-  color: var(--p-texto-2);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.historial-mascota__tratamientos li .bi {
-  margin-top: 0.1rem;
+.dia-tratamiento--hoy .spring-check:not(.es-hecho) .spring-check__detalle [data-estado] {
   color: var(--p-acento-texto);
-}
-
-.historial-mascota__tratamientos strong {
-  display: block;
-  color: var(--p-texto);
-  font-size: 0.95rem;
-}
-
-.historial-mascota__tranquilo {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0;
-  color: #1e7b45;
-  font-size: 0.88rem;
   font-weight: 600;
 }
 
-.historial-mascota__ver {
-  margin-top: auto;
-  font-weight: 700;
+.spring-check.es-futuro .spring-check__texto {
+  opacity: 0.5;
 }
 
-/* --------------------------------------------------------------------------
-   Pantallas chicas y menos movimiento
-   -------------------------------------------------------------------------- */
-@media (max-width: 991.98px) {
-  .historia__columnas {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .historia__vacunas {
-    position: static;
-  }
+/* Marcado: relleno, visto y el texto apagado y tachado (con un poco de retraso, como el strikeLag) */
+.spring-check.es-hecho .spring-check__caja {
+  box-shadow: none;
 }
 
-@media (max-width: 575.98px) {
-  .tratamientos {
-    padding: 1.1rem;
-  }
+.spring-check.es-hecho .spring-check__relleno {
+  transform: scale(1);
+}
 
-  .receta__pauta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.spring-check.es-hecho .spring-check__visto {
+  stroke-dashoffset: 0;
+  transition-delay: 90ms;
+}
 
-  .consulta-historia__datos {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.spring-check.es-hecho .spring-check__palabras {
+  opacity: 0.42;
+}
 
-  .linea-tiempo__punto {
-    padding-left: 1rem;
-  }
+.spring-check.es-hecho .spring-check__raya {
+  transform: scaleX(1);
+  transition-delay: 40ms;
+}
 
-  .consulta-historia {
-    padding: 1rem;
-  }
+.spring-check.es-hecho .spring-check__detalle [data-estado] {
+  color: var(--p-acento-texto);
+}
+
+/* El "swell": al marcar con el mouse o el dedo, la caja crece un poco y vuelve (lo pone seguimiento.js) */
+.spring-check.es-animando.es-hecho .spring-check__caja {
+  animation: sc-swell 340ms var(--sc-salida);
+}
+
+@keyframes sc-swell {
+  0% { transform: scale(0.95); }
+  45% { transform: scale(1.12); }
+  100% { transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .receta__pulso {
-    animation: none;
+  .spring-check__caja,
+  .spring-check__relleno,
+  .spring-check__visto,
+  .spring-check__palabras,
+  .spring-check__raya {
+    transition: none;
+    animation: none !important;
   }
 }
+
+/* ================================================================
+   Historia clínica (hc-): la misma para el cliente, el veterinario y la clínica.
+   Colores planos, sin degradados: naranja de la marca, crema, marrón oscuro y un verde para "al día".
+   ================================================================ */
+.hc,
+.hc-cabecera {
+  --hc-naranja: var(--woof-naranja-500);
+  --hc-naranja-texto: var(--p-acento-texto);
+  --hc-crema: #fdf6ee;
+  --hc-marron: #3b2a22;
+  /* Un solo color: tonos de naranja; "al día" es naranja y "vencida" el marrón de la marca */
+  --hc-ok: var(--woof-naranja-500);
+  --hc-ok-tinte: var(--p-acento-tinte);
+  --hc-alerta: var(--woof-marron);
+  --hc-radio: 20px;
+  --hc-sombra: 0 1px 2px rgba(59, 42, 34, 0.04), 0 8px 24px -16px rgba(59, 42, 34, 0.22);
+  font-family: var(--woof-fuente-texto);
+  color: var(--p-texto);
+}
+
+/* ---------- Cabecera ---------- */
+.hc-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.hc-volver {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  color: var(--p-texto);
+  font-size: 1.125rem;
+  text-decoration: none;
+  transition: background-color 0.2s, transform 0.2s var(--woof-curva);
+}
+.hc-volver:hover { background: var(--hc-crema); color: var(--p-texto); }
+.hc-volver:active { transform: scale(0.96); }
+.hc-cabecera__textos { flex: 1 1 260px; min-width: 0; }
+.hc-cabecera__titulo {
+  margin: 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.625rem, 1.2rem + 1.4vw, 2.125rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--woof-marron);
+}
+.hc-cabecera__subtitulo {
+  margin: 6px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--p-texto-2);
+}
+.hc-cabecera__acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.hc-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--hc-naranja);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.2s, transform 0.2s var(--woof-curva);
+}
+.hc-boton:hover { background: var(--woof-naranja-600); color: #fff; }
+.hc-boton:active { transform: scale(0.97); }
+.hc-boton--claro { background: var(--p-superficie); border-color: var(--p-borde); color: var(--p-texto); }
+.hc-boton--claro:hover { background: var(--hc-crema); color: var(--p-texto); }
+.hc-boton--claro i { color: var(--hc-naranja-texto); }
+
+/* ---------- Rejilla ----------
+   Las dos filas comparten columnas (angosta a la izquierda, ancha a la derecha): así los bordes y los
+   espacios de 20 px coinciden en toda la página. En la fila 2 el historial va primero en el HTML (en el
+   celular se lee antes), pero en pantalla grande se pinta en la columna ancha. */
+.hc { display: grid; gap: 20px; }
+.hc-fila { display: grid; gap: 20px; }
+.hc-columna { display: grid; gap: 20px; align-content: start; min-width: 0; }
+@media (min-width: 1100px) {
+  .hc-fila { grid-template-columns: minmax(320px, 1fr) minmax(0, 2fr); }
+  .hc-fila--resumen { align-items: stretch; }
+  .hc-fila--resumen > .hc-columna { grid-template-rows: auto 1fr; }
+  .hc-fila--detalle { align-items: start; }
+  .hc-fila--detalle > .hc-historial,
+  .hc-fila--detalle > .rx-detalles { grid-column: 2; grid-row: 1; }
+  .hc-fila--detalle > .hc-lateral { grid-column: 1; grid-row: 1; }
+}
+
+.hc-tarjeta {
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: var(--hc-radio);
+  box-shadow: var(--hc-sombra);
+  padding: 22px 24px;
+  min-width: 0;
+}
+.hc-etiqueta {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--p-texto-2);
+}
+.hc-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.1875rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--woof-marron);
+}
+.hc-titulo i { color: var(--hc-naranja); font-size: 1.05em; }
+.hc-titulo--tarjeta { font-size: 1.0625rem; }
+
+/* ---------- Selector de mascota: control segmentado (como en las apps de Apple) ---------- */
+.hc .filtro-mascotas {
+  justify-self: start;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: #ebebee;
+}
+.hc .filtro-mascotas__opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 16px 4px 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--p-texto-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.hc .filtro-mascotas__opcion:hover { color: var(--p-texto); background: rgba(255, 255, 255, 0.55); }
+.hc .filtro-mascotas__opcion.es-activo {
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 8px -2px rgba(0, 0, 0, 0.12);
+}
+.hc .filtro-mascotas__foto {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 0.8125rem;
+}
+.hc .filtro-mascotas__foto img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Tarjeta de la mascota: la foto a sangre y el nombre encima ---------- */
+.hc-mascota {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: 300px;
+  height: 100%;
+  border-radius: var(--hc-radio);
+  background: var(--hc-naranja);
+  color: #fff;
+  box-shadow: var(--hc-sombra);
+}
+.hc-mascota__fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+/* Sin foto: la inicial grande en el naranja y la huella de adorno */
+.hc-mascota__inicial {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  z-index: -1;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 7rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.28);
+}
+.hc-mascota__huella {
+  position: absolute;
+  right: -12px;
+  top: -10px;
+  z-index: -1;
+  width: 150px;
+  height: 150px;
+  fill: rgba(255, 255, 255, 0.16);
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
+/* La ficha: una franja abajo. Sobre la foto es vidrio esmerilado oscuro (se lee en cualquier foto) */
+.hc-mascota__ficha {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 20px 22px;
+  min-width: 0;
+}
+.hc-mascota--foto .hc-mascota__ficha {
+  margin: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(30, 20, 15, 0.42);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+.hc-mascota__nombre {
+  margin: 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.625rem, 1.2rem + 1vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #fff;
+}
+.hc-mascota__rasgos { margin: 4px 0 0; font-size: 0.9375rem; font-weight: 500; line-height: 1.35; color: rgba(255, 255, 255, 0.9); }
+.hc-mascota__peso {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Historia como reporte: la foto grande a la izquierda y las pestañas a la derecha ---------- */
+/* La foto y el panel comparten la misma altura (--hc-alto): cada pestaña llena ese alto y, si el contenido
+   no cabe (el historial largo), se desplaza dentro de su tarjeta */
+.hc-reporte { --hc-alto: clamp(460px, calc(100vh - 220px), 720px); }
+.hc-reporte__marco { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 1000px) {
+  .hc-reporte__marco { grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.5fr); }
+  .hc-reporte.con-pestanas .hc-reporte__panel { display: flex; flex-direction: column; height: var(--hc-alto); }
+  .hc-reporte.con-pestanas .hc-vista:not([hidden]) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  /* La última tarjeta de cada pestaña crece hasta el pie de la foto */
+  .hc-reporte.con-pestanas .hc-vista > :last-child { flex: 1; min-height: 0; }
+  .hc-reporte.con-pestanas .hc-recientes { overflow-y: auto; }
+  .hc-reporte.con-pestanas .hc-vacunas,
+  .hc-reporte.con-pestanas .hc-historial { overflow-y: auto; overscroll-behavior: contain; }
+  .hc-reporte.con-pestanas .hc-peso { display: flex; flex-direction: column; }
+  .hc-reporte.con-pestanas .hc-grafico { flex: 1; min-height: 0; width: 100%; height: auto; margin-top: auto; }
+}
+.hc-foto {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  height: var(--hc-alto);
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--hc-naranja);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(59, 42, 34, 0.08), 0 24px 48px -28px rgba(59, 42, 34, 0.55);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.hc-foto__imagen {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 70%;
+  -webkit-user-drag: none;
+}
+.hc-foto__inicial {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 11rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.3);
+}
+.hc-foto__flecha {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--p-texto);
+  font-size: 1.1rem;
+  text-decoration: none;
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transform: translateY(-50%);
+  transition: transform 0.2s var(--woof-curva), background-color 0.2s;
+}
+.hc-foto__flecha:hover { background: #fff; color: var(--p-texto); transform: translateY(-50%) scale(1.06); }
+.hc-foto__flecha:active { transform: translateY(-50%) scale(0.96); }
+.hc-foto__flecha:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.hc-foto__flecha--anterior { left: 16px; }
+.hc-foto__flecha--siguiente { right: 16px; }
+/* La ficha abajo: vidrio oscuro sobre la foto; sobre el naranja, sin vidrio */
+.hc-foto__ficha { width: 100%; margin: 12px; padding: 18px 20px 20px; border-radius: 22px; }
+.hc-foto--con-foto .hc-foto__ficha {
+  background: rgba(30, 20, 15, 0.42);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+.hc-foto__puntos { display: flex; gap: 6px; margin-bottom: 12px; }
+.hc-foto__punto { width: 8px; height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.5); transition: width 0.25s var(--woof-curva), background-color 0.2s; }
+.hc-foto__punto:hover { background: rgba(255, 255, 255, 0.8); }
+.hc-foto__punto.es-activo { width: 22px; background: #fff; }
+.hc-foto__nombre {
+  margin: 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(2rem, 1.4rem + 1.6vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  color: #fff;
+}
+.hc-foto__rasgos { margin: 6px 0 14px; font-size: 1rem; font-weight: 500; line-height: 1.35; color: rgba(255, 255, 255, 0.9); }
+.hc-foto__peso {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pestañas: control segmentado; la tarjeta solo muestra lo de la pestaña elegida */
+.hc-reporte__panel { display: grid; gap: 18px; align-content: start; min-width: 0; }
+.hc-pestanas {
+  justify-self: start;
+  display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #ebebee;
+}
+.hc-pestanas[hidden] { display: none; }
+.hc-pestana {
+  flex: none;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--p-texto-2);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.hc-pestana:hover { color: var(--p-texto); }
+.hc-pestana.es-activa { background: var(--p-superficie); color: var(--p-texto); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 8px -2px rgba(0, 0, 0, 0.12); }
+.hc-pestana:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.hc-vista { display: grid; gap: 18px; min-width: 0; }
+.hc-vista[hidden] { display: none; }
+.con-pestanas .hc-vista:not([hidden]) { animation: hc-aparece 240ms var(--woof-curva); }
+@keyframes hc-aparece { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Paso de un reporte a otro: se va hacia un lado y el nuevo llega desde el otro */
+.hc-reporte__marco.es-saliendo-siguiente { animation: hc-sale-izq 200ms ease-in forwards; }
+.hc-reporte__marco.es-saliendo-anterior { animation: hc-sale-der 200ms ease-in forwards; }
+.hc-reporte__marco.es-entrando-siguiente { animation: hc-entra-der 320ms var(--woof-curva); }
+.hc-reporte__marco.es-entrando-anterior { animation: hc-entra-izq 320ms var(--woof-curva); }
+@keyframes hc-sale-izq { to { opacity: 0; transform: translateX(-40px); } }
+@keyframes hc-sale-der { to { opacity: 0; transform: translateX(40px); } }
+@keyframes hc-entra-der { from { opacity: 0; transform: translateX(40px); } }
+@keyframes hc-entra-izq { from { opacity: 0; transform: translateX(-40px); } }
+
+@media (max-width: 999px) {
+  .hc-foto { height: min(70vh, 460px); }
+}
+@media (max-width: 600px) {
+  .hc-pestanas { justify-self: stretch; }
+  .hc-pestana { flex: 1 0 auto; padding: 0 12px; font-size: 0.875rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .con-pestanas .hc-vista:not([hidden]), .hc-reporte__marco { animation: none !important; }
+  .hc-foto__flecha, .hc-foto__punto, .hc-pestana { transition: none; }
+}
+
+/* ---------- Cifras ---------- */
+.hc-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; }
+.hc-cifra {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icono numero" "icono texto";
+  align-items: center;
+  column-gap: 12px;
+  padding: 16px 18px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: var(--hc-radio);
+  box-shadow: var(--hc-sombra);
+  min-width: 0;
+}
+.hc-cifra__icono {
+  grid-area: icono;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1.2rem;
+}
+.hc-cifra dd {
+  grid-area: numero;
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--woof-marron);
+}
+.hc-cifra dt { grid-area: texto; margin-top: 4px; font-size: 0.8125rem; font-weight: 500; color: var(--p-texto-2); }
+
+/* ---------- Vacunación ---------- */
+.hc-vacunacion { display: grid; gap: 20px; }
+@media (min-width: 640px) {
+  .hc-vacunacion { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+  .hc-vacunacion__proxima { border-left: 1px solid var(--p-linea); padding-left: 22px; }
+}
+.hc-vacunacion__porcentaje { margin: 6px 0 12px; line-height: 1; font-size: 0.9375rem; color: var(--p-texto-2); }
+.hc-vacunacion__porcentaje strong {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--woof-marron);
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+.hc-barra { height: 8px; border-radius: 999px; background: var(--p-linea); overflow: hidden; }
+.hc-barra span { display: block; width: var(--ancho, 0%); height: 100%; border-radius: inherit; background: var(--hc-ok); }
+.hc-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-leyenda li { display: inline-flex; align-items: center; gap: 6px; }
+.hc-punto { width: 8px; height: 8px; border-radius: 50%; background: var(--hc-naranja); }
+.hc-punto--ok { background: var(--hc-ok); }
+.hc-punto--alerta { background: var(--hc-alerta); }
+.hc-vacunacion__proxima { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: start; }
+.hc-vacunacion__icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1.2rem;
+}
+.hc-vacunacion__nombre { margin: 4px 0 2px; font-size: 1.0625rem; font-weight: 700; line-height: 1.3; color: var(--p-texto); }
+.hc-vacunacion__fecha { margin: 0; font-size: 0.875rem; color: var(--p-texto-2); }
+.hc-pastilla {
+  grid-column: 2;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hc-pastilla:hover { background: var(--woof-naranja-100); color: var(--hc-naranja-texto); }
+
+/* ---------- Historial médico ---------- */
+.hc-historial { padding: 24px; }
+.hc-historial__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; }
+.hc-historial__cabecera .rx-filtro-fecha select { min-height: 36px; font-size: 0.875rem; }
+.hc-filtros { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hc-filtro,
+.hc-buscar {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--p-borde);
+  background: var(--p-superficie);
+  color: var(--p-texto-2);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.hc-filtro:hover, .hc-buscar:hover { color: var(--p-texto); border-color: var(--p-control); }
+.hc-filtro.es-activo { background: var(--hc-naranja); border-color: var(--hc-naranja); color: #fff; }
+.hc-buscar { width: 36px; padding: 0; display: grid; place-items: center; }
+.hc-busqueda { margin-top: 14px; width: 100%; }
+.hc-filtro:focus-visible, .hc-buscar:focus-visible, .hc-registro__fila:focus-visible, .hc-volver:focus-visible, .hc-boton:focus-visible {
+  outline: 2px solid var(--hc-naranja);
+  outline-offset: 2px;
+}
+
+.hc-meses, .hc-registros { list-style: none; margin: 0; padding: 0; }
+.hc-mes { margin-top: 22px; }
+.hc-mes[hidden], .hc-registro[hidden] { display: none; }
+.hc-mes__titulo { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.hc-mes__titulo span:first-child {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.hc-mes__cuenta { font-size: 0.8125rem; color: var(--p-texto-2); }
+
+/* Cada registro: una fila que se despliega. La línea vertical une los íconos del mes */
+.hc-registros { position: relative; }
+.hc-registros::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 22px;
+  bottom: 22px;
+  width: 2px;
+  background: var(--p-linea);
+}
+.hc-registro { position: relative; }
+.hc-registro + .hc-registro { border-top: 1px solid var(--p-linea); }
+.hc-registro details > summary { list-style: none; }
+.hc-registro details > summary::-webkit-details-marker { display: none; }
+.hc-registro__fila {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.1fr) minmax(0, 1.4fr) auto 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 6px 12px 0;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.hc-registro__icono {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1.15rem;
+  box-shadow: 0 0 0 4px var(--p-superficie);
+}
+.hc-registro--vacuna .hc-registro__icono { background: var(--woof-naranja-100); color: var(--woof-naranja-700); }
+.hc-registro--receta .hc-registro__icono { background: var(--p-fondo); color: var(--woof-naranja-700); }
+.hc-registro__titulos { display: grid; gap: 2px; min-width: 0; }
+.hc-registro__titulos strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-registro__titulos span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-registro__resumen {
+  padding-left: 14px;
+  border-left: 1px solid var(--p-borde);
+  font-size: 0.875rem;
+  color: var(--p-texto-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hc-registro__flecha { color: var(--p-texto-2); transition: transform 0.25s var(--woof-curva); }
+.hc-registro details[open] .hc-registro__flecha { transform: rotate(180deg); }
+.hc-registro__detalle { padding: 2px 6px 16px 58px; }
+
+.hc-insignia {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--p-linea);
+  color: var(--p-texto-2);
+}
+.hc-insignia--acento { background: var(--p-acento-tinte); color: var(--hc-naranja-texto); }
+.hc-insignia--ok { background: var(--hc-ok-tinte); color: var(--p-acento-texto); }
+.hc-insignia--alerta { background: var(--woof-marron); color: #fff; }
+
+.hc-datos { display: grid; gap: 10px; margin: 0 0 12px; }
+.hc-datos dt { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--p-texto-2); }
+.hc-datos dd { margin: 2px 0 0; font-size: 0.9375rem; line-height: 1.5; color: var(--p-texto); }
+.hc-sublista { list-style: none; margin: 6px 0 12px; padding: 0; display: grid; gap: 6px; }
+.hc-sublista li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--hc-crema); font-size: 0.875rem; }
+.hc-sublista span { color: var(--p-texto-2); }
+
+.hc-vacio { display: grid; justify-items: center; gap: 10px; padding: 36px 16px; text-align: center; color: var(--p-texto-2); }
+.hc-vacio i { font-size: 2rem; color: var(--hc-naranja); }
+.hc-vacio p { margin: 0; max-width: 42ch; line-height: 1.5; }
+p.hc-vacio { padding: 24px 0 4px; }
+
+/* ---------- Peso ---------- */
+.hc-peso__valor {
+  margin: 14px 0 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--woof-marron);
+  font-variant-numeric: tabular-nums;
+}
+.hc-peso__valor span { font-size: 1.125rem; font-weight: 600; color: var(--p-texto-2); letter-spacing: 0; }
+.hc-peso__fecha { margin: 6px 0 0; font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-grafico { display: block; width: 100%; height: auto; margin-top: 14px; overflow: visible; }
+.hc-grafico__area { fill: var(--p-acento-tinte); }
+.hc-grafico__linea { fill: none; stroke: var(--hc-naranja); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.hc-grafico__punto { fill: var(--p-superficie); stroke: var(--hc-naranja); stroke-width: 2.5; }
+.hc-grafico__punto.es-ultimo { fill: var(--hc-naranja); stroke: var(--p-superficie); stroke-width: 3; }
+.hc-grafico__fecha { font-size: 11px; fill: var(--p-texto-2); text-anchor: middle; font-family: var(--woof-fuente-texto); }
+
+/* ---------- Vacunas aplicadas (tarjeta oscura) ---------- */
+.hc-vacunas { background: var(--hc-marron); border-color: var(--hc-marron); color: #fff; }
+.hc-vacunas .hc-titulo { color: #fff; }
+.hc-vacunas .hc-titulo i { color: var(--woof-naranja-300); }
+.hc-vacunas__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hc-vacunas__cuenta {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.hc-vacunas__lista { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 4px; }
+.hc-vacuna { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.hc-vacuna + .hc-vacuna { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.hc-vacuna__marca {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--hc-ok);
+  color: #fff;
+  font-size: 0.95rem;
+}
+.hc-vacuna--proxima .hc-vacuna__marca { background: var(--woof-naranja-300); color: var(--woof-marron); }
+.hc-vacuna--vencida .hc-vacuna__marca { background: #fff; color: var(--woof-naranja-700); }
+.hc-vacuna--reforzada { opacity: 0.6; }
+.hc-vacuna__texto { display: grid; gap: 2px; min-width: 0; }
+.hc-vacuna__texto strong { font-size: 0.9375rem; font-weight: 650; }
+.hc-vacuna__texto span { font-size: 0.8125rem; color: rgba(255, 255, 255, 0.72); }
+.hc-vacunas__vacio { margin: 14px 0 0; color: rgba(255, 255, 255, 0.72); font-size: 0.9375rem; }
+
+/* ---------- Celular ---------- */
+@media (max-width: 720px) {
+  .hc-mascota { min-height: 260px; }
+  .hc .filtro-mascotas { max-width: 100%; }
+  .hc-cifras { gap: 10px; }
+  .hc-cifra { grid-template-columns: 1fr; grid-template-areas: "icono" "numero" "texto"; justify-items: start; row-gap: 8px; padding: 14px; }
+  .hc-cifra__icono { width: 36px; height: 36px; font-size: 1rem; }
+  .hc-tarjeta, .hc-historial { padding: 18px; }
+  .hc-registro__fila { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "icono titulos flecha" "icono resumen insignia"; gap: 4px 12px; }
+  .hc-registro__icono { grid-area: icono; width: 40px; height: 40px; align-self: start; }
+  .hc-registros::before { left: 19px; }
+  .hc-registro__titulos { grid-area: titulos; }
+  .hc-registro__resumen { grid-area: resumen; padding-left: 0; border-left: 0; }
+  .hc-insignia { grid-area: insignia; }
+  .hc-registro__flecha { grid-area: flecha; }
+  .hc-registro__detalle { padding-left: 52px; }
+  .hc-cabecera__acciones { width: 100%; }
+  .hc-cabecera__acciones .hc-boton { flex: 1; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hc-volver, .hc-boton, .hc-registro__flecha { transition: none; }
+}
+
+/* ================================================================
+   Mis recetas (rx-): portada por consulta y el detalle de cada tratamiento.
+   Mismas columnas, tarjetas y colores planos que la historia clínica (hc-).
+   ================================================================ */
+/* Cada tipo de medicamento con su tono (tableta = naranja de la marca) */
+.rx-icono { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
+
+/* ---------- Resumen: el anillo ---------- */
+
+/* ---------- Control de dosis de hoy: pasos unidos por una línea ---------- */
+.rx-pasos { list-style: none; margin: 16px 0 0; padding: 0; display: grid; }
+.rx-paso { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 0; }
+.rx-paso:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 46px;
+  bottom: -10px;
+  width: 2px;
+  background: var(--p-linea);
+}
+.rx-paso__marca {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1rem;
+}
+.rx-paso__texto { display: grid; gap: 2px; min-width: 0; color: inherit; text-decoration: none; }
+.rx-paso__texto strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); }
+.rx-paso__texto span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-paso__texto:hover strong { color: var(--hc-naranja-texto); }
+
+/* ---------- Lista de tratamientos por consulta ---------- */
+.rx-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+.rx-consulta {
+  display: grid;
+  gap: 14px;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--woof-curva);
+}
+.rx-fecha {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--hc-crema);
+  color: var(--hc-naranja-texto);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.rx-fecha strong { font-size: 1.375rem; font-weight: 700; color: var(--woof-marron); letter-spacing: -0.02em; }
+
+/* ---------- Detalle: un medicamento ---------- */
+.rx-detalles { gap: 20px; }
+.rx-detalle { display: grid; gap: 20px; scroll-margin-top: 90px; }
+.rx-detalle__cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 22px; }
+.rx-imagen {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 28px;
+  font-size: 3.25rem;
+}
+.rx-detalle__nombre {
+  margin: 2px 0 6px;
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.375rem, 1.1rem + 0.8vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--woof-marron);
+}
+.rx-detalle__descripcion { margin: 0; font-size: 0.9875rem; line-height: 1.5; color: var(--p-texto-2); max-width: 60ch; }
+.rx-detalle__descripcion strong { color: var(--p-texto); }
+.rx-datos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--p-linea);
+  border-radius: 16px;
+}
+.rx-datos > div { padding: 12px 16px; min-width: 0; }
+.rx-datos > div + div { border-left: 1px solid var(--p-linea); }
+.rx-datos dt { font-size: 0.75rem; font-weight: 600; color: var(--p-texto-2); }
+.rx-datos dd { margin: 4px 0 0; font-size: 0.9375rem; font-weight: 600; line-height: 1.3; color: var(--p-texto); font-variant-numeric: tabular-nums; }
+
+.rx-siguiente {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: var(--hc-crema);
+}
+.rx-siguiente__icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--hc-naranja);
+  color: #fff;
+  font-size: 1.15rem;
+}
+.rx-siguiente__cuando { margin: 2px 0 0; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; color: var(--woof-marron); font-variant-numeric: tabular-nums; }
+.rx-siguiente__dosis { padding: 6px 12px; border-radius: 999px; background: var(--p-superficie); font-size: 0.875rem; font-weight: 600; color: var(--p-texto); }
+
+.rx-control { display: grid; gap: 12px; padding-top: 18px; border-top: 1px solid var(--p-linea); }
+.rx-control__cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.rx-exito__icono {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 1.5rem;
+}
+.rx-exito__titulo { margin: 0; font-family: var(--woof-fuente-titulos); font-size: 1.1875rem; font-weight: 700; letter-spacing: -0.015em; color: #fff; }
+.rx-exito p { margin: 4px 0 0; font-size: 0.9rem; line-height: 1.45; color: rgba(255, 255, 255, 0.88); }
+
+/* ---------- Dos colores: neutro y el naranja de la marca como único acento ---------- */
+.rx-pastilla {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--p-fondo);
+  color: var(--p-texto-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rx-pastilla--acento { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
+
+/* Resumen: el anillo en naranja y una sola pastilla debajo */
+.rx-resumen { display: grid; justify-items: center; align-content: start; gap: 14px; text-align: center; }
+.rx-resumen .hc-etiqueta { justify-self: stretch; text-align: left; }
+.rx-anillo { width: 8rem; height: 8rem; }
+.rx-anillo .anillo__dias { font-size: 1.875rem; font-weight: 700; letter-spacing: -0.03em; color: var(--woof-marron); }
+.rx-resumen__texto { margin: 0; font-size: 0.9375rem; line-height: 1.4; color: var(--p-texto-2); }
+.rx-resumen__texto strong { color: var(--p-texto); }
+.rx-anillo .anillo__dias small { font-size: 0.9375rem; color: var(--p-texto-2); }
+.rx-paso--hecho .rx-paso__marca { background: var(--hc-naranja); color: #fff; }
+.rx-paso__marca:empty { background: var(--p-superficie); box-shadow: inset 0 0 0 2px var(--woof-naranja-300); }
+
+.rx-seccion { display: grid; gap: 14px; }
+.rx-seccion__titulo {
+  margin: 8px 0 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--woof-marron);
+}
+.rx-seccion__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rx-filtro-fecha { position: relative; display: inline-flex; align-items: center; }
+.rx-filtro-fecha .bi { position: absolute; left: 14px; color: var(--hc-naranja-texto); pointer-events: none; }
+.rx-filtro-fecha select {
+  min-height: 40px;
+  padding: 0 38px 0 38px;
+  border: 1px solid var(--p-borde);
+  border-radius: 999px;
+  background: var(--p-superficie) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%235f5f66' stroke-width='2' d='M3 6l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 14px center;
+  color: var(--p-texto);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.rx-filtro-fecha select:hover { border-color: var(--p-control); }
+.rx-filtro-fecha select:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-flip[hidden] { display: none; }
+.rx-sin-resultados { margin: 0; padding: 28px 0; text-align: center; color: var(--p-texto-2); }
+.rx-seccion__titulo span { font-family: var(--woof-fuente-texto); font-size: 1rem; font-weight: 500; color: var(--p-texto-2); }
+.rx-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.rx-consulta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  height: 100%;
+  padding: 14px 18px 14px 14px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  box-shadow: var(--hc-sombra);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.2s var(--woof-curva);
+}
+
+/* Detalle: todos los medicamentos en naranja; el éxito en naranja sólido */
+.rx-imagen.rx-icono { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
+.rx-exito {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: var(--hc-radio);
+  background: var(--hc-naranja);
+  color: #fff;
+  box-shadow: var(--hc-sombra);
+}
+.rx-exito--neutro { background: var(--hc-marron); }
+.hc-lateral .hc-mascota { min-height: 280px; }
+
+/* La consulta en una línea, arriba del tratamiento */
+.rx-consulta-barra {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  box-shadow: var(--hc-sombra);
+}
+.rx-consulta-barra__textos { display: grid; gap: 3px; min-width: 0; }
+.rx-consulta-barra__textos strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; color: var(--p-texto); }
+.rx-consulta-barra__textos span { font-size: 0.875rem; color: var(--p-texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-consulta-barra .hc-boton { min-height: 40px; }
+.rx-consulta-barra .hc-boton i { order: 2; }
+
+/* ---------- Mis recetas arriba: la foto de cada mascota para elegir y las cifras al lado ---------- */
+.rx-cabeza { display: grid; gap: 28px; justify-items: center; }
+.rx-cabeza .rx-cifras { justify-self: stretch; }
+/* Cifras como tarjetas de panel: título y una flecha en círculo arriba, el número grande y una nota en naranja.
+   La primera va en naranja sólido; las demás en blanco */
+.rx-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
+@media (min-width: 760px) {
+  .rx-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .rx-cifras--tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Tratamiento en curso (Resumen de la historia) */
+.hc-en-curso__lista { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.hc-en-curso__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; }
+.hc-en-curso__textos { display: grid; gap: 2px; min-width: 0; }
+.hc-en-curso__textos strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); }
+.hc-en-curso__textos span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-en-curso__dia { padding: 4px 10px; border-radius: 999px; background: var(--p-acento-tinte); color: var(--p-acento-texto); font-size: 0.8125rem; font-weight: 700; white-space: nowrap; }
+.hc-en-curso__barra { grid-column: 1 / -1; height: 6px; }
+.hc-en-curso__barra span { background: var(--woof-naranja-500); }
+
+/* Lo más reciente (Resumen de la historia) */
+.hc-recientes__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hc-recientes__cabecera .hc-pastilla { margin-top: 0; }
+.hc-recientes__lista { list-style: none; margin: 14px 0 0; padding: 0; display: grid; }
+.hc-reciente { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 0; }
+.hc-reciente + .hc-reciente { border-top: 1px solid var(--p-linea); }
+.hc-reciente__textos { display: grid; gap: 2px; min-width: 0; }
+.hc-reciente__textos strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-reciente__textos span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-cifra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "titulo ir" "numero numero" "nota nota";
+  align-items: center;
+  row-gap: 10px;
+  padding: 20px 20px 18px 22px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 22px;
+  box-shadow: var(--hc-sombra);
+}
+.rx-cifra dt { grid-area: titulo; font-size: 0.9375rem; font-weight: 600; color: var(--p-texto); }
+.rx-cifra dd {
+  grid-area: numero;
+  margin: 6px 0 0;
+  font-size: clamp(2.5rem, 2rem + 1.4vw, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--p-texto);
+  font-variant-numeric: tabular-nums;
+}
+.rx-cifra dd small { margin-left: 2px; font-size: 1.125rem; font-weight: 600; letter-spacing: 0; color: var(--p-texto-2); }
+.rx-cifra__ir {
+  grid-area: ir;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--p-control);
+  color: var(--p-texto-2);
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s var(--woof-curva);
+}
+.rx-cifra__ir:hover { background: var(--p-acento-tinte); color: var(--hc-naranja-texto); box-shadow: none; transform: rotate(45deg); }
+.rx-cifra__ir:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-cifra__nota { grid-area: nota; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.8125rem; font-weight: 500; color: var(--hc-naranja-texto); }
+.rx-cifra__chip {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 18px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--woof-naranja-300);
+  font-size: 0.7rem;
+}
+/* La primera, en naranja sólido */
+.rx-cifra--acento { background: var(--hc-naranja); border-color: var(--hc-naranja); }
+.rx-cifra--acento dt, .rx-cifra--acento dd, .rx-cifra--acento .rx-cifra__nota { color: #fff; }
+.rx-cifra--acento .rx-cifra__ir { background: #fff; color: var(--woof-marron); box-shadow: none; }
+.rx-cifra--acento .rx-cifra__chip { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7); }
+@media (prefers-reduced-motion: reduce) { .rx-cifra__ir { transition: none; } }
+.rx-hoy__titulo { margin: 0; font-family: var(--woof-fuente-titulos); font-size: 1.0625rem; font-weight: 700; color: var(--woof-marron); }
+
+/* ---------- Tarjetas que se voltean (como la FlipCard de React Bits, en CSS y sin React) ----------
+   La inclinación sigue al cursor (rápida); el giro va aparte con un resorte que se pasa un poco y vuelve.
+   Frente blanco con la fecha en naranja; atrás marrón oscuro con las indicaciones. */
+.rx-flips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 20px;
+}
+.rx-flip { height: 248px; perspective: 1100px; }
+.rx-flip__inclinacion {
+  height: 100%;
+  transform: rotateX(var(--rx-tx, 0deg)) rotateY(var(--rx-ty, 0deg)) scale(var(--rx-escala, 1));
+  transform-style: preserve-3d;
+  transition: transform 180ms var(--woof-curva);
+}
+.rx-flip__rotor {
+  position: relative;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 720ms cubic-bezier(0.3, 1.45, 0.45, 1);
+}
+.rx-flip.es-volteada .rx-flip__rotor { transform: rotateY(180deg); }
+.rx-flip__cara {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+  border-radius: 22px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  text-align: left;
+  font: inherit;
+}
+.rx-flip__cara--frente {
+  cursor: pointer;
+  border: 1px solid var(--p-borde);
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  box-shadow: var(--hc-sombra);
+  cursor: pointer;
+}
+.rx-flip--en-curso .rx-flip__cara--frente { border-color: var(--woof-naranja-300); }
+.rx-flip__cara--frente:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 3px; }
+.rx-flip__cara--atras {
+  transform: rotateY(180deg);
+  background: var(--hc-marron);
+  color: #fff;
+  box-shadow: 0 18px 40px -22px rgba(59, 42, 34, 0.6);
+}
+.rx-flip__fecha { display: grid; gap: 2px; color: var(--hc-naranja-texto); font-size: 0.875rem; font-weight: 600; text-transform: capitalize; }
+.rx-flip__fecha strong {
+  font-family: var(--woof-fuente-titulos);
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--woof-marron);
+}
+.rx-flip__titulos { display: grid; gap: 3px; min-width: 0; }
+.rx-flip__titulos strong { font-size: 1.125rem; font-weight: 650; letter-spacing: -0.01em; }
+.rx-flip__titulos span { font-size: 0.875rem; color: var(--p-texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-flip__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; }
+.rx-flip__arriba { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.rx-flip__pista {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  margin-left: -10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--hc-naranja-texto);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rx-flip__pista:hover { background: var(--p-acento-tinte); }
+.rx-flip__pista:focus-visible, .rx-flip__ver:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-flip__ver { min-height: 36px; padding: 0 14px; font-size: 0.875rem; }
+.rx-flip__ver i { order: 2; }
+.rx-flip__etiqueta { margin: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--woof-naranja-300); }
+.rx-flip__indicaciones { margin: 0; font-size: 1rem; line-height: 1.45; color: #fff; }
+.rx-flip__medicamentos { margin: 0; font-size: 0.8125rem; line-height: 1.4; color: rgba(255, 255, 255, 0.7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-flip__acciones { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rx-flip__acciones .hc-boton { min-height: 40px; }
+.rx-flip__acciones .hc-boton i { order: 2; }
+.rx-flip__volver {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+}
+.rx-flip__volver:hover { background: rgba(255, 255, 255, 0.24); }
+.rx-flip__volver:focus-visible, .rx-flip__acciones .hc-boton:focus-visible { outline: 2px solid var(--woof-naranja-300); outline-offset: 2px; }
+/* Con "reducir movimiento": sin giro 3D, cambia de cara con un fundido */
+@media (prefers-reduced-motion: reduce) {
+  .rx-flip__inclinacion { transform: none; transition: none; }
+  .rx-flip__rotor { transition: none; }
+  .rx-flip.es-volteada .rx-flip__rotor { transform: none; }
+  .rx-flip__cara--atras { transform: none; opacity: 0; }
+  .rx-flip.es-volteada .rx-flip__cara--atras { opacity: 1; }
+  .rx-flip.es-volteada .rx-flip__cara--frente { opacity: 0; }
+}
+
+/* ---------- Tratamiento: una lista de medicamentos; cada uno abre su pop-up ---------- */
+.rx-medicamentos { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rx-medicamento {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 18px 16px 16px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  box-shadow: var(--hc-sombra);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s var(--woof-curva);
+}
+.rx-medicamento:hover { border-color: var(--woof-naranja-300); transform: translateY(-1px); }
+.rx-medicamento:active { transform: scale(0.99); }
+.rx-medicamento:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-medicamento--en-curso { border-color: var(--woof-naranja-300); }
+.rx-medicamento__imagen { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; font-size: 1.6rem; }
+.rx-medicamento__textos { display: grid; gap: 3px; min-width: 0; }
+.rx-medicamento__textos > strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; color: var(--p-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-medicamento__textos > span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-medicamento__avance { display: grid; grid-template-columns: minmax(0, 220px) auto; align-items: center; gap: 10px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.rx-medicamento__avance .hc-barra { height: 6px; }
+.rx-medicamento__avance .hc-barra span { background: var(--hc-naranja); }
+.rx-medicamento__lado { display: inline-flex; align-items: center; gap: 12px; color: var(--p-texto-2); }
+
+.rx-dialogo {
+  width: min(36rem, calc(100% - 2rem));
+  max-height: min(88vh, 52rem);
+  padding: 24px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  box-shadow: 0 30px 80px -30px rgba(29, 24, 20, 0.5);
+  overscroll-behavior: contain;
+}
+.rx-dialogo[open] { display: grid; gap: 18px; animation: rx-entra 280ms cubic-bezier(0.32, 0.72, 0, 1); }
+.rx-dialogo::backdrop { background: rgba(29, 24, 20, 0.42); backdrop-filter: blur(4px); }
+.rx-dialogo.es-cerrando { animation: rx-sale 160ms ease-in forwards; }
+@keyframes rx-entra { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes rx-sale { to { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.rx-dialogo__cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 16px; }
+.rx-dialogo .rx-imagen { width: 72px; height: 72px; border-radius: 20px; font-size: 2rem; }
+.rx-dialogo .rx-detalle__nombre { font-size: 1.375rem; }
+.rx-dialogo__cerrar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--p-fondo);
+  color: var(--p-texto-2);
+  cursor: pointer;
+}
+.rx-dialogo__cerrar:hover { color: var(--p-texto); background: var(--p-linea); }
+.rx-dialogo__cerrar:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-dialogo .rx-control { padding-top: 0; border-top: 0; }
+
+@media (max-width: 720px) {
+  .rx-detalle__cabecera { grid-template-columns: 1fr; gap: 14px; }
+  .rx-imagen { width: 84px; height: 84px; border-radius: 22px; font-size: 2.5rem; }
+  .rx-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rx-datos > div:nth-child(3) { border-left: 0; }
+  .rx-datos > div:nth-child(n + 3) { border-top: 1px solid var(--p-linea); }
+  .rx-siguiente { grid-template-columns: auto minmax(0, 1fr); }
+  .rx-siguiente__dosis { grid-column: 2; justify-self: start; }
+  .rx-consulta { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .rx-medicamento { grid-template-columns: auto minmax(0, 1fr); }
+  .rx-consulta-barra { grid-template-columns: auto minmax(0, 1fr); }
+  .rx-consulta-barra .hc-boton { grid-column: 1 / -1; justify-content: center; }
+  .rx-medicamento__lado { grid-column: 2; }
+  .rx-medicamento__lado .bi { display: none; }
+  .rx-dialogo { width: 100%; max-width: none; max-height: 92vh; margin: auto 0 0; border-radius: 24px 24px 0 0; padding: 20px 18px 28px; }
+  .rx-dialogo .rx-imagen { width: 56px; height: 56px; font-size: 1.6rem; }
+  .rx-consulta__flecha { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rx-medicamento { transition: none; }
+  .rx-dialogo[open], .rx-dialogo.es-cerrando { animation: none; }
+}
+.rx-control__nota { margin: 0; font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-control__cabecera { row-gap: 2px; }
+
+/* ---------- Páginas del veterinario (Consultas médicas, Vacunación): dos columnas de tarjetas ---------- */
+@media (min-width: 1000px) { .vet-columnas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.vet-boton-chico { min-height: 36px; padding: 0 14px; font-size: 0.875rem; }
+.vet-pastilla { margin-top: 0; }

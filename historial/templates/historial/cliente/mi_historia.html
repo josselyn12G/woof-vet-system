@@ -1,0 +1,33 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Historia clínica · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=23" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-journal-medical{% endblock %}
+{% block panel_seccion %}Historia clínica{% endblock %}
+
+{% block panel_cabecera %}
+  {% include 'historial/_hc_cabecera.html' %}
+{% endblock %}
+
+{% block panel_contenido %}
+  {% if mascota %}
+    {% include 'historial/_hc_vista.html' %}
+  {% else %}
+    <section class="hc-tarjeta hc-vacio">
+      <i class="bi bi-heart" aria-hidden="true"></i>
+      <p>Todavía no registras mascotas. Cuando tengan su primera consulta, su historia aparecerá aquí.</p>
+      <a class="hc-boton" href="{% url 'mascotas:crear' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar mascota</a>
+    </section>
+  {% endif %}
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'historial/js/historia.js' %}?v=4" defer></script>
+{% endblock %}

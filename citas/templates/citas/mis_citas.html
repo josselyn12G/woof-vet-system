@@ -5,7 +5,7 @@
 
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
-  <link href="{% static 'citas/css/citas.css' %}" rel="stylesheet">
+  <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-calendar-check{% endblock %}
@@ -30,16 +30,9 @@
         {% endfor %}
       </nav>
 
-      {# Filtro por mascota (RF-15): enlaces con ?mascota= que conservan la pestaña. Con una sola mascota no hace falta #}
+      {# Filtro por mascota (RF-15): su foto en grande; los enlaces ?mascota= conservan la pestaña. Con una sola no hace falta #}
       {% if mascotas|length > 1 %}
-        <nav class="filtro-mascotas" aria-label="Filtrar por mascota">
-          <a class="filtro-mascotas__opcion{% if not mascota_elegida %} es-activo{% endif %}" href="?vista={{ vista }}"{% if not mascota_elegida %} aria-current="true"{% endif %}>Todas</a>
-          {% for mascota in mascotas %}
-            <a class="filtro-mascotas__opcion{% if mascota == mascota_elegida %} es-activo{% endif %}" href="?vista={{ vista }}&amp;mascota={{ mascota.pk }}"{% if mascota == mascota_elegida %} aria-current="true"{% endif %}>
-              <span class="filtro-mascotas__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>{{ mascota.nombre }}
-            </a>
-          {% endfor %}
-        </nav>
+        {% include '_elige_mascota.html' with elegida=mascota_elegida extra='vista='|add:vista|add:'&' %}
       {% endif %}
 
       {% for fecha, citas_del_dia in por_dia %}
@@ -88,7 +81,11 @@
                   </dl>
                 </details>
                 {% if cita.por_calificar %}
-                  <a class="boton-cita boton-cita--acento" href="{% url 'citas:calificar' cita.pk %}"><i class="bi bi-star" aria-hidden="true"></i>Calificar</a>
+                  {# Abre el pop-up de calificar (mis-citas.js); sin JavaScript lleva a la página de calificar #}
+                  <a class="boton-cita boton-cita--acento" href="{% url 'citas:calificar' cita.pk %}" data-calificar
+                     data-mascota="{{ cita.mascota }}" data-servicio="{{ cita.servicio }}"
+                     data-veterinario="{{ cita.veterinario.get_full_name|default:cita.veterinario.username }}"
+                     data-cuando="{{ cita.inicio|date:'l j/m' }} · {{ cita.inicio|date:'H:i' }}"><i class="bi bi-star" aria-hidden="true"></i>Calificar</a>
                 {% elif cita.calificacion %}
                   <span class="tarjeta-cita__calificada" aria-label="La calificaste con {{ cita.calificacion.estrellas }} de 5 estrellas">{% for n in '12345' %}<i class="bi {% if forloop.counter <= cita.calificacion.estrellas %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</span>
                 {% endif %}
@@ -177,23 +174,6 @@
           <p class="lado-calificacion lado-calificacion--vacio">Aún no calificas ninguna cita. Cuando una cita quede atendida, podrás calificarla.</p>
         {% endif %}
       </section>
-
-      <section class="lado-cita lado-cita--lista" aria-labelledby="lado-mascotas">
-        <h2 class="lado-cita__cabecera" id="lado-mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="lado-cita__titulo">Mascotas</span></h2>
-        <ul class="lado-mascotas">
-          {% for mascota in mascotas %}
-            <li>
-              <a href="{% url 'mascotas:detalle' mascota.pk %}">
-                <span class="lado-cita__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>
-                <span><strong>{{ mascota.nombre }}</strong><span>{{ mascota.raza|default:mascota.especie }}</span></span>
-                <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
-              </a>
-            </li>
-          {% empty %}
-            <li class="lado-mascotas__vacio"><a href="{% url 'mascotas:crear' %}">Registra a tu primera mascota</a></li>
-          {% endfor %}
-        </ul>
-      </section>
     </aside>
   </div>
 
@@ -213,6 +193,34 @@
     <h2 class="confirmacion-cita__titulo" id="confirmacion-titulo" data-confirmacion-titulo>¡Cita agendada!</h2>
     <p class="confirmacion-cita__texto" data-confirmacion-texto>{% for mensaje in messages %}{% if 'agendada' in mensaje.tags %}{{ mensaje }}{% endif %}{% endfor %}</p>
     <button type="button" class="boton-panel confirmacion-cita__boton" data-cerrar-confirmacion>Listo</button>
+  </dialog>
+
+  {% comment %}
+    Pop-up para calificar una cita atendida (mis-citas.js). Envía el mismo POST que la página de calificar,
+    que vuelve a validar todo en el servidor (atendida, de una mascota suya, una sola vez).
+  {% endcomment %}
+  <dialog class="calificar-popup" aria-labelledby="calificar-titulo" data-dialogo-calificar>
+    <form method="post" action="" novalidate data-calificar-formulario>
+      {% csrf_token %}
+      <p class="calificar-popup__detalle"><strong data-calificar-servicio></strong> de <span data-calificar-mascota></span> · <span data-calificar-cuando></span></p>
+      <fieldset class="estrellas calificar-popup__estrellas">
+        <legend class="calificar-popup__titulo" id="calificar-titulo">¿Cómo fue la atención de <span data-calificar-veterinario></span>?</legend>
+        <div class="estrellas__opciones">
+          {% for valor, texto in estrellas %}
+            <input class="estrellas__radio" type="radio" name="estrellas" id="popup-estrellas-{{ valor }}" value="{{ valor }}" data-texto="{{ texto }}">
+            <label class="estrellas__estrella" for="popup-estrellas-{{ valor }}" title="{{ texto }}"><i class="bi bi-star-fill" aria-hidden="true"></i><span class="visually-hidden">{{ valor }} de 5: {{ texto }}</span></label>
+          {% endfor %}
+        </div>
+        <p class="calificar-popup__texto-estrellas" data-calificar-texto aria-live="polite">Elige de 1 a 5 estrellas</p>
+      </fieldset>
+      <label class="visually-hidden" for="popup-comentario">Comentario (opcional)</label>
+      <textarea class="control-panel calificar-popup__comentario" id="popup-comentario" name="comentario" rows="3" maxlength="500" placeholder="Cuéntanos qué te gustó o qué podría mejorar (opcional)"></textarea>
+      <p class="calificar-popup__nota">Solo puedes calificar una vez cada cita atendida.</p>
+      <div class="calificar-popup__acciones">
+        <button type="button" class="boton-cita" data-calificar-cerrar>Ahora no</button>
+        <button type="submit" class="boton-panel" data-calificar-enviar disabled><i class="bi bi-send" aria-hidden="true"></i>Enviar calificación</button>
+      </div>
+    </form>
   </dialog>
 
   {# Pop-up para confirmar la cancelación (mis-citas.js). Sin JavaScript, el formulario se envía directo #}
@@ -240,6 +248,6 @@
 {% endblock %}
 
 {% block panel_scripts %}
-  <script src="{% static 'citas/js/agendar.js' %}" defer></script>
-  <script src="{% static 'citas/js/mis-citas.js' %}" defer></script>
+  <script src="{% static 'citas/js/agendar.js' %}?v=2" defer></script>
+  <script src="{% static 'citas/js/mis-citas.js' %}?v=3" defer></script>
 {% endblock %}

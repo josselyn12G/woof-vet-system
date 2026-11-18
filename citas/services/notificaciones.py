@@ -4,9 +4,11 @@ Los avisos de las citas (F8): cada uno se guarda como Notificacion (la campana d
 RF-23: al agendar, reprogramar o cancelar avisa al cliente y al veterinario.
 RF-24: el recordatorio de 24 horas lo manda el comando enviar_recordatorios.
 """
+import threading
 from datetime import timedelta
 
-from django.db import IntegrityError, transaction
+from django.conf import settings
+from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
 from django.utils.formats import date_format
 
@@ -36,10 +38,29 @@ class NotificacionService:
     # ---------- Crear y enviar ----------
     @staticmethod
     def avisar(usuario, cita, tipo, mensaje):
-        """Guarda el aviso y lo manda por correo."""
+        """Guarda el aviso (la campana lo ve enseguida) y lo manda por correo sin hacer esperar a nadie."""
         notificacion = Notificacion.objects.create(usuario=usuario, cita=cita, tipo=tipo, mensaje=mensaje)
-        notificacion.enviar()
+        NotificacionService.enviar_sin_esperar(notificacion)
         return notificacion
+
+    @staticmethod
+    def enviar_sin_esperar(notificacion):
+        """
+        El correo sale en un hilo aparte: el SMTP puede tardar varios segundos por correo (EMAIL_TIMEOUT),
+        y con dos avisos por cita la respuesta al agendar se quedaba esperando y parecía que no funcionaba.
+        En las pruebas (AVISOS_EN_SEGUNDO_PLANO=False) se envía en el momento para poder revisar mail.outbox.
+        """
+        if not getattr(settings, 'AVISOS_EN_SEGUNDO_PLANO', True):
+            notificacion.enviar()
+            return
+
+        def tarea():
+            try:
+                notificacion.enviar()
+            finally:
+                connection.close()   # el hilo no deja conexiones abiertas a la base
+
+        threading.Thread(target=tarea, name=f'aviso-{notificacion.pk}', daemon=True).start()
 
     @staticmethod
     def avisar_a_los_dos(cita, tipo, para_el_cliente, para_el_veterinario):
@@ -129,6 +150,38 @@ class NotificacionService:
     @staticmethod
     def de(usuario, cantidad=50):
         return list(Notificacion.objects.filter(usuario=usuario).select_related('cita')[:cantidad])
+
+    @staticmethod
+    def hace(momento, ahora=None):
+        """'Ahora', 'Hace 5 min', 'Hace 2 h', 'Ayer' o la fecha ('12 nov'): lo que muestra el panel de la campana."""
+        ahora = ahora or timezone.now()
+        segundos = (ahora - momento).total_seconds()
+        if segundos < 60:
+            return 'Ahora'
+        if segundos < 3600:
+            return f'Hace {int(segundos // 60)} min'
+        dias = (timezone.localtime(ahora).date() - timezone.localtime(momento).date()).days
+        if dias == 0:
+            return f'Hace {int(segundos // 3600)} h'
+        if dias == 1:
+            return 'Ayer'
+        return date_format(timezone.localtime(momento), 'j M')
+
+    @staticmethod
+    def agrupadas(usuario, cantidad=30, ahora=None):
+        """
+        El panel de la campana: los últimos avisos en tres grupos [(clave, título, [aviso, ...]), ...]:
+        hoy, esta semana (los 6 días anteriores) y antes. Cada aviso trae su 'hace' corto.
+        """
+        ahora = ahora or timezone.now()
+        hoy = timezone.localtime(ahora).date()
+        grupos = {'hoy': [], 'semana': [], 'antes': []}
+        for aviso in NotificacionService.de(usuario, cantidad):
+            aviso.hace = NotificacionService.hace(aviso.creado, ahora)
+            dias = (hoy - timezone.localtime(aviso.creado).date()).days
+            grupos['hoy' if dias == 0 else 'semana' if dias < 7 else 'antes'].append(aviso)
+        return [('hoy', 'Hoy', grupos['hoy']), ('semana', 'Esta semana', grupos['semana']),
+                ('antes', 'Antes', grupos['antes'])]
 
     @staticmethod
     def marcar_leidas(usuario):

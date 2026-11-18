@@ -15,7 +15,8 @@ from mascotas.services import MascotaService
 
 from ..forms import AgendarCitaForm, ReprogramarCitaForm
 from ..services import (
-    VISTAS_CITAS, AgendaService, CalificacionService, CitaService, NotificacionService, ServicioService,
+    TEXTO_ESTRELLAS, VISTAS_CITAS, AgendaService, CalificacionService, CitaService, NotificacionService,
+    ServicioService,
 )
 from ..services.formato import datos_de_confirmacion
 from ..services.horarios import leer_fecha
@@ -160,6 +161,8 @@ class MisCitasView(ClienteRequeridoMixin, TemplateView):
             'ahora': timezone.now(),
             # El indicador "Calificación promedio" del wireframe 2: lo que el cliente ha dado
             'promedio_dado': CalificacionService.promedio_dado_por(self.request.user),
+            # Las estrellas del pop-up de calificar, de 5 a 1 (el CSS las pinta de izquierda a derecha)
+            'estrellas': sorted(TEXTO_ESTRELLAS.items(), reverse=True),
         })
         return contexto
 

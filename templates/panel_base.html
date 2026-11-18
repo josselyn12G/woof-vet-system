@@ -16,7 +16,7 @@
 {% block estilos %}
   {# Antes de pintar: si el sidebar quedó cerrado la última vez, se abre cerrado (sin parpadeo) #}
   <script>try { if (localStorage.getItem('woof-menu') === 'compacto') document.documentElement.classList.add('menu-compacto'); } catch (e) {}</script>
-  <link href="{% static 'css/panel.css' %}" rel="stylesheet">
+  <link href="{% static 'css/panel.css' %}?v=11" rel="stylesheet">
   {% block panel_estilos %}{% endblock %}
 {% endblock %}
 
@@ -61,18 +61,27 @@
           <p class="panel-menu__grupo">Plataforma</p>
           <ul class="panel-menu__lista">
             <li><a class="panel-menu__enlace{% if ruta == 'panel:inicio_cliente' %} es-activo{% endif %}" href="{% url 'panel:inicio_cliente' %}" title="Inicio"{% if ruta == 'panel:inicio_cliente' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
-            <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta and ruta != 'mascotas:historial' and ruta != 'mascotas:historiales' %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
-            {# La historia clínica de cada mascota, con la receta y la dosis que le toca: a un clic desde cualquier pantalla #}
-            <li><a class="panel-menu__enlace{% if ruta == 'mascotas:historial' or ruta == 'mascotas:historiales' %} es-activo{% endif %}" href="{% url 'mascotas:historiales' %}" title="Historial médico"{% if ruta == 'mascotas:historiales' %} aria-current="page"{% endif %}><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i><span class="panel-menu__texto">Historial médico</span></a></li>
+            <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta and ruta != 'mascotas:historial' %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
             {# Agendar vive dentro de Mis citas (botón que abre un pop-up), así que el menú solo lleva Mis citas #}
             <li><a class="panel-menu__enlace{% if ruta == 'citas:mis_citas' or ruta == 'citas:agendar' %} es-activo{% endif %}" href="{% url 'citas:mis_citas' %}" title="Mis citas"{% if ruta == 'citas:mis_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="panel-menu__texto">Mis citas</span></a></li>
+            {# La historia y las recetas de sus mascotas, con un chip para elegir cada una #}
+            <li><a class="panel-menu__enlace{% if ruta == 'historial:mi_historia' or ruta == 'mascotas:historial' %} es-activo{% endif %}" href="{% url 'historial:mi_historia' %}" title="Historia clínica"{% if ruta == 'historial:mi_historia' %} aria-current="page"{% endif %}><i class="bi bi-journal-medical" aria-hidden="true"></i><span class="panel-menu__texto">Historia clínica</span></a></li>
+            <li><a class="panel-menu__enlace{% if ruta == 'historial:mis_recetas' or ruta == 'historial:tratamiento' %} es-activo{% endif %}" href="{% url 'historial:mis_recetas' %}" title="Mis recetas"{% if ruta == 'historial:mis_recetas' %} aria-current="page"{% endif %}><i class="bi bi-capsule" aria-hidden="true"></i><span class="panel-menu__texto">Mis recetas</span></a></li>
           </ul>
         {% endif %}
 
-        <p class="panel-menu__grupo">Sistema</p>
-        <ul class="panel-menu__lista">
-          <li><a class="panel-menu__enlace" href="{% url 'cuentas:inicio' %}" title="Ver la portada"><i class="bi bi-house" aria-hidden="true"></i><span class="panel-menu__texto">Ver la portada</span></a></li>
-        </ul>
+        {% if user.es_cliente %}
+          {# Cliente: su perfil (el formulario para actualizar sus datos). Cerrar sesión ya lleva a la portada #}
+          <p class="panel-menu__grupo">Cuenta</p>
+          <ul class="panel-menu__lista">
+            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:mi_cuenta' or ruta == 'cuentas:cambiar_contrasena' %} es-activo{% endif %}" href="{% url 'cuentas:mi_cuenta' %}" title="Perfil"{% if ruta == 'cuentas:mi_cuenta' %} aria-current="page"{% endif %}><i class="bi bi-person-circle" aria-hidden="true"></i><span class="panel-menu__texto">Perfil</span></a></li>
+          </ul>
+        {% else %}
+          <p class="panel-menu__grupo">Sistema</p>
+          <ul class="panel-menu__lista">
+            <li><a class="panel-menu__enlace" href="{% url 'cuentas:inicio' %}" title="Ver la portada"><i class="bi bi-house" aria-hidden="true"></i><span class="panel-menu__texto">Ver la portada</span></a></li>
+          </ul>
+        {% endif %}
       </nav>
 
       {# Usuario al pie: iniciales, nombre, rol y cerrar sesión (POST con CSRF, como pide Django 5) #}
@@ -82,7 +91,7 @@
           <span class="panel-menu__nombre">{{ user.get_full_name|default:user.username }}</span>
           <span class="panel-menu__rol">{{ user.get_rol_display }}</span>
         </a>
-        <form method="post" action="{% url 'cuentas:logout' %}">
+        <form method="post" action="{% url 'cuentas:logout' %}" data-cargando="Cerrando sesión">
           {% csrf_token %}
           <button type="submit" class="panel-menu__salir" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
         </form>
@@ -100,18 +109,29 @@
       <header class="nav-arriba">
         <a class="nav-arriba__marca" href="{% url 'panel:panel' %}"><img src="{% static 'img/logo.png' %}" alt="Woof, ir al inicio del panel"></a>
         <nav class="nav-arriba__opciones" aria-label="Menú del panel">
-          <a class="nav-arriba__opcion{% if ruta == 'panel:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'panel:inicio_veterinario' %}"{% if ruta == 'panel:inicio_veterinario' %} aria-current="page"{% endif %}>Inicio</a>
-          <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' or ruta == 'historial:consulta' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda</a>
-          <a class="nav-arriba__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"{% if ruta == 'citas:horario' %} aria-current="page"{% endif %}>Mi horario</a>
+          <a class="nav-arriba__opcion{% if ruta == 'panel:inicio_veterinario' %} es-activo{% endif %}" href="{% url 'panel:inicio_veterinario' %}"{% if ruta == 'panel:inicio_veterinario' %} aria-current="page"{% endif %}>Panel principal</a>
+          <a class="nav-arriba__opcion{% if ruta == 'citas:agenda' %} es-activo{% endif %}" href="{% url 'citas:agenda' %}"{% if ruta == 'citas:agenda' %} aria-current="page"{% endif %}>Agenda y citas</a>
           <a class="nav-arriba__opcion{% if ruta == 'citas:pacientes' or ruta == 'mascotas:historial' %} es-activo{% endif %}" href="{% url 'citas:pacientes' %}"{% if ruta == 'citas:pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
+          <a class="nav-arriba__opcion{% if ruta == 'historial:consultas_veterinario' or ruta == 'historial:consulta' %} es-activo{% endif %}" href="{% url 'historial:consultas_veterinario' %}"{% if ruta == 'historial:consultas_veterinario' %} aria-current="page"{% endif %}>Consultas médicas</a>
+          <a class="nav-arriba__opcion{% if ruta == 'historial:vacunacion_veterinario' %} es-activo{% endif %}" href="{% url 'historial:vacunacion_veterinario' %}"{% if ruta == 'historial:vacunacion_veterinario' %} aria-current="page"{% endif %}>Vacunación</a>
         </nav>
         <div class="nav-arriba__lado">
-          <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
-          <a class="panel-menu__avatar nav-arriba__avatar text-decoration-none" href="{% url 'cuentas:mi_cuenta' %}" title="Mi cuenta" aria-label="Mi cuenta">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</a>
-          <form method="post" action="{% url 'cuentas:logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="panel-barra__boton" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
-          </form>
+          <div class="campana" data-campana data-panel-url="{% url 'citas:panel_notificaciones' %}">
+            {# Sin JS es un enlace a la página de avisos; con JS abre el panel debajo de la campana (campana.js) #}
+            <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-haspopup="dialog" aria-expanded="false" data-campana-abrir aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
+            <div class="campana-panel" role="dialog" aria-labelledby="campana-titulo" data-campana-panel hidden></div>
+          </div>
+          {# Menú de la cuenta (popover del navegador, sin JavaScript): Mi horario, Mi cuenta y cerrar sesión #}
+          <button type="button" class="panel-menu__avatar nav-arriba__avatar" popovertarget="menu-cuenta" aria-label="Mi cuenta y horario" title="Mi cuenta">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</button>
+          <div class="menu-cuenta" id="menu-cuenta" popover>
+            <p class="menu-cuenta__persona"><strong>{{ user.get_full_name|default:user.username }}</strong><span>{{ user.get_rol_display }}</span></p>
+            <a class="menu-cuenta__opcion{% if 'citas:horario' in ruta %} es-activo{% endif %}" href="{% url 'citas:horario' %}"><i class="bi bi-clock-history" aria-hidden="true"></i>Mi horario</a>
+            <a class="menu-cuenta__opcion{% if ruta == 'cuentas:mi_cuenta' %} es-activo{% endif %}" href="{% url 'cuentas:mi_cuenta' %}"><i class="bi bi-person-circle" aria-hidden="true"></i>Mi cuenta</a>
+            <form method="post" action="{% url 'cuentas:logout' %}" data-cargando="Cerrando sesión">
+              {% csrf_token %}
+              <button type="submit" class="menu-cuenta__opcion menu-cuenta__opcion--salir"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>Cerrar sesión</button>
+            </form>
+          </div>
         </div>
       </header>
       {% else %}
@@ -133,7 +153,11 @@
           </form>
         {% endif %}
 
-        <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
+        <div class="campana" data-campana data-panel-url="{% url 'citas:panel_notificaciones' %}">
+            {# Sin JS es un enlace a la página de avisos; con JS abre el panel debajo de la campana (campana.js) #}
+            <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-haspopup="dialog" aria-expanded="false" data-campana-abrir aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
+            <div class="campana-panel" role="dialog" aria-labelledby="campana-titulo" data-campana-panel hidden></div>
+          </div>
         <span class="panel-menu__avatar panel-barra__avatar" title="{{ user.get_full_name|default:user.username }}" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
       </header>
       {% endif %}
@@ -169,5 +193,6 @@
 
 {% block scripts %}
   <script src="{% static 'js/panel.js' %}" defer></script>
+  <script src="{% static 'js/campana.js' %}?v=2" defer></script>
   {% block panel_scripts %}{% endblock %}
 {% endblock %}

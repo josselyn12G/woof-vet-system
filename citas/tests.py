@@ -1748,6 +1748,18 @@ class CalificacionEnMisCitasTests(TestCase):
     def test_una_atendida_sin_calificar_muestra_el_boton(self):
         self.assertContains(self.pasadas(), reverse('citas:calificar', args=[self.atendida.pk]))
 
+    def test_calificar_se_abre_en_un_pop_up_en_mis_citas(self):
+        # El botón lleva los datos para el pop-up; el enlace sigue sirviendo sin JavaScript
+        respuesta = self.pasadas()
+        self.assertContains(respuesta, 'data-dialogo-calificar')
+        self.assertContains(respuesta, 'data-calificar')
+        self.assertContains(respuesta, 'value="5" data-texto="Excelente"')
+
+    def test_el_pop_up_envia_al_mismo_post_y_vuelve_a_mis_citas(self):
+        respuesta = self.client.post(reverse('citas:calificar', args=[self.atendida.pk]), {'estrellas': '5'})
+        self.assertRedirects(respuesta, reverse('citas:mis_citas'))
+        self.assertEqual(self.atendida.calificacion.estrellas, 5)
+
     def test_una_ya_calificada_muestra_sus_estrellas_y_no_el_boton(self):
         AgendaService.calificar(self.atendida, self.cliente, 4)
         respuesta = self.pasadas()
@@ -1803,6 +1815,15 @@ class AvisosDeCitasTests(TestCase):
                 'fecha': self.fecha.isoformat(), 'hora': hora, 'motivo': 'Control',
             })
         return Cita.objects.get()
+
+    @override_settings(AVISOS_EN_SEGUNDO_PLANO=True)
+    def test_en_produccion_el_correo_sale_en_otro_hilo_y_la_reserva_no_espera(self):
+        with patch('citas.services.notificaciones.threading.Thread') as hilo:
+            self.agendar()   # agendar() ya ejecuta los avisos de on_commit
+        self.assertEqual(hilo.call_count, 2)                   # un hilo por aviso (cliente y veterinario)
+        self.assertEqual(hilo.return_value.start.call_count, 2)
+        self.assertEqual(len(mail.outbox), 0)                  # nada se envió mientras respondía la reserva
+        self.assertEqual(Notificacion.objects.count(), 2)      # la campana ya los tiene
 
     def test_agendar_manda_dos_correos_y_guarda_dos_avisos(self):
         cita = self.agendar()
@@ -2020,10 +2041,10 @@ class FiltroPorMascotaTests(TestCase):
 
     def test_con_una_sola_mascota_no_se_muestran_los_chips(self):
         self.luna.delete()
-        self.assertNotContains(self.mis_citas(), 'Filtrar por mascota')
+        self.assertNotContains(self.mis_citas(), 'Elegir mascota')
 
     def test_con_varias_mascotas_se_muestran_los_chips(self):
-        self.assertContains(self.mis_citas(), 'Filtrar por mascota')
+        self.assertContains(self.mis_citas(), 'Elegir mascota')
 
 
 class IndicadoresTests(TestCase):
@@ -2266,3 +2287,36 @@ class ReservasSimultaneasTests(TransactionTestCase):
         # Si Milo perdió, conserva su hora de antes: la reprogramación es una sola operación
         self.assertIn(cita_milo.inicio, (self.hora(9), self.hora(10)))
         self.assertEqual(cita_milo.estado, EstadoCita.CONFIRMADA)
+
+
+class PanelDeLaCampanaTests(TestCase):
+    """El panel que abre la campana: avisos en Hoy / Esta semana / Antes y, al verlos, quedan leídos."""
+
+    def setUp(self):
+        self.ana = crear_usuario('ana', first_name='Ana')
+        self.client.force_login(self.ana)
+        ahora = timezone.now()
+        for dias, tipo in ((0, TipoNotificacion.AGENDADA), (3, TipoNotificacion.REPROGRAMADA), (20, TipoNotificacion.CANCELADA)):
+            aviso = Notificacion.objects.create(usuario=self.ana, tipo=tipo, mensaje=f'Aviso de hace {dias} días')
+            Notificacion.objects.filter(pk=aviso.pk).update(creado=ahora - timedelta(days=dias, minutes=5))
+
+    def test_agrupa_en_hoy_esta_semana_y_antes(self):
+        respuesta = self.client.get(reverse('citas:panel_notificaciones'))
+        grupos = {clave: [a.mensaje for a in avisos] for clave, _, avisos in respuesta.context['grupos']}
+        self.assertEqual(grupos, {'hoy': ['Aviso de hace 0 días'], 'semana': ['Aviso de hace 3 días'],
+                                  'antes': ['Aviso de hace 20 días']})
+        self.assertEqual(respuesta.context['grupo_inicial'], 'hoy')
+        self.assertContains(respuesta, 'Ver todas')
+        self.assertContains(respuesta, 'Hace 5 min')
+
+    def test_al_abrirlo_quedan_leidas(self):
+        self.assertEqual(Notificacion.objects.filter(usuario=self.ana, leida=False).count(), 3)
+        self.client.get(reverse('citas:panel_notificaciones'))
+        self.assertFalse(Notificacion.objects.filter(usuario=self.ana, leida=False).exists())
+
+    def test_solo_ve_las_suyas_y_pide_sesion(self):
+        otro = crear_usuario('luis')
+        Notificacion.objects.create(usuario=otro, tipo=TipoNotificacion.AGENDADA, mensaje='De Luis')
+        self.assertNotContains(self.client.get(reverse('citas:panel_notificaciones')), 'De Luis')
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('citas:panel_notificaciones')).status_code, 302)

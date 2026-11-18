@@ -1,10 +1,12 @@
 """La historia clínica de una mascota, de solo lectura: la ven el dueño, los veterinarios y la clínica."""
+from django.http import HttpResponse
 from django.urls import reverse
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView
 
-from mascotas.mixins import MascotasDelUsuarioMixin, MascotaVisiblePorRolMixin
+from mascotas.mixins import MascotaVisiblePorRolMixin
 
 from ..services import HistorialService
+from ..services.pdf import generar_pdf, nombre_del_archivo
 
 
 class HistoriaClinicaView(MascotaVisiblePorRolMixin, DetailView):
@@ -19,6 +21,8 @@ class HistoriaClinicaView(MascotaVisiblePorRolMixin, DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto.update(HistorialService.de_la_mascota(self.object))   # consultas y vacunas
+        contexto.update(HistorialService.tablero(self.object, contexto['consultas']))   # las tarjetas
+        contexto['historial_medico'] = HistorialService.historial_medico(contexto['consultas'], contexto['carnet'])
         contexto['volver'] = self.url_volver()
         return contexto
 
@@ -32,13 +36,12 @@ class HistoriaClinicaView(MascotaVisiblePorRolMixin, DetailView):
         return reverse('mascotas:gestion_detalle', kwargs={'pk': self.object.pk})
 
 
-class MisHistorialesView(MascotasDelUsuarioMixin, ListView):
-    """
-    «Historial médico» del sidebar del cliente: sus mascotas con sus tratamientos en curso y un acceso
-    directo a la historia clínica de cada una. Otro rol que llega aquí vuelve a su panel.
-    """
-    template_name = 'historial/historiales.html'
-    context_object_name = 'mascotas'
+class HistoriaPdfView(MascotaVisiblePorRolMixin, DetailView):
+    """La misma historia en PDF, con el formato de Woof. La descargan los mismos que pueden verla (404 si no)."""
 
-    def get_queryset(self):
-        return HistorialService.resumen_de(super().get_queryset())
+    def get(self, request, *args, **kwargs):
+        mascota = self.get_object()
+        respuesta = HttpResponse(generar_pdf(mascota), content_type='application/pdf')
+        respuesta['Content-Disposition'] = f'attachment; filename="{nombre_del_archivo(mascota)}"'
+        return respuesta
+

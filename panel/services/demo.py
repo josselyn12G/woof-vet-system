@@ -235,3 +235,96 @@ class DemoService:
             if estrellas:
                 AgendaService.calificar(cita, cita.mascota.dueno, estrellas,
                                         'Muy amable y explicó cada paso del tratamiento.')
+
+
+# ---------- Demo del flujo de atención (para la defensa) ----------
+# Los motivos con que se reconocen las citas de esta demo: al volver a correrla se borran las que siguen abiertas
+MOTIVOS_DEMO_ATENCION = ('Vómitos desde ayer', 'Control de vacunas', 'Se rasca mucho la oreja')
+# Las de la semana llena (las que no tienen consulta se borran y se vuelven a crear)
+MOTIVOS_DEMO_SEMANA = ('Control anual', 'Revisión de la piel', 'Chequeo general', 'Vacuna de refuerzo', 'Cojea un poco')
+HORAS_DEMO_SEMANA = (time(9, 0), time(10, 0), time(11, 30), time(15, 0), time(16, 30))
+
+
+class DemoAtencionService:
+    """
+    Deja lista la demo del flujo del veterinario: una cita que ya empezó (para marcarla como atendida y registrar
+    su consulta) y dos más tarde, con su horario de hoy. Se puede correr varias veces: borra la demo anterior que
+    siga abierta (confirmada) y vuelve a armarla con la hora actual.
+    """
+
+    @staticmethod
+    def llenar_semana(veterinario, mascotas, ahora=None):
+        """
+        Horario lleno esta semana y la siguiente (lunes a viernes, 09:00–13:00 y 15:00–18:00; los días que ya
+        tienen horario no se tocan) y citas en él: los días que ya pasaron, atendidas (quedan "por registrar");
+        los que vienen, confirmadas. Hoy no: ahí van las citas del flujo (preparar). Devuelve cuántas citas creó.
+        """
+        ahora = timezone.localtime(ahora or timezone.now())
+        hoy = ahora.date()
+        lunes = hoy - timedelta(days=hoy.weekday())
+        servicios = [s for s in Servicio.objects.filter(activo=True).order_by('pk') if s.duracion_min <= 60] \
+            or list(Servicio.objects.filter(activo=True))
+        creadas = 0
+        with transaction.atomic():
+            Cita.objects.filter(veterinario=veterinario, motivo__in=MOTIVOS_DEMO_SEMANA, consulta__isnull=True).delete()
+            ocupadas = set(Cita.objects.filter(veterinario=veterinario).exclude(estado=EstadoCita.CANCELADA)
+                           .values_list('inicio', flat=True))
+            for numero, dia in enumerate(dias_habiles(lunes, lunes + timedelta(days=11))):
+                if not HorarioVeterinario.objects.filter(veterinario=veterinario, fecha=dia).exists():
+                    HorarioVeterinario.objects.create(veterinario=veterinario, fecha=dia, hora_inicio=time(9, 0), hora_fin=time(13, 0))
+                    HorarioVeterinario.objects.create(veterinario=veterinario, fecha=dia, hora_inicio=time(15, 0), hora_fin=time(18, 0))
+                if dia == hoy:
+                    continue
+                for orden, hora in enumerate(HORAS_DEMO_SEMANA[: 3 + numero % 3]):   # 3 a 5 citas por día
+                    inicio = timezone.make_aware(datetime.combine(dia, hora))
+                    if inicio in ocupadas:
+                        continue
+                    servicio = servicios[(numero + orden) % len(servicios)]
+                    Cita.objects.create(
+                        mascota=mascotas[(numero + orden) % len(mascotas)], veterinario=veterinario, servicio=servicio,
+                        inicio=inicio, fin=inicio + timedelta(minutes=servicio.duracion_min), precio=servicio.precio,
+                        motivo=MOTIVOS_DEMO_SEMANA[(numero + orden) % len(MOTIVOS_DEMO_SEMANA)],
+                        estado=EstadoCita.ATENDIDA if dia < hoy else EstadoCita.CONFIRMADA,
+                    )
+                    ocupadas.add(inicio)
+                    creadas += 1
+        return creadas
+
+    @staticmethod
+    def preparar(veterinario, mascotas, ahora=None):
+        ahora = timezone.localtime(ahora or timezone.now())
+        hoy = ahora.date()
+        servicios = {s.nombre: s for s in Servicio.objects.filter(activo=True)}
+        consulta = servicios.get('Consulta general') or next(iter(servicios.values()))
+        vacunas = servicios.get('Vacunas', consulta)
+
+        with transaction.atomic():
+            Cita.objects.filter(veterinario=veterinario, estado=EstadoCita.CONFIRMADA,
+                                motivo__in=MOTIVOS_DEMO_ATENCION).delete()
+            # La primera empezó hace 5 minutos (redondeado a 5): ya se puede marcar como atendida
+            minuto = ahora.minute - ahora.minute % 5
+            primera = ahora.replace(minute=minuto, second=0, microsecond=0) - timedelta(minutes=5)
+            plan = [
+                (primera, mascotas[0], consulta, MOTIVOS_DEMO_ATENCION[0]),
+                (primera + timedelta(hours=1), mascotas[1 % len(mascotas)], vacunas, MOTIVOS_DEMO_ATENCION[1]),
+                (primera + timedelta(hours=2), mascotas[2 % len(mascotas)], consulta, MOTIVOS_DEMO_ATENCION[2]),
+            ]
+            ocupadas = set(Cita.objects.filter(veterinario=veterinario, inicio__date=hoy)
+                           .exclude(estado=EstadoCita.CANCELADA).values_list('inicio', flat=True))
+            creadas = []
+            for inicio, mascota, servicio, motivo in plan:
+                while inicio in ocupadas:          # la regla de la base: una cita activa por hora y veterinario
+                    inicio += timedelta(minutes=5)
+                ocupadas.add(inicio)
+                creadas.append(Cita.objects.create(
+                    mascota=mascota, veterinario=veterinario, servicio=servicio, inicio=inicio,
+                    fin=inicio + timedelta(minutes=servicio.duracion_min), precio=servicio.precio, motivo=motivo,
+                ))
+            # Su horario de hoy cubre las tres citas (si ya tenía un bloque que las cubre, no se toca)
+            desde = timezone.localtime(creadas[0].inicio).time().replace(second=0)
+            hasta = timezone.localtime(creadas[-1].fin).time().replace(second=0)
+            cubre = HorarioVeterinario.objects.filter(veterinario=veterinario, fecha=hoy,
+                                                      hora_inicio__lte=desde, hora_fin__gte=hasta).exists()
+            if not cubre and hasta > desde:
+                HorarioVeterinario.objects.create(veterinario=veterinario, fecha=hoy, hora_inicio=desde, hora_fin=hasta)
+        return creadas

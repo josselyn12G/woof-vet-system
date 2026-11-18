@@ -111,7 +111,31 @@ class PanelVeterinarioService:
             'grafico': grafico_de_linea(cifras['fechas'], cifras['citas_por_dia']),
             # Mi semana: los 7 días en columnas, con el horario de fondo y las citas reservadas encima
             'semana': HorarioService.semana_del_veterinario(veterinario, lunes),
+            # Panel principal en una pantalla: la agenda de hoy y las citas por servicio
+            'agenda_hoy': PanelVeterinarioService.agenda_de(veterinario, hoy),
+            'por_servicio': PanelVeterinarioService.por_servicio(veterinario, hoy - timedelta(days=dias - 1), hoy),
+            'por_registrar': Cita.objects.filter(veterinario=veterinario, estado=EstadoCita.ATENDIDA, consulta__isnull=True).count(),
         }
+
+    @staticmethod
+    def agenda_de(veterinario, dia):
+        """Las citas del día (sin las canceladas), de la primera a la última."""
+        return list(
+            Cita.objects.filter(veterinario=veterinario, inicio__date=dia).exclude(estado=EstadoCita.CANCELADA)
+            .select_related('mascota__especie', 'servicio').order_by('inicio')
+        )
+
+    @staticmethod
+    def por_servicio(veterinario, desde, hasta):
+        """Citas del período por servicio (barras): [{nombre, cantidad, porcentaje}] de más a menos."""
+        filas = (
+            Cita.objects.filter(veterinario=veterinario, inicio__date__gte=desde, inicio__date__lte=hasta)
+            .exclude(estado=EstadoCita.CANCELADA).values('servicio__nombre').annotate(cantidad=Count('pk'))
+            .order_by('-cantidad', 'servicio__nombre')
+        )
+        mayor = max((f['cantidad'] for f in filas), default=0)
+        return [{'nombre': f['servicio__nombre'], 'cantidad': f['cantidad'],
+                 'porcentaje': round(f['cantidad'] * 100 / mayor) if mayor else 0} for f in filas[:5]]
 
 
 def pasos_para_abrir_la_agenda():
