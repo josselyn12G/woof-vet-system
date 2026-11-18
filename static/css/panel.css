@@ -3995,9 +3995,9 @@ a.linea-citas__tarjeta {
 .vp__lado { display: grid; gap: 18px; align-content: start; min-width: 0; }
 @media (min-width: 1100px) {
   .vp__cuerpo { grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); align-items: stretch; }
-  /* El costado mide lo mismo que la semana (no la estira): "Hoy" se desplaza dentro si tiene muchas citas */
-  .vp__lado { height: 0; min-height: 100%; grid-template-rows: auto auto minmax(0, 1fr); }
-  .vp-hoy { min-height: 0; overflow-y: auto; }
+  /* "Hoy" llena lo que queda del costado (y crece con la lista de citas del día) */
+  .vp__lado { grid-template-rows: auto auto minmax(0, 1fr); }
+  .vp-hoy { min-height: 320px; }
 }
 /* Todas las tarjetas del panel iguales: mismo borde, radio y sombra */
 .vp .semana-vet,
@@ -4014,11 +4014,12 @@ a.linea-citas__tarjeta {
 .vp__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 
 /* Mi semana, más compacta: horas más bajas y la cabecera más justa */
-.vp__semana .semana-vet { margin: 0; padding: 16px 18px 18px; }
+.vp__semana { display: grid; }
+.vp__semana .semana-vet { margin: 0; padding: 16px 18px 18px; height: 100%; }
 .vp__semana .agenda-hoy__titulo { font-size: 1.125rem; }
 .vp__semana .semana-vet__rango { font-size: 0.8125rem; }
 .vp__semana .semana-vet__leyenda { font-size: 0.75rem; }
-.vp__semana .cal-semana--vet { --alto-hora: 1.45rem; margin: 0 -18px -18px; font-size: 0.8125rem; }
+.vp__semana .cal-semana--vet { --alto-hora: 2.4rem; margin: 0 -18px -18px; font-size: 0.8125rem; }
 
 /* Citas por día (pequeño, al costado) */
 .vp-grafico { padding: 16px 18px; }
