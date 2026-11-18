@@ -16,3 +16,18 @@ class NotificacionesView(LoginRequiredMixin, TemplateView):
         NotificacionService.marcar_leidas(self.request.user)
         contexto['notificaciones_sin_leer'] = 0   # la campana de esta misma página ya sale sin número
         return contexto
+
+
+class PanelNotificacionesView(LoginRequiredMixin, TemplateView):
+    """
+    El panel que se abre al tocar la campana (campana.js lo pide con fetch y lo pone debajo de la campana):
+    los avisos en Hoy / Esta semana / Antes. Igual que la página completa, al verlos quedan como leídos.
+    """
+    template_name = 'citas/_panel_notificaciones.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto['grupos'] = NotificacionService.agrupadas(self.request.user)
+        contexto['grupo_inicial'] = next((clave for clave, _, avisos in contexto['grupos'] if avisos), 'hoy')
+        NotificacionService.marcar_leidas(self.request.user)
+        return contexto

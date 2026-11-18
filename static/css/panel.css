@@ -3889,3 +3889,90 @@ a.linea-citas__tarjeta {
   .elige-mascota__foto { width: 104px; height: 104px; }
 }
 @media (prefers-reduced-motion: reduce) { .elige-mascota__foto { transition: none; } }
+
+/* ==========================================================================
+   Panel de la campana (campana.js): se abre debajo de la campana con las pestañas Hoy / Esta semana / Antes,
+   cada aviso con su ícono en un círculo, un punto naranja si es nuevo y "Ver todas" para la página completa
+   ========================================================================== */
+.campana { position: relative; }
+.campana-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: -8px;
+  z-index: 1500;
+  width: min(400px, calc(100vw - 24px));
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 18px 8px;
+  border: 1px solid var(--p-borde);
+  border-radius: 22px;
+  background: var(--p-superficie);
+  box-shadow: 0 2px 6px rgba(29, 24, 20, 0.06), 0 24px 56px -24px rgba(29, 24, 20, 0.38);
+  text-align: left;
+  transform-origin: top right;
+  animation: campana-entra 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.campana-panel[hidden] { display: none; }
+@keyframes campana-entra { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+.campana-panel__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.campana-panel__titulo { margin: 0; font-size: 1.125rem; font-weight: 650; letter-spacing: -0.015em; color: var(--p-texto); }
+.campana-panel__todas {
+  padding: 7px 14px;
+  border: 1px solid var(--p-borde);
+  border-radius: 12px;
+  color: var(--p-texto-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.campana-panel__todas:hover { background: var(--p-fondo); color: var(--p-texto); }
+.campana-panel__pestanas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 4px; margin-bottom: 6px; border-radius: 14px; background: #f1f1f3; }
+.campana-panel__pestana {
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--p-texto-2);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.campana-panel__pestana.es-activa { background: var(--p-superficie); color: var(--p-texto); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.12); }
+.campana-panel__pestana:focus-visible, .campana-panel__todas:focus-visible { outline: 2px solid var(--woof-naranja-500); outline-offset: 2px; }
+.campana-panel__lista[hidden] { display: none; }
+.campana-aviso { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 14px 0; }
+.campana-aviso + .campana-aviso { border-top: 1px solid var(--p-linea); }
+.campana-aviso__icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--p-superficie);
+  box-shadow: 0 0 0 1px var(--p-borde), 0 2px 6px -3px rgba(29, 24, 20, 0.2);
+  color: var(--p-acento-texto);
+  font-size: 1.1rem;
+}
+.campana-aviso__cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 2px 0 4px; }
+.campana-aviso__cabecera strong { position: relative; font-size: 0.9875rem; font-weight: 600; color: var(--p-texto); }
+.campana-aviso.es-nuevo .campana-aviso__cabecera strong { padding-left: 12px; }
+.campana-aviso.es-nuevo .campana-aviso__cabecera strong::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--woof-naranja-500);
+  transform: translateY(-50%);
+}
+.campana-aviso__hace { flex: none; font-size: 0.8125rem; color: var(--p-texto-2); }
+.campana-aviso__texto { margin: 0; font-size: 0.875rem; line-height: 1.45; color: var(--p-texto-2); }
+.campana-panel__vacio { margin: 0; padding: 22px 0 16px; text-align: center; font-size: 0.9rem; color: var(--p-texto-2); }
+@media (max-width: 600px) {
+  .campana-panel { position: fixed; top: 64px; right: 12px; left: 12px; width: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .campana-panel { animation: none; } }

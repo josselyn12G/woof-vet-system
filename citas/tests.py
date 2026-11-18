@@ -2287,3 +2287,36 @@ class ReservasSimultaneasTests(TransactionTestCase):
         # Si Milo perdió, conserva su hora de antes: la reprogramación es una sola operación
         self.assertIn(cita_milo.inicio, (self.hora(9), self.hora(10)))
         self.assertEqual(cita_milo.estado, EstadoCita.CONFIRMADA)
+
+
+class PanelDeLaCampanaTests(TestCase):
+    """El panel que abre la campana: avisos en Hoy / Esta semana / Antes y, al verlos, quedan leídos."""
+
+    def setUp(self):
+        self.ana = crear_usuario('ana', first_name='Ana')
+        self.client.force_login(self.ana)
+        ahora = timezone.now()
+        for dias, tipo in ((0, TipoNotificacion.AGENDADA), (3, TipoNotificacion.REPROGRAMADA), (20, TipoNotificacion.CANCELADA)):
+            aviso = Notificacion.objects.create(usuario=self.ana, tipo=tipo, mensaje=f'Aviso de hace {dias} días')
+            Notificacion.objects.filter(pk=aviso.pk).update(creado=ahora - timedelta(days=dias, minutes=5))
+
+    def test_agrupa_en_hoy_esta_semana_y_antes(self):
+        respuesta = self.client.get(reverse('citas:panel_notificaciones'))
+        grupos = {clave: [a.mensaje for a in avisos] for clave, _, avisos in respuesta.context['grupos']}
+        self.assertEqual(grupos, {'hoy': ['Aviso de hace 0 días'], 'semana': ['Aviso de hace 3 días'],
+                                  'antes': ['Aviso de hace 20 días']})
+        self.assertEqual(respuesta.context['grupo_inicial'], 'hoy')
+        self.assertContains(respuesta, 'Ver todas')
+        self.assertContains(respuesta, 'Hace 5 min')
+
+    def test_al_abrirlo_quedan_leidas(self):
+        self.assertEqual(Notificacion.objects.filter(usuario=self.ana, leida=False).count(), 3)
+        self.client.get(reverse('citas:panel_notificaciones'))
+        self.assertFalse(Notificacion.objects.filter(usuario=self.ana, leida=False).exists())
+
+    def test_solo_ve_las_suyas_y_pide_sesion(self):
+        otro = crear_usuario('luis')
+        Notificacion.objects.create(usuario=otro, tipo=TipoNotificacion.AGENDADA, mensaje='De Luis')
+        self.assertNotContains(self.client.get(reverse('citas:panel_notificaciones')), 'De Luis')
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('citas:panel_notificaciones')).status_code, 302)

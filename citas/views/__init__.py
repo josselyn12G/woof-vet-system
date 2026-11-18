@@ -19,7 +19,7 @@ from .agendar import (
 from .calificaciones import CalificarCitaView
 from .catalogo import ServicioCreateView, ServicioDeleteView, ServicioEstadoView, ServicioListView, ServicioUpdateView
 from .gestion import GestionCancelarCitaView, GestionCitasView, GestionHorariosView, IndicadoresView
-from .notificaciones import NotificacionesView
+from .notificaciones import NotificacionesView, PanelNotificacionesView
 from .perfil import PerfilVeterinarioView
 from .horarios import (
     CopiarSemanaView, GestionCopiarSemanaView, GestionHorarioEditarView, GestionHorarioEliminarView,
@@ -42,7 +42,7 @@ __all__ = [
     # perfil
     'PerfilVeterinarioView',
     # notificaciones
-    'NotificacionesView',
+    'NotificacionesView', 'PanelNotificacionesView',
     # agenda
     'AgendaVeterinarioView', 'ResultadoCitaView', 'PacientesView',
     # gestion
