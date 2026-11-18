@@ -9,8 +9,8 @@
   <link href="{% static 'historial/css/historial.css' %}" rel="stylesheet">
 {% endblock %}
 
-{% block panel_icono %}{% if user.es_veterinario %}bi-people{% else %}bi-heart{% endif %}{% endblock %}
-{% block panel_seccion %}{% if user.es_cliente %}Mis mascotas{% elif user.es_veterinario %}Pacientes{% else %}Mascotas{% endif %}{% endblock %}
+{% block panel_icono %}{% if user.es_veterinario %}bi-people{% elif user.es_cliente %}bi-clipboard2-pulse{% else %}bi-heart{% endif %}{% endblock %}
+{% block panel_seccion %}{% if user.es_cliente %}Historial médico{% elif user.es_veterinario %}Pacientes{% else %}Mascotas{% endif %}{% endblock %}
 {% block panel_titulo %}Historia clínica{% endblock %}
 {% block panel_subtitulo %}Consultas, recetas y vacunas de {{ mascota.nombre }}, de la más reciente a la más antigua.{% endblock %}
 {% block panel_acciones %}
@@ -23,20 +23,41 @@
     <section class="bloque-panel ficha-paciente" aria-label="Paciente">
       <span class="ficha-paciente__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
       <div class="ficha-paciente__nombre">
-        <h2 class="bloque-panel__titulo">{{ mascota.nombre }}</h2>
+        <h2 class="bloque-panel__titulo ficha-paciente__titulo">{{ mascota.nombre }}</h2>
         <p class="ficha-paciente__rasgos">{{ mascota.especie }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}</p>
       </div>
       <dl class="ficha-paciente__datos">
-        <div><dt>Dueño</dt><dd>{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}</dd></div>
-        <div><dt>Último peso</dt><dd>{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}Sin registrar{% endif %}</dd></div>
-        <div><dt>Consultas</dt><dd>{{ consultas|length }}</dd></div>
+        <div><dt><i class="bi bi-person" aria-hidden="true"></i>Dueño</dt><dd>{{ mascota.dueno.get_full_name|default:mascota.dueno.username }}</dd></div>
+        <div><dt><i class="bi bi-speedometer2" aria-hidden="true"></i>Último peso</dt><dd>{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}Sin registrar{% endif %}</dd></div>
+        <div><dt><i class="bi bi-journal-medical" aria-hidden="true"></i>Consultas</dt><dd>{{ consultas|length }}</dd></div>
       </dl>
     </section>
+
+    {# ================= Lo más importante para el dueño: qué medicamento le toca estos días ================= #}
+    {% if tratamientos %}
+      <section class="tratamientos" aria-labelledby="titulo-tratamientos">
+        <header class="tratamientos__cabecera">
+          <span class="tratamientos__icono" aria-hidden="true"><i class="bi bi-capsule-pill"></i></span>
+          <div>
+            <h2 class="tratamientos__titulo" id="titulo-tratamientos">Tratamiento en curso</h2>
+            <p class="tratamientos__bajada">Lo que {{ mascota.nombre }} debe tomar estos días, según la receta del veterinario.</p>
+          </div>
+        </header>
+        <div class="tratamientos__lista">
+          {% for receta in tratamientos %}
+            {% include 'historial/_receta.html' with destacada=True %}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
     <div class="historia__columnas">
       {# ================= Línea de tiempo de las consultas ================= #}
       <section class="bloque-panel" aria-labelledby="titulo-consultas">
-        <h2 class="bloque-panel__titulo historia__titulo" id="titulo-consultas">Consultas</h2>
+        <header class="historia__cabecera">
+          <h2 class="bloque-panel__titulo" id="titulo-consultas"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>Consultas</h2>
+          {% if consultas %}<span class="historia__contador">{{ consultas|length }}</span>{% endif %}
+        </header>
 
         {% if consultas %}
           <ol class="linea-tiempo">
@@ -44,48 +65,64 @@
               <li class="linea-tiempo__punto">
                 <article class="consulta-historia">
                   <header class="consulta-historia__cabecera">
-                    <time class="consulta-historia__fecha" datetime="{{ consulta.fecha|date:'c' }}">{{ consulta.fecha|date:'j \d\e F \d\e Y' }} · {{ consulta.fecha|date:'H:i' }}</time>
-                    <p class="consulta-historia__quien">
-                      <i class="bi bi-person-badge" aria-hidden="true"></i>{{ consulta.veterinario.get_full_name|default:consulta.veterinario.username }}
-                      {% if consulta.cita %} · {{ consulta.cita.servicio }}{% else %} · Sin cita{% endif %}
-                      {% if consulta.peso_kg %} · {{ consulta.peso_kg }} kg{% endif %}
-                    </p>
+                    <span class="consulta-historia__dia" aria-hidden="true">
+                      <span class="consulta-historia__numero">{{ consulta.fecha|date:'j' }}</span>
+                      <span class="consulta-historia__mes">{{ consulta.fecha|date:'M' }}</span>
+                    </span>
+                    <div class="consulta-historia__resumen">
+                      <time class="consulta-historia__fecha" datetime="{{ consulta.fecha|date:'c' }}">{{ consulta.fecha|date:'j \d\e F \d\e Y' }} · {{ consulta.fecha|date:'H:i' }}</time>
+                      <p class="consulta-historia__quien">
+                        <span class="chip-historia"><i class="bi bi-person-badge" aria-hidden="true"></i>{{ consulta.veterinario.get_full_name|default:consulta.veterinario.username }}</span>
+                        <span class="chip-historia"><i class="bi bi-clipboard2-check" aria-hidden="true"></i>{% if consulta.cita %}{{ consulta.cita.servicio }}{% else %}Sin cita{% endif %}</span>
+                        {% if consulta.peso_kg %}<span class="chip-historia"><i class="bi bi-speedometer2" aria-hidden="true"></i>{{ consulta.peso_kg }} kg</span>{% endif %}
+                      </p>
+                    </div>
                   </header>
 
                   <dl class="consulta-historia__datos">
-                    <div><dt>Motivo</dt><dd>{{ consulta.motivo|default:'Sin motivo registrado' }}</dd></div>
-                    <div><dt>Diagnóstico</dt><dd>{{ consulta.diagnostico|linebreaksbr }}</dd></div>
+                    <div class="dato-historia">
+                      <dt><i class="bi bi-chat-left-text" aria-hidden="true"></i>Motivo</dt>
+                      <dd>{{ consulta.motivo|default:'Sin motivo registrado' }}</dd>
+                    </div>
+                    <div class="dato-historia">
+                      <dt><i class="bi bi-search-heart" aria-hidden="true"></i>Diagnóstico</dt>
+                      <dd>{{ consulta.diagnostico|linebreaksbr }}</dd>
+                    </div>
                     {% if consulta.indicaciones %}
-                      <div><dt>Indicaciones</dt><dd>{{ consulta.indicaciones|linebreaksbr }}</dd></div>
+                      <div class="dato-historia dato-historia--indicaciones">
+                        <dt><i class="bi bi-lightbulb" aria-hidden="true"></i>Indicaciones</dt>
+                        <dd>{{ consulta.indicaciones|linebreaksbr }}</dd>
+                      </div>
                     {% endif %}
                   </dl>
 
                   {% with recetas=consulta.prescripciones.all %}
                     {% if recetas %}
-                      <h3 class="consulta-historia__subtitulo"><i class="bi bi-capsule" aria-hidden="true"></i>Receta</h3>
-                      <ul class="consulta-historia__lista">
-                        {% for receta in recetas %}
-                          <li>
-                            <strong>{{ receta.medicamento }}</strong>
-                            <span>{{ receta.dosis }} cada {{ receta.frecuencia_horas }} h durante {{ receta.duracion_dias }} día{{ receta.duracion_dias|pluralize }} · {{ receta.tomas }} toma{{ receta.tomas|pluralize }}</span>
-                            {% if receta.indicaciones %}<span>{{ receta.indicaciones }}</span>{% endif %}
-                          </li>
-                        {% endfor %}
-                      </ul>
+                      <div class="consulta-historia__bloque">
+                        <h3 class="consulta-historia__subtitulo"><i class="bi bi-capsule" aria-hidden="true"></i>Receta</h3>
+                        <div class="consulta-historia__recetas">
+                          {% for receta in recetas %}
+                            {% include 'historial/_receta.html' with destacada=False %}
+                          {% endfor %}
+                        </div>
+                      </div>
                     {% endif %}
                   {% endwith %}
 
                   {% with aplicadas=consulta.vacunas_aplicadas.all %}
                     {% if aplicadas %}
-                      <h3 class="consulta-historia__subtitulo"><i class="bi bi-shield-check" aria-hidden="true"></i>Vacunas aplicadas</h3>
-                      <ul class="consulta-historia__lista">
-                        {% for aplicada in aplicadas %}
-                          <li>
-                            <strong>{{ aplicada.vacuna.nombre }}</strong>
-                            <span>{% if aplicada.proxima_dosis %}Próxima dosis: {{ aplicada.proxima_dosis|date:'d/m/Y' }}{% else %}Sin refuerzo{% endif %}</span>
-                          </li>
-                        {% endfor %}
-                      </ul>
+                      <div class="consulta-historia__bloque">
+                        <h3 class="consulta-historia__subtitulo"><i class="bi bi-shield-check" aria-hidden="true"></i>Vacunas aplicadas</h3>
+                        <ul class="consulta-historia__vacunas">
+                          {% for aplicada in aplicadas %}
+                            <li>
+                              <i class="bi bi-shield-fill-check" aria-hidden="true"></i>
+                              <strong>{{ aplicada.vacuna.nombre }}</strong>
+                              <span>{% if aplicada.proxima_dosis %}Próxima dosis: {{ aplicada.proxima_dosis|date:'d/m/Y' }}{% else %}Sin refuerzo{% endif %}</span>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      </div>
                     {% endif %}
                   {% endwith %}
                 </article>
@@ -100,16 +137,25 @@
         {% endif %}
       </section>
 
-      {# ================= Todas las vacunas aplicadas (también las cargadas sin consulta) ================= #}
-      <section class="bloque-panel" aria-labelledby="titulo-vacunas">
-        <h2 class="bloque-panel__titulo historia__titulo" id="titulo-vacunas">Vacunas aplicadas</h2>
+      {# ================= Todas las vacunas aplicadas (también las cargadas sin consulta), con su estado ================= #}
+      <section class="bloque-panel historia__vacunas" aria-labelledby="titulo-vacunas">
+        <header class="historia__cabecera">
+          <h2 class="bloque-panel__titulo" id="titulo-vacunas"><i class="bi bi-shield-plus" aria-hidden="true"></i>Vacunas aplicadas</h2>
+          {% if vacunas %}<span class="historia__contador">{{ vacunas|length }}</span>{% endif %}
+        </header>
         {% if vacunas %}
           <ul class="vacunas-historia">
             {% for aplicada in vacunas %}
               <li class="vacunas-historia__fila">
-                <span class="vacunas-historia__nombre">{{ aplicada.vacuna.nombre }}</span>
-                <span class="vacunas-historia__dato">Aplicada el {{ aplicada.fecha_aplicacion|date:'d/m/Y' }}</span>
-                <span class="vacunas-historia__dato">{% if aplicada.proxima_dosis %}Próxima: {{ aplicada.proxima_dosis|date:'d/m/Y' }}{% else %}Sin refuerzo{% endif %}</span>
+                <span class="vacunas-historia__icono vacunas-historia__icono--{{ aplicada.estado }}" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                <div class="vacunas-historia__texto">
+                  <div class="vacunas-historia__linea">
+                    <span class="vacunas-historia__nombre">{{ aplicada.vacuna.nombre }}</span>
+                    <span class="estado-vacuna estado-vacuna--{{ aplicada.estado }}">{{ aplicada.estado_texto }}</span>
+                  </div>
+                  <span class="vacunas-historia__dato">Aplicada el {{ aplicada.fecha_aplicacion|date:'d/m/Y' }}</span>
+                  <span class="vacunas-historia__dato">{% if aplicada.proxima_dosis %}Próxima: {{ aplicada.proxima_dosis|date:'d/m/Y' }}{% else %}Sin refuerzo{% endif %}</span>
+                </div>
               </li>
             {% endfor %}
           </ul>

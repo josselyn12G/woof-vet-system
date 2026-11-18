@@ -153,26 +153,299 @@
 }
 
 /* ==========================================================================
-   Historia clínica (solo lectura): la ficha del paciente arriba, la línea de tiempo
-   de las consultas a la izquierda y todas las vacunas aplicadas a la derecha
+   Historia clínica (solo lectura): la ficha del paciente arriba, luego el tratamiento
+   en curso (lo que más le importa al dueño), la línea de tiempo de las consultas a la
+   izquierda y todas las vacunas aplicadas a la derecha
    ========================================================================== */
 .historia {
   display: grid;
   gap: 1.25rem;
 }
 
-.historia__titulo {
-  margin-bottom: 1rem;
+.ficha-paciente__titulo {
+  font-size: 1.2rem;
+}
+
+.ficha-paciente__datos dt .bi {
+  margin-right: 0.3rem;
+  color: var(--p-acento-texto);
+}
+
+.historia__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.historia__cabecera .bloque-panel__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.historia__cabecera .bloque-panel__titulo .bi {
+  color: var(--p-acento);
+}
+
+.historia__contador {
+  min-width: 1.75rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .historia__columnas {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
   align-items: start;
   gap: 1.25rem;
 }
 
-/* Línea de tiempo: un punto naranja por consulta, unidos por una línea vertical */
+/* --------------------------------------------------------------------------
+   Tratamiento en curso: bloque naranja arriba de todo
+   -------------------------------------------------------------------------- */
+.tratamientos {
+  padding: 1.4rem;
+  border: 1px solid var(--woof-naranja-300);
+  border-radius: var(--p-radio);
+  background: linear-gradient(135deg, #fff4e6 0%, #fffaf3 60%, var(--p-superficie) 100%);
+  box-shadow: 0 10px 30px -18px rgba(196, 106, 10, 0.45);
+}
+
+.tratamientos__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
+}
+
+.tratamientos__icono {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--p-acento);
+  color: #fff;
+  font-size: 1.3rem;
+}
+
+.tratamientos__titulo {
+  margin: 0;
+  color: var(--woof-naranja-900);
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.tratamientos__bajada {
+  margin: 0.1rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.9rem;
+}
+
+.tratamientos__lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Tarjeta de una receta: el medicamento grande y la pauta en casillas
+   -------------------------------------------------------------------------- */
+.receta {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+}
+
+.receta--en-curso {
+  border-color: var(--woof-naranja-300);
+  border-left: 4px solid var(--p-acento);
+}
+
+.receta--destacada {
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 6px 18px rgba(87, 63, 51, 0.07);
+}
+
+.receta__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.receta__icono {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  border-radius: 0.75rem;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-size: 1.15rem;
+}
+
+.receta__titulo {
+  min-width: 0;
+  flex: 1;
+}
+
+.receta__medicamento {
+  margin: 0;
+  color: var(--p-texto);
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.05rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.receta--destacada .receta__medicamento {
+  font-size: 1.2rem;
+}
+
+.receta__origen {
+  margin: 0.1rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+}
+
+.receta__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--p-linea);
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.receta__estado--en-curso {
+  background: #e7f5ec;
+  color: #1e7b45;
+}
+
+/* Punto verde que late: el tratamiento sigue */
+.receta__pulso {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: #22a35a;
+  box-shadow: 0 0 0 0 rgba(34, 163, 90, 0.5);
+  animation: pulso-receta 1.8s ease-out infinite;
+}
+
+@keyframes pulso-receta {
+  70% { box-shadow: 0 0 0 0.45rem rgba(34, 163, 90, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 163, 90, 0); }
+}
+
+.receta__pauta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.receta__casilla {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--p-radio-control);
+  background: var(--p-fondo);
+}
+
+.receta__casilla dt {
+  color: var(--p-texto-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.receta__casilla dd {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 0.98rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.receta__casilla--dosis {
+  background: var(--p-acento-tinte);
+}
+
+.receta__casilla--dosis dd {
+  color: var(--woof-naranja-900);
+}
+
+.receta__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--p-radio-control);
+  background: #fffbeb;
+  color: #7a4b00;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.receta__nota .bi {
+  margin-top: 0.1rem;
+}
+
+.receta__avance {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.receta__barra {
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--p-linea);
+}
+
+.receta__barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--woof-naranja-300), var(--p-acento));
+}
+
+.receta__fechas {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.receta__fechas strong {
+  color: var(--p-texto);
+}
+
+/* --------------------------------------------------------------------------
+   Línea de tiempo: un punto naranja por consulta, unidos por una línea vertical
+   -------------------------------------------------------------------------- */
 .linea-tiempo {
   margin: 0;
   padding: 0;
@@ -181,8 +454,8 @@
 
 .linea-tiempo__punto {
   position: relative;
-  padding: 0 0 1.5rem 1.6rem;
-  border-left: 2px solid var(--p-borde);
+  padding: 0 0 1.25rem 1.6rem;
+  border-left: 2px dashed var(--p-borde);
   margin-left: 0.4rem;
 }
 
@@ -194,87 +467,189 @@
 .linea-tiempo__punto::before {
   content: '';
   position: absolute;
-  top: 0.3rem;
-  left: -0.45rem;
-  width: 0.8rem;
-  height: 0.8rem;
-  border: 2px solid var(--p-superficie);
+  top: 1.35rem;
+  left: -0.5rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 3px solid var(--p-superficie);
   border-radius: 50%;
   background: var(--p-acento);
+  box-shadow: 0 0 0 2px var(--woof-naranja-100);
 }
 
 .consulta-historia {
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+}
+
+.consulta-historia__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+/* El día de la consulta como una hojita de calendario */
+.consulta-historia__dia {
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  flex: none;
+  padding: 0.35rem 0;
+  border-radius: 0.8rem;
+  background: var(--p-acento-tinte);
+  color: var(--woof-naranja-900);
+  line-height: 1.05;
+}
+
+.consulta-historia__numero {
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.consulta-historia__mes {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.consulta-historia__resumen {
+  min-width: 0;
 }
 
 .consulta-historia__fecha {
   color: var(--p-texto);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .consulta-historia__quien {
-  margin: 0.15rem 0 0;
-  color: var(--p-texto-2);
-  font-size: 0.88rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
 }
 
-.consulta-historia__quien .bi {
-  margin-right: 0.35rem;
+.chip-historia {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--p-fondo);
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.chip-historia .bi {
+  color: var(--p-acento-texto);
 }
 
 .consulta-historia__datos {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.6rem;
   margin: 0;
 }
 
-.consulta-historia__datos dt,
-.consulta-historia__subtitulo {
-  color: var(--p-texto-2);
-  font-size: 0.78rem;
-  font-weight: 500;
+.dato-historia {
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--p-radio-control);
+  background: var(--p-fondo);
 }
 
-.consulta-historia__datos dd {
+.dato-historia dt {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dato-historia dd {
   margin: 0;
   color: var(--p-texto);
+  overflow-wrap: anywhere;
+}
+
+/* Las indicaciones son para el dueño: ocupan todo el ancho y se resaltan */
+.dato-historia--indicaciones {
+  grid-column: 1 / -1;
+  border-left: 3px solid var(--p-acento);
+  background: var(--p-acento-tinte);
+}
+
+.dato-historia--indicaciones dt {
+  color: var(--p-acento-texto);
+}
+
+.consulta-historia__bloque {
+  display: grid;
+  gap: 0.6rem;
 }
 
 .consulta-historia__subtitulo {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   margin: 0;
+  color: var(--p-texto);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
-.consulta-historia__lista {
+.consulta-historia__subtitulo .bi {
+  color: var(--p-acento);
+}
+
+.consulta-historia__recetas {
   display: grid;
+  gap: 0.6rem;
+}
+
+.consulta-historia__vacunas {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.consulta-historia__lista li {
-  display: grid;
-  gap: 0.1rem;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid var(--p-borde);
+.consulta-historia__vacunas li {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.45rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #cfe9d9;
   border-radius: var(--p-radio-control);
-  background: var(--p-acento-tinte);
-  font-size: 0.9rem;
+  background: #f2faf5;
+  font-size: 0.88rem;
 }
 
-.consulta-historia__lista span {
+.consulta-historia__vacunas .bi {
+  color: #1e7b45;
+}
+
+.consulta-historia__vacunas span {
   color: var(--p-texto-2);
+  font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
 }
 
 .historia__vacia {
   display: grid;
   justify-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding: 2rem 1rem;
   color: var(--p-texto-2);
   text-align: center;
@@ -286,22 +661,31 @@
 }
 
 .historia__vacia p {
+  max-width: 32rem;
   margin: 0;
 }
 
-/* Lista de todas las vacunas */
+/* --------------------------------------------------------------------------
+   Lista de todas las vacunas, con su estado
+   -------------------------------------------------------------------------- */
+.historia__vacunas {
+  position: sticky;
+  top: 1rem;
+}
+
 .vacunas-historia {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .vacunas-historia__fila {
-  display: grid;
-  gap: 0.1rem;
-  padding-bottom: 0.6rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--p-linea);
 }
 
@@ -310,9 +694,41 @@
   border-bottom: 0;
 }
 
+.vacunas-historia__icono {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: none;
+  border-radius: 50%;
+  background: #e7f5ec;
+  color: #1e7b45;
+}
+
+.vacunas-historia__icono--proxima { background: #fdf1e3; color: #9a5b00; }
+.vacunas-historia__icono--vencida { background: #fdecee; color: #b4232a; }
+.vacunas-historia__icono--reforzada { background: var(--p-linea); color: var(--p-texto-2); }
+
+.vacunas-historia__texto {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.vacunas-historia__linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.vacunas-historia__linea .estado-vacuna {
+  margin-top: 0;
+}
+
 .vacunas-historia__nombre {
   color: var(--p-texto);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .vacunas-historia__dato {
@@ -321,8 +737,184 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ==========================================================================
+   «Historial médico» del cliente: una tarjeta por mascota
+   ========================================================================== */
+.historiales {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 1.25rem;
+}
+
+.historial-mascota {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+}
+
+.historial-mascota--tratamiento {
+  border-color: var(--woof-naranja-300);
+  box-shadow: 0 10px 30px -18px rgba(196, 106, 10, 0.45);
+}
+
+.historial-mascota__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.historial-mascota__foto {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: none;
+  border-radius: 50%;
+}
+
+.historial-mascota__nombre {
+  min-width: 0;
+}
+
+.historial-mascota__nombre h2 {
+  margin: 0;
+  color: var(--p-texto);
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.historial-mascota__nombre p {
+  margin: 0.1rem 0 0;
+  color: var(--p-texto-2);
+  font-size: 0.88rem;
+}
+
+.historial-mascota__datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.historial-mascota__datos div {
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--p-radio-control);
+  background: var(--p-fondo);
+}
+
+.historial-mascota__datos dt {
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.historial-mascota__datos dd {
+  margin: 0;
+  color: var(--p-texto);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.historial-mascota__tratamientos {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--p-radio-control);
+  background: var(--p-acento-tinte);
+}
+
+.historial-mascota__aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--woof-naranja-900);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.historial-mascota__tratamientos ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historial-mascota__tratamientos li {
+  display: flex;
+  gap: 0.5rem;
+  color: var(--p-texto-2);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.historial-mascota__tratamientos li .bi {
+  margin-top: 0.1rem;
+  color: var(--p-acento-texto);
+}
+
+.historial-mascota__tratamientos strong {
+  display: block;
+  color: var(--p-texto);
+  font-size: 0.95rem;
+}
+
+.historial-mascota__tranquilo {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: #1e7b45;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.historial-mascota__ver {
+  margin-top: auto;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Pantallas chicas y menos movimiento
+   -------------------------------------------------------------------------- */
 @media (max-width: 991.98px) {
   .historia__columnas {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .historia__vacunas {
+    position: static;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tratamientos {
+    padding: 1.1rem;
+  }
+
+  .receta__pauta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .consulta-historia__datos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .linea-tiempo__punto {
+    padding-left: 1rem;
+  }
+
+  .consulta-historia {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .receta__pulso {
+    animation: none;
   }
 }

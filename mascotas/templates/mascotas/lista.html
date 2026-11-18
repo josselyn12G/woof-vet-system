@@ -50,6 +50,9 @@
               Ver ficha completa <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
             </a>
             <div class="tarjeta-mascota__botones">
+              <a class="accion-mascota" href="{% url 'mascotas:historial' mascota.pk %}" title="Historial médico de {{ mascota.nombre }}">
+                <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>Historial
+              </a>
               <a class="accion-mascota" href="{% url 'mascotas:carnet' mascota.pk %}" data-abrir-carnet title="Carnet de vacunación de {{ mascota.nombre }}">
                 <i class="bi bi-journal-medical" aria-hidden="true"></i>Carnet
               </a>
