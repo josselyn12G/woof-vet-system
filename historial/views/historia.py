@@ -1,8 +1,8 @@
 """La historia clínica de una mascota, de solo lectura: la ven el dueño, los veterinarios y la clínica."""
 from django.urls import reverse
-from django.views.generic import DetailView
+from django.views.generic import DetailView, ListView
 
-from mascotas.mixins import MascotaVisiblePorRolMixin
+from mascotas.mixins import MascotasDelUsuarioMixin, MascotaVisiblePorRolMixin
 
 from ..services import HistorialService
 
@@ -30,3 +30,15 @@ class HistoriaClinicaView(MascotaVisiblePorRolMixin, DetailView):
         if usuario.es_veterinario:
             return reverse('citas:pacientes')
         return reverse('mascotas:gestion_detalle', kwargs={'pk': self.object.pk})
+
+
+class MisHistorialesView(MascotasDelUsuarioMixin, ListView):
+    """
+    «Historial médico» del sidebar del cliente: sus mascotas con sus tratamientos en curso y un acceso
+    directo a la historia clínica de cada una. Otro rol que llega aquí vuelve a su panel.
+    """
+    template_name = 'historial/historiales.html'
+    context_object_name = 'mascotas'
+
+    def get_queryset(self):
+        return HistorialService.resumen_de(super().get_queryset())
