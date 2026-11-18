@@ -1,4 +1,5 @@
 """Gestión de la clínica (administrador y superadministrador): todas las citas, los horarios y los indicadores."""
+from datetime import timedelta
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect
@@ -8,6 +9,8 @@ from django.views import View
 from django.views.generic import ListView, TemplateView
 
 from cuentas.mixins import AdministradorRequeridoMixin
+from panel.graficos import columnas, dona
+from panel.services.estadisticas import grafico_de_linea
 
 from ..forms import FiltroCitasForm, IndicadoresForm
 from ..services import (
@@ -40,11 +43,17 @@ class GestionCitasView(AdministradorRequeridoMixin, ListView):
         consulta.pop('page', None)
         sin_vista = consulta.copy()
         sin_vista.pop('vista', None)
+        resumen = CitaService.resumen_de_la_clinica()
+        hoy = timezone.localdate()
         contexto.update({
             'filtros': self.filtros,
             'vista': self.vista(),
             'vistas': VISTAS_GESTION.items(),
-            'resumen': CitaService.resumen_de_la_clinica(),
+            'resumen': resumen,
+            # Gráficos de los últimos 30 días: por estado (dona) y por servicio (columnas)
+            'dona_estados': dona([('Atendidas', resumen['atendidas']), ('Próximos 7 días', resumen['semana']),
+                                  ('No asistió', resumen['no_asistio']), ('Canceladas', resumen['canceladas'])]),
+            'columnas_servicios': columnas(EstadisticasService.series_de_indicadores(hoy - timedelta(days=29), hoy)['por_servicio']),
             'consulta': consulta.urlencode(),
             'consulta_sin_vista': sin_vista.urlencode(),
             'hay_filtros': any(self.filtros.filtros().values()),
@@ -107,4 +116,16 @@ class IndicadoresView(AdministradorRequeridoMixin, TemplateView):
         desde, hasta, veterinario = form.filtros()
         contexto.update(EstadisticasService.indicadores(desde, hasta, veterinario))
         contexto.update({'form': form, 'desde': desde, 'hasta': hasta, 'veterinario': veterinario})
+        # Gráficos: citas por estado (dona), por día (línea), por servicio e ingresos por veterinario (columnas)
+        series = EstadisticasService.series_de_indicadores(desde, hasta, veterinario)
+        contexto.update({
+            'dona_estados': dona([(nombre, cantidad) for _, nombre, cantidad in contexto['por_estado']]),
+            'grafico': grafico_de_linea(series['fechas'], series['citas_por_dia']),
+            'citas_en_rango': sum(series['citas_por_dia']),
+            'columnas_servicios': columnas(series['por_servicio']),
+            'columnas_ingresos': columnas([
+                ((fila['veterinario'].first_name or fila['veterinario'].username), int(fila['ingresos']))
+                for fila in contexto['filas']
+            ]),
+        })
         return contexto

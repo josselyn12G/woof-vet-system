@@ -1,0 +1,25 @@
+{% load l10n %}
+{% comment %}
+  Anillo repartido (panel.graficos.dona). Recibe: dona, titulo (texto del centro) y unidad (opcional, p. ej. "$").
+  Cada parte es un círculo con su trazo del largo de su porcentaje; la leyenda repite el valor.
+{% endcomment %}
+<div class="dona">
+  <div class="dona__anillo" role="img" aria-label="{{ titulo }}: {% for s in dona.segmentos %}{{ s.etiqueta }} {{ s.valor }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+    {% localize off %}
+    <svg viewBox="0 0 42 42" aria-hidden="true" focusable="false">
+      <circle class="dona__fondo" cx="21" cy="21" r="15.915"/>
+      {% for s in dona.segmentos %}{% if s.valor %}
+        <circle class="dona__parte" cx="21" cy="21" r="15.915" stroke="{{ s.color }}" stroke-dasharray="{{ s.largo }} 100" stroke-dashoffset="{{ s.desde }}"/>
+      {% endif %}{% endfor %}
+    </svg>
+    {% endlocalize %}
+    <span class="dona__centro"><strong>{{ unidad|default:'' }}{{ dona.total }}</strong><span>{{ titulo }}</span></span>
+  </div>
+  <ul class="dona__leyenda">
+    {% for s in dona.segmentos %}
+      <li><span class="dona__punto" style="background: {{ s.color }}" aria-hidden="true"></span><span class="dona__nombre">{{ s.etiqueta }}</span><strong>{{ unidad|default:'' }}{{ s.valor }}</strong><span class="dona__porcentaje">{{ s.porcentaje }}%</span></li>
+    {% empty %}
+      <li class="dona__vacio">Sin datos en este período.</li>
+    {% endfor %}
+  </ul>
+</div>
