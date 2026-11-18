@@ -1816,6 +1816,15 @@ class AvisosDeCitasTests(TestCase):
             })
         return Cita.objects.get()
 
+    @override_settings(AVISOS_EN_SEGUNDO_PLANO=True)
+    def test_en_produccion_el_correo_sale_en_otro_hilo_y_la_reserva_no_espera(self):
+        with patch('citas.services.notificaciones.threading.Thread') as hilo:
+            self.agendar()   # agendar() ya ejecuta los avisos de on_commit
+        self.assertEqual(hilo.call_count, 2)                   # un hilo por aviso (cliente y veterinario)
+        self.assertEqual(hilo.return_value.start.call_count, 2)
+        self.assertEqual(len(mail.outbox), 0)                  # nada se envió mientras respondía la reserva
+        self.assertEqual(Notificacion.objects.count(), 2)      # la campana ya los tiene
+
     def test_agendar_manda_dos_correos_y_guarda_dos_avisos(self):
         cita = self.agendar()
         self.assertEqual(sorted(correo.to[0] for correo in mail.outbox), ['ana@correo.ec', 'sofia@woof.ec'])

@@ -4,9 +4,11 @@ Los avisos de las citas (F8): cada uno se guarda como Notificacion (la campana d
 RF-23: al agendar, reprogramar o cancelar avisa al cliente y al veterinario.
 RF-24: el recordatorio de 24 horas lo manda el comando enviar_recordatorios.
 """
+import threading
 from datetime import timedelta
 
-from django.db import IntegrityError, transaction
+from django.conf import settings
+from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
 from django.utils.formats import date_format
 
@@ -36,10 +38,29 @@ class NotificacionService:
     # ---------- Crear y enviar ----------
     @staticmethod
     def avisar(usuario, cita, tipo, mensaje):
-        """Guarda el aviso y lo manda por correo."""
+        """Guarda el aviso (la campana lo ve enseguida) y lo manda por correo sin hacer esperar a nadie."""
         notificacion = Notificacion.objects.create(usuario=usuario, cita=cita, tipo=tipo, mensaje=mensaje)
-        notificacion.enviar()
+        NotificacionService.enviar_sin_esperar(notificacion)
         return notificacion
+
+    @staticmethod
+    def enviar_sin_esperar(notificacion):
+        """
+        El correo sale en un hilo aparte: el SMTP puede tardar varios segundos por correo (EMAIL_TIMEOUT),
+        y con dos avisos por cita la respuesta al agendar se quedaba esperando y parecía que no funcionaba.
+        En las pruebas (AVISOS_EN_SEGUNDO_PLANO=False) se envía en el momento para poder revisar mail.outbox.
+        """
+        if not getattr(settings, 'AVISOS_EN_SEGUNDO_PLANO', True):
+            notificacion.enviar()
+            return
+
+        def tarea():
+            try:
+                notificacion.enviar()
+            finally:
+                connection.close()   # el hilo no deja conexiones abiertas a la base
+
+        threading.Thread(target=tarea, name=f'aviso-{notificacion.pk}', daemon=True).start()
 
     @staticmethod
     def avisar_a_los_dos(cita, tipo, para_el_cliente, para_el_veterinario):

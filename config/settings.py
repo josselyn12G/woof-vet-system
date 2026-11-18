@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -190,3 +191,6 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = f'Woof <{EMAIL_HOST_USER}>'
 # Si el SMTP no responde, se deja de esperar a los 10 segundos (sin esto la página se quedaría colgada)
 EMAIL_TIMEOUT = 10
+# Los avisos de las citas salen por correo en un hilo aparte (la reserva responde sin esperar al SMTP).
+# En las pruebas se envían en el momento para revisar mail.outbox.
+AVISOS_EN_SEGUNDO_PLANO = 'test' not in sys.argv
