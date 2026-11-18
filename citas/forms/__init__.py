@@ -6,18 +6,18 @@ con significado (¿lo atiende?, ¿se repite el nombre?) se las piden a los servi
 - catalogo: un servicio de la clínica.
 - horarios: un bloque de Mi horario y los servicios que atiende el veterinario.
 - agendar: la reserva del cliente y la nueva hora al reprogramarla.
-- gestion: los filtros de la gestión de citas y de los indicadores de la agenda.
+- gestion: los filtros de la gestión de citas, de los indicadores de la agenda y de las reseñas.
 - calificar: las estrellas y el comentario del cliente sobre una cita atendida.
 """
 from .agendar import AgendarCitaForm, ReprogramarCitaForm
 from .calificar import CalificarCitaForm
 from .campos import SelectorHora, VeterinarioCasillas, VeterinarioOpcion
 from .catalogo import ServicioForm
-from .gestion import FiltroCitasForm, IndicadoresForm
+from .gestion import FiltroCalificacionesForm, FiltroCitasForm, IndicadoresForm
 from .horarios import HorarioForm, MisServiciosForm
 
 __all__ = [
-    'AgendarCitaForm', 'CalificarCitaForm', 'FiltroCitasForm', 'HorarioForm', 'IndicadoresForm', 'MisServiciosForm',
+    'AgendarCitaForm', 'CalificarCitaForm', 'FiltroCalificacionesForm', 'FiltroCitasForm', 'HorarioForm', 'IndicadoresForm', 'MisServiciosForm',
     'ReprogramarCitaForm',
     'SelectorHora', 'ServicioForm', 'VeterinarioCasillas', 'VeterinarioOpcion',
 ]

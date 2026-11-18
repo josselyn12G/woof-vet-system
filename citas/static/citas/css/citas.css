@@ -1278,7 +1278,8 @@ fieldset.formulario-panel__campo {
 /* ---------- Al costado: el avance del día y su horario ---------- */
 .agenda__lado {
   position: sticky;
-  top: 1.5rem;
+  /* Se detiene debajo del header fijo del veterinario (.nav-arriba: 0.75rem + ~3.9rem de alto) */
+  top: 6.25rem;
   display: grid;
   gap: 1rem;
 }
@@ -4379,5 +4380,284 @@ button.cal-cita {
   .calificar-popup.es-cerrando,
   .calificar-popup.es-cerrando::backdrop {
     animation: none;
+  }
+}
+
+
+/* ==========================================================================
+   Reseñas (administrador) y Mis calificaciones (veterinario)
+   ========================================================================== */
+.resenas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  align-items: start;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.resenas__estrella {
+  color: var(--p-acento);
+  font-size: 0.8em;
+}
+
+.tabla-panel tr.es-elegida td {
+  background: var(--p-acento-tinte);
+}
+
+.filtros--opiniones {
+  margin: 0;
+}
+
+/* Lista de opiniones: cada una es una tarjeta (persona a la izquierda, estrellas y comentario a la derecha) */
+.resenas-lista {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.resenas-lista__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.resenas-lista .tabla-panel__total {
+  margin: 0;
+}
+
+.resenas-lista__vacio {
+  margin: 0;
+  padding: 2rem 1.25rem;
+  border: 1px dashed var(--p-control);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+  color: var(--p-texto-2);
+  text-align: center;
+}
+
+.resena {
+  display: grid;
+  grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: 1.15rem 1.35rem;
+  border: 1px solid var(--p-borde);
+  border-left: 4px solid var(--p-acento);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+  box-shadow: 0 6px 18px rgba(29, 29, 31, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.resena:hover {
+  box-shadow: 0 10px 26px rgba(29, 29, 31, 0.09);
+  transform: translateY(-1px);
+}
+
+/* Las de 1 o 2 estrellas se marcan con un borde más apagado para encontrarlas rápido */
+.resena--baja {
+  border-left-color: var(--woof-marron, #7a5644);
+}
+
+.resena__persona {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.resena__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 0 0 3px var(--p-superficie), 0 0 0 4px #f8dfbf;
+}
+
+.resena__quien {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.resena__nombre {
+  overflow-wrap: anywhere;
+  color: var(--p-acento-texto);
+  font-size: 0.95rem;
+}
+
+.resena__lugar {
+  color: var(--p-texto);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.resena__dato {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--p-texto-2);
+  font-size: 0.78rem;
+}
+
+.resena__dato i {
+  color: var(--p-acento);
+  font-size: 0.7rem;
+}
+
+.resena__cuerpo {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.resena__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.75rem;
+  margin: 0;
+}
+
+.resena__estrellas {
+  color: var(--p-acento);
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
+
+.resena__estrellas .bi-star {
+  color: var(--p-control);
+}
+
+.resena__fecha {
+  color: var(--p-texto-2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.resena__nivel {
+  margin-left: auto;
+  color: var(--p-texto-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.resena__texto {
+  margin: 0;
+  color: var(--p-texto);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.resena__texto--vacio {
+  color: var(--p-texto-2);
+  font-style: italic;
+}
+
+.resena__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.resena__chip,
+.resena__boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.resena__chip {
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+}
+
+.resena__boton {
+  margin-left: auto;
+  background: var(--p-acento);
+  color: #fff;
+  text-decoration: none;
+  transition: filter 0.2s ease;
+}
+
+.resena__boton:hover,
+.resena__boton:focus-visible {
+  color: #fff;
+  filter: brightness(0.93);
+}
+
+@media (max-width: 640px) {
+  .resena {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+
+  .resena__boton {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resena {
+    transition: none;
+  }
+
+  .resena:hover {
+    transform: none;
+  }
+}
+
+.resenas-datos {
+  display: grid;
+  margin: 0.25rem 0 0;
+  border-top: 1px solid var(--p-linea);
+}
+
+.resenas-datos div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--p-linea);
+  font-size: 0.88rem;
+}
+
+.resenas-datos dt {
+  color: var(--p-texto-2);
+  font-weight: 500;
+}
+
+.resenas-datos dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.resenas-nota {
+  margin: 0;
+  color: var(--p-texto-2);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .resenas {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

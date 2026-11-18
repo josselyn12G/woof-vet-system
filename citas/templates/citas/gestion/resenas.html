@@ -1,0 +1,126 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{% block titulo %}Reseñas · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'citas/css/citas.css' %}?v=3" rel="stylesheet">
+  <link href="{% static 'css/gestion.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-star{% endblock %}
+{% block panel_seccion %}Reseñas{% endblock %}
+{% block panel_titulo %}Reseñas y desempeño{% endblock %}
+{% block panel_subtitulo %}Las calificaciones que dejan los clientes después de cada cita atendida{% if veterinario %} · {{ veterinario.get_full_name|default:veterinario.username }}{% else %} · toda la clínica{% endif %}.{% endblock %}
+
+{% block panel_contenido %}
+  {# Cifras: siguen al veterinario elegido en los filtros, o a toda la clínica #}
+  <section class="estadisticas entra entra--1" aria-label="Resumen de las calificaciones">
+    <div class="tira-cifras">
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-star-half" aria-hidden="true"></i>Calificación promedio</p>
+        <p class="cifra__fila"><span class="cifra__valor">{% if reputacion.promedio is not None %}{{ reputacion.promedio|floatformat:1 }}<span class="cifra__de"> / 5</span>{% else %}—{% endif %}</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-chat-square-text" aria-hidden="true"></i>Opiniones</p>
+        <p class="cifra__fila"><span class="cifra__valor">{{ reputacion.total }}</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-emoji-smile" aria-hidden="true"></i>Clientes satisfechos</p>
+        <p class="cifra__fila"><span class="cifra__valor">{% if reputacion.satisfaccion is not None %}{{ reputacion.satisfaccion }} %{% else %}—{% endif %}</span><span class="variacion" title="Opiniones de 4 o 5 estrellas">4-5 ★</span></p>
+      </div>
+      <div class="cifra">
+        <p class="cifra__etiqueta"><i class="bi bi-chat-quote" aria-hidden="true"></i>Con comentario</p>
+        <p class="cifra__fila"><span class="cifra__valor">{{ reputacion.con_comentario }}</span></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="resenas entra entra--2">
+    {# Desempeño de cada veterinario: de mejor a peor calificado #}
+    <section class="bloque-panel" aria-labelledby="titulo-desempeno">
+      <div class="bloque-panel__cabecera">
+        <h2 class="bloque-panel__titulo" id="titulo-desempeno">Desempeño por veterinario</h2>
+        <span class="bloque-panel__meta">Según las calificaciones de sus clientes</span>
+      </div>
+      {% if desempeno %}
+        <div class="tabla-envoltorio tabla-envoltorio--plano">
+          <table class="tabla-panel">
+            <thead>
+              <tr>
+                <th scope="col">Veterinario</th>
+                <th scope="col">Promedio</th>
+                <th scope="col" class="tabla-panel__num">Opiniones</th>
+                <th scope="col" class="tabla-panel__num tabla-panel__ocultable">4-5 ★</th>
+                <th scope="col" class="tabla-panel__num tabla-panel__ocultable">1-2 ★</th>
+                <th scope="col"><span class="visually-hidden">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fila in desempeno %}
+                <tr{% if veterinario and veterinario.pk == fila.veterinario.pk %} class="es-elegida"{% endif %}>
+                  <td>
+                    <span class="tabla-panel__persona">
+                      <span class="inicial inicial--veterinario" aria-hidden="true">{{ fila.veterinario.first_name|default:fila.veterinario.username|slice:':1'|upper }}{{ fila.veterinario.last_name|slice:':1'|upper }}</span>
+                      <span class="tabla-panel__nombre">{{ fila.veterinario.get_full_name|default:fila.veterinario.username }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    {% if fila.promedio is not None %}
+                      <span class="ocupacion" title="{{ fila.promedio|floatformat:1 }} de 5 estrellas">
+                        <span class="ocupacion__barra" aria-hidden="true"><span style="width: {{ fila.porcentaje|stringformat:'s' }}%"></span></span>
+                        <span class="ocupacion__valor">{{ fila.promedio|floatformat:1 }} <i class="bi bi-star-fill resenas__estrella" aria-hidden="true"></i></span>
+                      </span>
+                    {% else %}
+                      <span class="tabla-panel__secundario">Sin calificaciones</span>
+                    {% endif %}
+                  </td>
+                  <td class="tabla-panel__num">{{ fila.total }}</td>
+                  <td class="tabla-panel__num tabla-panel__ocultable">{{ fila.positivas }}</td>
+                  <td class="tabla-panel__num tabla-panel__ocultable">{{ fila.negativas }}</td>
+                  <td class="tabla-panel__num">
+                    {% if fila.total %}<a class="paneles__enlace" href="?veterinario={{ fila.veterinario.pk }}#opiniones-titulo">Ver opiniones <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="tabla-panel__total">Todavía no hay veterinarios en la clínica.</p>
+      {% endif %}
+    </section>
+
+    <aside class="bloque-panel perfil-vet__lado" aria-label="Distribución de estrellas">
+      <h2 class="bloque-panel__titulo">Distribución</h2>
+      {% include 'citas/_reputacion.html' with texto_vacio='Todavía no hay calificaciones.' %}
+    </aside>
+  </div>
+
+  {# Cada opinión, filtrable por veterinario y estrellas (por GET: queda en la URL) #}
+  <section class="resenas-lista entra entra--3" aria-labelledby="opiniones-titulo">
+    <div class="resenas-lista__cabecera">
+      <h2 class="bloque-panel__titulo" id="opiniones-titulo">Opiniones de los clientes</h2>
+      <form class="filtros filtros--opiniones" method="get">
+        <label class="visually-hidden" for="{{ filtros.veterinario.id_for_label }}">Veterinario</label>
+        {{ filtros.veterinario }}
+        <label class="visually-hidden" for="{{ filtros.estrellas.id_for_label }}">Estrellas</label>
+        {{ filtros.estrellas }}
+        <noscript><button type="submit" class="boton-panel boton-panel--secundario">Filtrar</button></noscript>
+        {% if hay_filtros %}<a class="boton-panel boton-panel--secundario" href="{% url 'citas:resenas' %}">Quitar filtros</a>{% endif %}
+      </form>
+    </div>
+    <p class="tabla-panel__total">{{ paginator.count }} {% if paginator.count == 1 %}opinión{% else %}opiniones{% endif %}{% if hay_filtros %} con estos filtros{% endif %}</p>
+
+    {% for opinion in calificaciones %}
+      {% include 'citas/_opinion.html' with con_veterinario=True %}
+    {% empty %}
+      {% if hay_filtros %}
+        <p class="resenas-lista__vacio">Ninguna opinión coincide con los filtros.</p>
+      {% else %}
+        <p class="resenas-lista__vacio">Cuando los clientes califiquen sus citas atendidas, sus opiniones aparecerán aquí.</p>
+      {% endif %}
+    {% endfor %}
+    {% include 'citas/_paginas_opiniones.html' %}
+  </section>
+{% endblock %}

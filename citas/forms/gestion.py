@@ -1,10 +1,10 @@
-"""Los filtros de la gestión de citas y de los indicadores de la agenda (administrador)."""
+"""Los filtros de la gestión de citas, de los indicadores de la agenda y de las reseñas."""
 from datetime import timedelta
 
 from django import forms
 from django.utils import timezone
 
-from ..models import EstadoCita
+from ..models import ESTRELLAS_MAX, ESTRELLAS_MIN, EstadoCita
 from ..services import CitaService, ServicioService
 from .campos import VeterinarioOpcion
 
@@ -79,3 +79,34 @@ class IndicadoresForm(forms.Form):
         if self.is_bound and self.is_valid():
             return self.cleaned_data['desde'], self.cleaned_data['hasta'], self.cleaned_data['veterinario']
         return (*self.rango_por_defecto(), None)
+
+
+class FiltroCalificacionesForm(forms.Form):
+    """
+    Filtros de las reseñas (por GET y opcionales, como los de la gestión de citas). Sin veterinarios
+    (Mis calificaciones del veterinario) el campo veterinario no existe y solo se filtra por estrellas.
+    """
+    veterinario = VeterinarioOpcion(required=False, queryset=CitaService.veterinarios().none(),
+                                    empty_label='Todos los veterinarios')
+    estrellas = forms.TypedChoiceField(
+        required=False, coerce=int, empty_value=None,
+        choices=[('', 'Todas las estrellas')] + [
+            (n, f'{n} estrella{"s" if n > 1 else ""}') for n in range(ESTRELLAS_MAX, ESTRELLAS_MIN - 1, -1)
+        ],
+    )
+
+    def __init__(self, *args, veterinarios=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if veterinarios is None:
+            del self.fields['veterinario']
+        else:
+            self.fields['veterinario'].queryset = veterinarios
+        for campo in self.fields.values():
+            # Elegir una opción ya filtra
+            campo.widget.attrs.update({'class': 'control-panel filtros__rol', 'onchange': 'this.form.submit()'})
+
+    def filtros(self):
+        """{'veterinario', 'estrellas'} válidos; un valor inventado en la URL se ignora."""
+        self.is_valid()
+        datos = getattr(self, 'cleaned_data', {})
+        return {'veterinario': datos.get('veterinario'), 'estrellas': datos.get('estrellas')}

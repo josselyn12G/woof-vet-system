@@ -31,6 +31,8 @@ urlpatterns = [
     path('agenda/', views.AgendaVeterinarioView.as_view(), name='agenda'),
     path('agenda/<int:pk>/resultado/', views.ResultadoCitaView.as_view(), name='resultado'),
     path('pacientes/', views.PacientesView.as_view(), name='pacientes'),
+    # Las calificaciones que le dieron al veterinario (solo las suyas)
+    path('mis-calificaciones/', views.MisCalificacionesView.as_view(), name='mis_calificaciones'),
     # Los avisos de las citas (la campana del panel, cualquiera con sesión)
     path('notificaciones/', views.NotificacionesView.as_view(), name='notificaciones'),
     path('notificaciones/panel/', views.PanelNotificacionesView.as_view(), name='panel_notificaciones'),
@@ -42,6 +44,8 @@ urlpatterns = [
     path('gestion/horarios/', views.GestionHorariosView.as_view(), name='gestion_horarios'),
     # RF-25: indicadores de la agenda por rango de fechas y veterinario
     path('gestion/indicadores/', views.IndicadoresView.as_view(), name='indicadores'),
+    # Reseñas: el desempeño de cada veterinario según las calificaciones de los clientes
+    path('gestion/resenas/', views.ResenasView.as_view(), name='resenas'),
     # El horario y los servicios de un veterinario: solo el superadministrador (403 para los demás)
     path('gestion/horarios/<int:vet>/', views.GestionHorarioView.as_view(), name='gestion_horario'),
     path('gestion/horarios/<int:vet>/bloques/<int:pk>/editar/', views.GestionHorarioEditarView.as_view(),
