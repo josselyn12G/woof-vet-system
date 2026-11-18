@@ -83,7 +83,7 @@
           <span class="panel-menu__nombre">{{ user.get_full_name|default:user.username }}</span>
           <span class="panel-menu__rol">{{ user.get_rol_display }}</span>
         </a>
-        <form method="post" action="{% url 'cuentas:logout' %}">
+        <form method="post" action="{% url 'cuentas:logout' %}" data-cargando="Cerrando sesión">
           {% csrf_token %}
           <button type="submit" class="panel-menu__salir" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
         </form>
@@ -109,7 +109,7 @@
         <div class="nav-arriba__lado">
           <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
           <a class="panel-menu__avatar nav-arriba__avatar text-decoration-none" href="{% url 'cuentas:mi_cuenta' %}" title="Mi cuenta" aria-label="Mi cuenta">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</a>
-          <form method="post" action="{% url 'cuentas:logout' %}">
+          <form method="post" action="{% url 'cuentas:logout' %}" data-cargando="Cerrando sesión">
             {% csrf_token %}
             <button type="submit" class="panel-barra__boton" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
           </form>

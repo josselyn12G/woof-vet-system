@@ -43,7 +43,7 @@
     if (!boton) return;
 
     formulario.addEventListener('submit', (evento) => {
-      if (sinMovimiento || formulario.dataset.enviando) return;
+      if (sinMovimiento || formulario.dataset.enviando) return;   // sin animación: cargando.js lo muestra solo
       evento.preventDefault();
       formulario.dataset.enviando = '1';
       const marcado = !boton.classList.contains('es-hecho');
@@ -52,7 +52,8 @@
       boton.setAttribute('aria-checked', String(marcado));
       const estado = boton.querySelector('[data-estado]');
       if (estado) estado.textContent = marcado ? 'Dosis dada' : 'Sin marcar';
-      // Deja ver el resorte y la raya antes de recargar
+      // Deja ver el resorte y la raya antes de recargar; mientras, el cargando dice "Guardando"
+      if (window.WoofCargando) window.WoofCargando.mostrar(marcado ? 'Guardando la dosis' : 'Quitando la marca');
       window.setTimeout(() => formulario.submit(), 420);
     });
   });

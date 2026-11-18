@@ -592,6 +592,7 @@ class HistoriaDelClienteTests(ClienteConRecetasBase):
         estados = {receta.medicamento: receta.en_curso for receta in tratamiento['recetas']}
         self.assertEqual(estados, {'Amoxicilina 250 mg': True, 'Jarabe antitusivo': False})
         self.assertEqual(respuesta.context['en_curso'], 1)
+        self.assertEqual(respuesta.context['pendientes_hoy'], 1)
         self.assertEqual([receta for _, receta in respuesta.context['hoy']], [self.en_curso])
         self.assertContains(respuesta, 'En curso')
         self.assertContains(respuesta, 'Control de dosis de hoy')

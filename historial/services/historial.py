@@ -421,6 +421,7 @@ class HistorialService:
             'en_curso': len(en_curso),
             'avance_en_curso': round(hechos * 100 / total) if total else 0,
             'hoy': [(t, receta) for t in en_curso for receta in t['recetas'] if receta.en_curso],
+            'pendientes_hoy': sum(len(t['pendientes_hoy']) for t in en_curso),
         }
 
     @staticmethod
