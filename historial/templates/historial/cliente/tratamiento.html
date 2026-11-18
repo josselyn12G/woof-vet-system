@@ -7,7 +7,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=7" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=8" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -39,7 +39,7 @@
                 <div><dt>Inicio</dt><dd>{{ receta.fecha_inicio|date:'j M · H:i' }}</dd></div>
                 <div><dt>Termina</dt><dd>{{ receta.termina|date:'j M' }}</dd></div>
                 <div><dt>Tomas al día</dt><dd>{{ seg.tomas_por_dia }}</dd></div>
-                <div><dt>Estado</dt><dd><span class="hc-insignia {% if receta.en_curso %}hc-insignia--ok{% elif receta.por_empezar %}hc-insignia--acento{% endif %}">{% if receta.en_curso %}En curso{% elif receta.por_empezar %}Por empezar{% else %}Terminada{% endif %}</span></dd></div>
+                <div><dt>Estado</dt><dd><span class="rx-pastilla{% if receta.en_curso %} rx-pastilla--acento{% endif %}">{% if receta.en_curso %}En curso{% elif receta.por_empezar %}Por empezar{% else %}Terminada{% endif %}</span></dd></div>
               </dl>
 
               {% if receta.siguiente_toma %}
@@ -67,6 +67,8 @@
 
       {# ============ La consulta y el avance (columna angosta) ============ #}
       <div class="hc-columna hc-lateral">
+        {% include 'historial/_hc_mascota.html' %}
+
         {% if tratamiento.al_dia %}
           <section class="rx-exito" aria-live="polite">
             <span class="rx-exito__icono" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
@@ -92,15 +94,12 @@
             <span class="anillo__texto">cumplido</span>
           </div>
           <p class="rx-resumen__texto"><strong>{{ tratamiento.hechos }} de {{ tratamiento.total_dias }}</strong> días marcados</p>
-          <span class="hc-insignia {% if tratamiento.estado == 'en_curso' %}hc-insignia--ok{% elif tratamiento.estado == 'por_empezar' %}hc-insignia--acento{% endif %}">{{ tratamiento.estado_texto }}</span>
+          <span class="rx-pastilla{% if tratamiento.estado == 'en_curso' %} rx-pastilla--acento{% endif %}">{{ tratamiento.estado_texto }}</span>
         </section>
 
         <section class="hc-tarjeta rx-consulta-ficha" aria-labelledby="rx-consulta-titulo">
           <h2 class="hc-titulo hc-titulo--tarjeta" id="rx-consulta-titulo"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>La consulta</h2>
-          <p class="rx-consulta__mascota">
-            <span class="filtro-mascotas__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
-            {{ mascota.nombre }} · {{ consulta.fecha|date:'j \d\e F Y' }}
-          </p>
+          <p class="rx-consulta-ficha__fecha">{{ consulta.fecha|date:'l j \d\e F \d\e Y'|capfirst }}</p>
           <dl class="hc-datos">
             <div><dt>Veterinario</dt><dd>{{ consulta.veterinario.get_full_name|default:consulta.veterinario.username }}</dd></div>
             {% if consulta.motivo %}<div><dt>Motivo</dt><dd>{{ consulta.motivo }}</dd></div>{% endif %}

@@ -216,12 +216,12 @@
 }
 
 .dia-tratamiento--hecho:not(:last-child)::after {
-  background: #9fd8b6;
+  background: var(--woof-naranja-300);
 }
 
 .spring-check {
   --sc-tinta: var(--p-texto);
-  --sc-relleno: #2f9e5b;
+  --sc-relleno: var(--woof-naranja-500);
   --sc-visto: #fff;
   --sc-resorte: cubic-bezier(0.34, 1.56, 0.64, 1);   /* pasa del final y vuelve: el "bounce" */
   --sc-salida: cubic-bezier(0.23, 1, 0.32, 1);
@@ -395,7 +395,7 @@
 }
 
 .spring-check.es-hecho .spring-check__detalle [data-estado] {
-  color: #1f7a44;
+  color: var(--p-acento-texto);
 }
 
 /* El "swell": al marcar con el mouse o el dedo, la caja crece un poco y vuelve (lo pone seguimiento.js) */
@@ -976,25 +976,8 @@ p.hc-vacio { padding: 24px 0 4px; }
    ================================================================ */
 /* Cada tipo de medicamento con su tono (tableta = naranja de la marca) */
 .rx-icono { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
-.rx-icono--jarabe { background: #e8f1fb; color: #2f6db5; }
-.rx-icono--gotas { background: #e6f5f2; color: #1f7a6a; }
-.rx-icono--crema { background: #f6ecf8; color: #8a4aa0; }
-.rx-icono--inyeccion { background: #fdecee; color: #b4232a; }
 
 /* ---------- Resumen: el anillo ---------- */
-.rx-resumen { display: grid; justify-items: center; align-content: center; gap: 10px; text-align: center; }
-.rx-resumen .hc-etiqueta { justify-self: stretch; text-align: left; }
-.rx-anillo {
-  width: 9.5rem;
-  height: 9.5rem;
-  margin: 6px 0 2px;
-  background:
-    radial-gradient(closest-side, var(--p-superficie) 82%, transparent 83%),
-    conic-gradient(var(--hc-verde) calc(var(--avance, 0) * 1%), var(--p-linea) 0);
-}
-.rx-anillo .anillo__dias { font-weight: 700; letter-spacing: -0.03em; color: var(--woof-marron); }
-.rx-resumen__texto { margin: 0; font-size: 0.9375rem; line-height: 1.4; color: var(--p-texto-2); }
-.rx-resumen__texto strong { color: var(--p-texto); }
 
 /* ---------- Control de dosis de hoy: pasos unidos por una línea ---------- */
 .rx-pasos { list-style: none; margin: 16px 0 0; padding: 0; display: grid; }
@@ -1008,7 +991,6 @@ p.hc-vacio { padding: 24px 0 4px; }
   width: 2px;
   background: var(--p-linea);
 }
-.rx-paso--hecho:not(:last-child)::after { background: var(--hc-verde); }
 .rx-paso__marca {
   position: relative;
   z-index: 1;
@@ -1021,7 +1003,6 @@ p.hc-vacio { padding: 24px 0 4px; }
   color: var(--hc-naranja-texto);
   font-size: 1rem;
 }
-.rx-paso--hecho .rx-paso__marca { background: var(--hc-verde); color: #fff; }
 .rx-paso__texto { display: grid; gap: 2px; min-width: 0; color: inherit; text-decoration: none; }
 .rx-paso__texto strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); }
 .rx-paso__texto span { font-size: 0.8125rem; color: var(--p-texto-2); }
@@ -1029,9 +1010,7 @@ p.hc-vacio { padding: 24px 0 4px; }
 .rx-vacio-corto { margin: 16px 0 0; color: var(--p-texto-2); font-size: 0.9375rem; }
 
 /* ---------- Lista de tratamientos por consulta ---------- */
-.rx-lista__cabecera { display: flex; align-items: baseline; gap: 12px; margin: 4px 0 14px; }
 .rx-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
-@media (min-width: 900px) { .rx-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .rx-consulta {
   display: grid;
   gap: 14px;
@@ -1040,10 +1019,7 @@ p.hc-vacio { padding: 24px 0 4px; }
   text-decoration: none;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--woof-curva);
 }
-.rx-consulta:hover { border-color: var(--woof-naranja-300); color: inherit; transform: translateY(-2px); }
 .rx-consulta:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
-.rx-consulta--en_curso { border-color: var(--woof-naranja-300); }
-.rx-consulta__cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
 .rx-fecha {
   display: grid;
   place-items: center;
@@ -1058,28 +1034,6 @@ p.hc-vacio { padding: 24px 0 4px; }
   line-height: 1.1;
 }
 .rx-fecha strong { font-size: 1.375rem; font-weight: 700; color: var(--woof-marron); letter-spacing: -0.02em; }
-.rx-consulta__titulos { display: grid; gap: 2px; min-width: 0; }
-.rx-consulta__titulos strong { font-size: 1.0625rem; font-weight: 650; color: var(--p-texto); }
-.rx-consulta__titulos span { font-size: 0.8125rem; color: var(--p-texto-2); }
-.rx-consulta__mascota { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.875rem; line-height: 1.4; color: var(--p-texto-2); }
-.rx-consulta__mascota .filtro-mascotas__foto { flex: none; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; font-size: 0.75rem; }
-.rx-consulta__mascota .filtro-mascotas__foto img { width: 100%; height: 100%; object-fit: cover; }
-.rx-medicamentos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.rx-medicamentos li {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px 4px 4px;
-  border-radius: 999px;
-  background: var(--p-fondo);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--p-texto);
-}
-.rx-medicamentos .rx-icono { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 0.9rem; }
-.rx-consulta__avance { display: grid; gap: 6px; }
-.rx-consulta__avance > span { font-size: 0.8125rem; color: var(--p-texto-2); font-variant-numeric: tabular-nums; }
-.rx-consulta__ver { justify-self: end; display: inline-flex; align-items: center; gap: 4px; font-size: 0.875rem; font-weight: 600; color: var(--hc-naranja-texto); }
 
 /* ---------- Detalle: un medicamento ---------- */
 .rx-detalles { gap: 20px; }
@@ -1153,7 +1107,6 @@ p.hc-vacio { padding: 24px 0 4px; }
   color: #fff;
   box-shadow: var(--hc-sombra);
 }
-.rx-exito--neutro { background: var(--hc-marron); }
 .rx-exito__icono {
   display: grid;
   place-items: center;
@@ -1169,6 +1122,93 @@ p.hc-vacio { padding: 24px 0 4px; }
 .rx-consulta-ficha .hc-datos { margin: 0; }
 .rx-consulta-ficha .hc-pastilla { grid-column: auto; justify-self: start; margin-top: 0; }
 
+/* ---------- Dos colores: neutro y el naranja de la marca como único acento ---------- */
+.rx-pastilla {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--p-fondo);
+  color: var(--p-texto-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rx-pastilla--acento { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
+
+/* Resumen: el anillo en naranja y una sola pastilla debajo */
+.rx-resumen { display: grid; justify-items: center; align-content: start; gap: 14px; text-align: center; }
+.rx-resumen .hc-etiqueta { justify-self: stretch; text-align: left; }
+.rx-anillo {
+  width: 8rem;
+  height: 8rem;
+  background:
+    radial-gradient(closest-side, var(--p-superficie) 80%, transparent 81%),
+    conic-gradient(var(--hc-naranja) calc(var(--avance, 0) * 1%), var(--p-linea) 0);
+}
+.rx-anillo .anillo__dias { font-size: 1.875rem; font-weight: 700; letter-spacing: -0.03em; color: var(--woof-marron); }
+.rx-resumen__texto { margin: 0; font-size: 0.9375rem; line-height: 1.4; color: var(--p-texto-2); }
+.rx-resumen__texto strong { color: var(--p-texto); }
+.rx-anillo .anillo__dias small { font-size: 0.9375rem; color: var(--p-texto-2); }
+.rx-paso--hecho .rx-paso__marca { background: var(--hc-naranja); color: #fff; }
+.rx-paso__marca:empty { background: var(--p-superficie); box-shadow: inset 0 0 0 2px var(--woof-naranja-300); }
+
+/* Lista: la consulta más reciente ocupa todo el ancho; las demás, de a dos */
+.rx-seccion { display: grid; gap: 14px; }
+.rx-seccion__titulo {
+  margin: 8px 0 0;
+  font-family: var(--woof-fuente-titulos);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--woof-marron);
+}
+.rx-seccion__titulo span { font-family: var(--woof-fuente-texto); font-size: 1rem; font-weight: 500; color: var(--p-texto-2); }
+.rx-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+@media (min-width: 900px) {
+  .rx-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rx-lista__destacado { grid-column: 1 / -1; }
+}
+.rx-consulta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  height: 100%;
+  padding: 14px 18px 14px 14px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  box-shadow: var(--hc-sombra);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.2s var(--woof-curva);
+}
+.rx-consulta:hover { border-color: var(--woof-naranja-300); color: inherit; transform: translateY(-1px); }
+.rx-consulta--en_curso { border-color: var(--woof-naranja-300); }
+.rx-consulta__titulos { display: grid; gap: 3px; min-width: 0; }
+.rx-consulta__titulos strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; color: var(--p-texto); }
+.rx-consulta__titulos span { font-size: 0.8125rem; color: var(--p-texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-consulta__flecha { color: var(--p-texto-2); font-size: 0.9rem; }
+.rx-consulta:hover .rx-consulta__flecha { color: var(--hc-naranja-texto); }
+
+/* Detalle: todos los medicamentos en naranja; el éxito en naranja sólido */
+.rx-imagen.rx-icono { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
+.rx-exito {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: var(--hc-radio);
+  background: var(--hc-naranja);
+  color: #fff;
+  box-shadow: var(--hc-sombra);
+}
+.rx-exito--neutro { background: var(--hc-marron); }
+.hc-lateral .hc-mascota { min-height: 280px; }
+.rx-consulta-ficha__fecha { margin: -4px 0 0; font-size: 0.875rem; color: var(--p-texto-2); }
+
 @media (max-width: 720px) {
   .rx-detalle__cabecera { grid-template-columns: 1fr; gap: 14px; }
   .rx-imagen { width: 84px; height: 84px; border-radius: 22px; font-size: 2.5rem; }
@@ -1177,5 +1217,7 @@ p.hc-vacio { padding: 24px 0 4px; }
   .rx-datos > div:nth-child(n + 3) { border-top: 1px solid var(--p-linea); }
   .rx-siguiente { grid-template-columns: auto minmax(0, 1fr); }
   .rx-siguiente__dosis { grid-column: 2; justify-self: start; }
+  .rx-consulta { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .rx-consulta__flecha { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .rx-consulta { transition: none; } }

@@ -1,0 +1,19 @@
+{# La tarjeta de la mascota (historia clínica y tratamiento): la foto de fondo y el nombre encima; sin foto, naranja con la inicial #}
+<section class="hc-mascota{% if mascota.tiene_foto %} hc-mascota--foto{% endif %}" aria-label="{{ mascota.nombre }}">
+  {% if mascota.tiene_foto %}
+    <img class="hc-mascota__fondo" src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="">
+  {% else %}
+    <span class="hc-mascota__inicial" aria-hidden="true">{{ mascota.nombre|slice:':1'|upper }}</span>
+    <svg class="hc-mascota__huella" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <ellipse cx="32" cy="42" rx="13" ry="11"/><ellipse cx="15" cy="27" rx="6" ry="7.5"/>
+      <ellipse cx="26" cy="17" rx="6" ry="7.5"/><ellipse cx="38" cy="17" rx="6" ry="7.5"/><ellipse cx="49" cy="27" rx="6" ry="7.5"/>
+    </svg>
+  {% endif %}
+  <div class="hc-mascota__ficha">
+    <div>
+      <h2 class="hc-mascota__nombre">{{ mascota.nombre }}</h2>
+      <p class="hc-mascota__rasgos">{{ mascota.especie }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}{% if mascota.edad %} · {{ mascota.edad }}{% endif %}</p>
+    </div>
+    <span class="hc-mascota__peso"><i class="bi bi-bag" aria-hidden="true"></i>{% if mascota.peso_kg %}{{ mascota.peso_kg }} kg{% else %}Sin peso{% endif %}</span>
+  </div>
+</section>

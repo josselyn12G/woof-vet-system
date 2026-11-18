@@ -79,6 +79,8 @@ class TratamientoView(ClienteRequeridoMixin, TemplateView):
         if not datos['tratamientos']:
             raise Http404('Ese tratamiento no existe o no es de tus mascotas.')
         tratamiento = datos['tratamientos'][0]
+        # La tarjeta con la foto (_hc_mascota.html) pregunta por tiene_foto, como en el resto de las fichas
+        tratamiento['mascota'].tiene_foto = tratamiento['mascota'].foto is not None
         contexto.update({
             'tratamiento': tratamiento,
             'mascota': tratamiento['mascota'],

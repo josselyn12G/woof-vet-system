@@ -7,7 +7,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=7" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=8" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -30,12 +30,8 @@
           <h2 class="hc-etiqueta" id="rx-resumen-titulo">Tratamientos en curso</h2>
           <div class="anillo rx-anillo" style="--avance: {{ avance_en_curso|stringformat:'s' }}" role="img" aria-label="{{ avance_en_curso }}% de los días marcados">
             <span class="anillo__dias">{{ avance_en_curso }}<small>%</small></span>
-            <span class="anillo__texto">cumplido</span>
           </div>
-          <p class="rx-resumen__texto">
-            {% if en_curso %}<strong>{{ en_curso }}</strong> tratamiento{{ en_curso|pluralize }} en curso{% else %}Ningún tratamiento en curso{% endif %}
-          </p>
-          <span class="hc-insignia {% if en_curso %}hc-insignia--ok{% endif %}">{% if en_curso %}Activo{% else %}Sin pendientes{% endif %}</span>
+          <span class="rx-pastilla{% if en_curso %} rx-pastilla--acento{% endif %}">{% if en_curso %}{{ en_curso }} en curso{% else %}Sin tratamientos activos{% endif %}</span>
         </section>
 
         <section class="hc-tarjeta rx-hoy" aria-labelledby="rx-hoy-titulo">
@@ -43,16 +39,14 @@
           {% if hoy %}
             <ol class="rx-pasos">
               {% for tratamiento, receta in hoy %}
-                {% with seg=receta.seguimiento %}
-                  <li class="rx-paso{% if seg.hoy_marcado %} rx-paso--hecho{% endif %}">
-                    <span class="rx-paso__marca" aria-hidden="true">{% if seg.hoy_marcado %}<i class="bi bi-check-lg"></i>{% else %}<i class="bi bi-clock"></i>{% endif %}</span>
-                    <a class="rx-paso__texto" href="{% url 'historial:tratamiento' tratamiento.consulta.pk %}#receta-{{ receta.pk }}">
-                      <strong>{{ receta.medicamento }}</strong>
-                      <span>{{ receta.dosis }} cada {{ receta.frecuencia_horas }} h · {{ tratamiento.mascota.nombre }}</span>
-                    </a>
-                    <span class="hc-insignia {% if seg.hoy_marcado %}hc-insignia--ok{% else %}hc-insignia--acento{% endif %}">{% if seg.hoy_marcado %}Dosis dada{% else %}Pendiente{% endif %}</span>
-                  </li>
-                {% endwith %}
+                <li class="rx-paso{% if receta.seguimiento.hoy_marcado %} rx-paso--hecho{% endif %}">
+                  <span class="rx-paso__marca" aria-hidden="true">{% if receta.seguimiento.hoy_marcado %}<i class="bi bi-check-lg"></i>{% endif %}</span>
+                  <a class="rx-paso__texto" href="{% url 'historial:tratamiento' tratamiento.consulta.pk %}#receta-{{ receta.pk }}">
+                    <strong>{{ receta.medicamento }}</strong>
+                    <span>{{ receta.dosis }} · {{ tratamiento.mascota.nombre }}</span>
+                  </a>
+                  <span class="rx-pastilla{% if not receta.seguimiento.hoy_marcado %} rx-pastilla--acento{% endif %}">{% if receta.seguimiento.hoy_marcado %}Dosis dada{% else %}Pendiente{% endif %}</span>
+                </li>
               {% endfor %}
             </ol>
           {% else %}
@@ -61,39 +55,21 @@
         </section>
       </div>
 
-      {# ============ Un tratamiento por consulta ============ #}
-      <section aria-labelledby="rx-lista-titulo">
-        <div class="rx-lista__cabecera">
-          <h2 class="hc-titulo" id="rx-lista-titulo"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>Tratamientos por consulta</h2>
-          <span class="hc-mes__cuenta">{{ tratamientos|length }} consulta{{ tratamientos|length|pluralize }}</span>
-        </div>
+      {# ============ Un tratamiento por consulta: solo fecha, consulta y estado (lo demás va adentro) ============ #}
+      <section class="rx-seccion" aria-labelledby="rx-lista-titulo">
+        <h2 class="rx-seccion__titulo" id="rx-lista-titulo">Tratamientos por consulta <span>({{ tratamientos|length }})</span></h2>
         <ul class="rx-lista">
           {% for tratamiento in tratamientos %}
-            {% with consulta=tratamiento.consulta mascota=tratamiento.mascota %}
-              <li>
-                <a class="hc-tarjeta rx-consulta rx-consulta--{{ tratamiento.estado }}" href="{% url 'historial:tratamiento' consulta.pk %}">
-                  <div class="rx-consulta__cabecera">
-                    <span class="rx-fecha" aria-hidden="true"><strong>{{ consulta.fecha|date:'j' }}</strong>{{ consulta.fecha|date:'M' }}</span>
-                    <span class="rx-consulta__titulos">
-                      <strong>{{ tratamiento.titulo }}</strong>
-                      <span>{{ consulta.fecha|date:'j \d\e F Y' }} · {{ consulta.veterinario.get_full_name|default:consulta.veterinario.username }}</span>
-                    </span>
-                    <span class="hc-insignia {% if tratamiento.estado == 'en_curso' %}hc-insignia--ok{% elif tratamiento.estado == 'por_empezar' %}hc-insignia--acento{% endif %}">{{ tratamiento.estado_texto }}</span>
-                  </div>
-                  <p class="rx-consulta__mascota">
-                    <span class="filtro-mascotas__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
-                    {{ mascota.nombre }}{% if consulta.motivo %} · {{ consulta.motivo|truncatechars:60 }}{% endif %}
-                  </p>
-                  <ul class="rx-medicamentos">
-                    {% for receta in tratamiento.recetas %}
-                      <li><span class="rx-icono rx-icono--{{ receta.seguimiento.tipo }}" aria-hidden="true"><i class="bi {{ receta.seguimiento.icono }}"></i></span>{{ receta.medicamento }}</li>
-                    {% endfor %}
-                  </ul>
-                  <div class="rx-consulta__avance">
-                    <div class="hc-barra" role="img" aria-label="{{ tratamiento.avance }}% cumplido"><span style="--ancho: {{ tratamiento.avance|stringformat:'s' }}%"></span></div>
-                    <span>{{ tratamiento.hechos }} de {{ tratamiento.total_dias }} días · {{ tratamiento.avance }}%</span>
-                  </div>
-                  <span class="rx-consulta__ver">Ver tratamiento <i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+            {% with consulta=tratamiento.consulta %}
+              <li{% if forloop.first %} class="rx-lista__destacado"{% endif %}>
+                <a class="rx-consulta rx-consulta--{{ tratamiento.estado }}" href="{% url 'historial:tratamiento' consulta.pk %}">
+                  <span class="rx-fecha" aria-hidden="true"><strong>{{ consulta.fecha|date:'j' }}</strong>{{ consulta.fecha|date:'M' }}</span>
+                  <span class="rx-consulta__titulos">
+                    <strong>{{ tratamiento.titulo }}</strong>
+                    <span>{{ consulta.fecha|date:'j \d\e F Y' }} · {{ consulta.veterinario.get_full_name|default:consulta.veterinario.username }}{% if not mascota_elegida and mascotas|length > 1 %} · {{ tratamiento.mascota.nombre }}{% endif %}</span>
+                  </span>
+                  <span class="rx-pastilla{% if tratamiento.estado == 'en_curso' %} rx-pastilla--acento{% endif %}">{{ tratamiento.estado_texto }}</span>
+                  <i class="bi bi-chevron-right rx-consulta__flecha" aria-hidden="true"></i>
                 </a>
               </li>
             {% endwith %}
