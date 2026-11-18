@@ -1663,3 +1663,8 @@ p.hc-vacio { padding: 24px 0 4px; }
 }
 .rx-control__nota { margin: 0; font-size: 0.8125rem; color: var(--p-texto-2); }
 .rx-control__cabecera { row-gap: 2px; }
+
+/* ---------- Páginas del veterinario (Consultas médicas, Vacunación): dos columnas de tarjetas ---------- */
+@media (min-width: 1000px) { .vet-columnas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.vet-boton-chico { min-height: 36px; padding: 0 14px; font-size: 0.875rem; }
+.vet-pastilla { margin-top: 0; }

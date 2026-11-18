@@ -3985,3 +3985,121 @@ a.linea-citas__tarjeta {
   .campana-panel { position: fixed; top: 64px; right: 12px; left: 12px; width: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .campana-panel, .campana-esqueleto { animation: none; } }
+
+/* ==========================================================================
+   Panel principal del veterinario (vp-): una sola pantalla. Cuatro cifras arriba; abajo, Mi semana más
+   pequeña y, al costado, las citas por día, por servicio y la agenda de hoy.
+   ========================================================================== */
+.vp { display: grid; gap: 18px; }
+.vp__cuerpo { display: grid; gap: 18px; }
+.vp__lado { display: grid; gap: 18px; align-content: start; min-width: 0; }
+@media (min-width: 1100px) {
+  .vp__cuerpo { grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); align-items: stretch; }
+  /* El costado mide lo mismo que la semana (no la estira): "Hoy" se desplaza dentro si tiene muchas citas */
+  .vp__lado { height: 0; min-height: 100%; grid-template-rows: auto auto minmax(0, 1fr); }
+  .vp-hoy { min-height: 0; overflow-y: auto; }
+}
+/* Todas las tarjetas del panel iguales: mismo borde, radio y sombra */
+.vp .semana-vet,
+.vp .hc-tarjeta,
+.vp .rx-cifra {
+  border: 1px solid var(--p-borde);
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(59, 42, 34, 0.04), 0 8px 24px -16px rgba(59, 42, 34, 0.22);
+}
+.vp .semana-vet { overflow: hidden; }
+.vp .rx-cifra { padding: 16px 18px 14px 20px; row-gap: 6px; }
+.vp .rx-cifra dd { font-size: clamp(2rem, 1.6rem + 1vw, 2.5rem); }
+.vp .rx-cifra--acento { border-color: var(--woof-naranja-500); }
+.vp__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+/* Mi semana, más compacta: horas más bajas y la cabecera más justa */
+.vp__semana .semana-vet { margin: 0; padding: 16px 18px 18px; }
+.vp__semana .agenda-hoy__titulo { font-size: 1.125rem; }
+.vp__semana .semana-vet__rango { font-size: 0.8125rem; }
+.vp__semana .semana-vet__leyenda { font-size: 0.75rem; }
+.vp__semana .cal-semana--vet { --alto-hora: 1.45rem; margin: 0 -18px -18px; font-size: 0.8125rem; }
+
+/* Citas por día (pequeño, al costado) */
+.vp-grafico { padding: 16px 18px; }
+.vp-grafico .segmentos { transform: scale(0.92); transform-origin: right center; }
+.vp-grafico .grafico { margin: 8px 0 0; }
+.vp-grafico .grafico svg { display: block; width: 100%; max-height: 160px; }
+.vp-grafico .grafico__eje { font-size: 24px; }
+
+/* Por servicio: barras horizontales */
+.vp-barras { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 9px; }
+.vp-barras li { display: grid; grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 0.8125rem; }
+.vp-barras__nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p-texto); }
+.vp-barras__barra { height: 9px; border-radius: 999px; background: var(--p-linea); overflow: hidden; }
+.vp-barras__barra span { display: block; width: var(--ancho, 0%); height: 100%; border-radius: inherit; background: var(--woof-naranja-500); }
+.vp-barras__cifra { font-weight: 700; color: var(--p-texto); font-variant-numeric: tabular-nums; }
+
+/* Hoy */
+.vp-hoy .hc-reciente { grid-template-columns: 52px minmax(0, 1fr) auto; padding: 8px 0; }
+.vp-hoy__hora {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.vp-hoy__pendiente {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.vp-hoy__pendiente .bi-chevron-right { margin-left: auto; }
+
+/* Menú de la cuenta del veterinario (popover del avatar): Mi horario, Mi cuenta y cerrar sesión */
+.nav-arriba__avatar { border: 0; cursor: pointer; }
+.menu-cuenta {
+  inset: auto;
+  top: 84px;
+  right: max(24px, calc((100vw - 1400px) / 2 + 24px));
+  left: auto;
+  margin: 0;
+  min-width: 230px;
+  padding: 8px;
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  background: var(--p-superficie);
+  box-shadow: 0 2px 6px rgba(29, 24, 20, 0.06), 0 24px 56px -24px rgba(29, 24, 20, 0.38);
+}
+.menu-cuenta__persona { display: grid; gap: 2px; margin: 0; padding: 8px 10px 10px; border-bottom: 1px solid var(--p-linea); }
+.menu-cuenta__persona strong { font-size: 0.9375rem; color: var(--p-texto); }
+.menu-cuenta__persona span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.menu-cuenta form { margin: 0; }
+.menu-cuenta__opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--p-texto);
+  font: inherit;
+  font-size: 0.9375rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.menu-cuenta__opcion .bi { color: var(--p-acento-texto); }
+.menu-cuenta__opcion:hover, .menu-cuenta__opcion.es-activo { background: var(--p-acento-tinte); color: var(--p-texto); }
+.menu-cuenta__opcion--salir .bi { color: var(--p-texto-2); }

@@ -844,3 +844,38 @@ class GuardarDiasAlCerrarTests(ClienteConRecetasBase):
         respuesta = self.guardar(timezone.localdate(), fetch=False)
         self.assertRedirects(respuesta, reverse('historial:tratamiento', args=[self.consulta_milo.pk])
                              + f'#receta-{self.en_curso.pk}', fetch_redirect_response=False)
+
+
+class PaginasDelVeterinarioTests(HistorialBaseTests):
+    """Consultas médicas y Vacunación (menú del veterinario): solo el veterinario, con sus cifras y listas."""
+
+    def test_consultas_muestra_las_citas_por_registrar_y_las_registradas(self):
+        self.client.force_login(self.veterinario)
+        respuesta = self.client.get(reverse('historial:consultas_veterinario'))
+        self.assertEqual(respuesta.context['cifras']['por_registrar'], 1)   # la cita atendida de ayer, sin consulta
+        self.assertContains(respuesta, reverse('historial:consulta', args=[self.cita.pk]))
+        self.consulta().save()
+        respuesta = self.client.get(reverse('historial:consultas_veterinario'))
+        self.assertEqual(respuesta.context['cifras']['por_registrar'], 0)
+        self.assertEqual(len(respuesta.context['registradas']), 1)
+
+    def test_vacunacion_separa_refuerzos_vencidos_y_proximos(self):
+        hoy = timezone.localdate()
+        rabia = self.rabia_perro()
+        VacunaAplicada.objects.create(mascota=self.milo, vacuna=rabia, veterinario=self.veterinario,
+                                      fecha_aplicacion=hoy - timedelta(days=400), proxima_dosis=hoy - timedelta(days=35))
+        self.client.force_login(self.veterinario)
+        respuesta = self.client.get(reverse('historial:vacunacion_veterinario'))
+        self.assertEqual(respuesta.context['cifras']['vencidos'], 1)
+        # Al aplicar el refuerzo, la dosis vieja deja de contar y el nuevo refuerzo queda lejos (más de 30 días)
+        VacunaAplicada.objects.create(mascota=self.milo, vacuna=rabia, veterinario=self.veterinario,
+                                      fecha_aplicacion=hoy, proxima_dosis=hoy + timedelta(days=365))
+        respuesta = self.client.get(reverse('historial:vacunacion_veterinario'))
+        self.assertEqual((respuesta.context['cifras']['vencidos'], respuesta.context['cifras']['proximos']), (0, 0))
+        self.assertEqual(respuesta.context['cifras']['aplicadas_mes'], 1)
+
+    def test_otros_roles_no_entran(self):
+        self.client.force_login(self.cliente)
+        for nombre in ('historial:consultas_veterinario', 'historial:vacunacion_veterinario'):
+            with self.subTest(nombre=nombre):
+                self.assertEqual(self.client.get(reverse(nombre)).status_code, 403)

@@ -10,9 +10,11 @@ from .cliente import GuardarDiasView, MarcarDiaView, MiHistoriaClinicaView, MisR
 from .consulta import RegistrarConsultaView
 from .historia import HistoriaClinicaView, HistoriaPdfView
 from .vacunas import VacunaCreateView, VacunaEstadoView, VacunaListView, VacunaUpdateView
+from .veterinario import ConsultasVeterinarioView, VacunacionVeterinarioView
 
 __all__ = [
     'RegistrarConsultaView', 'HistoriaClinicaView', 'HistoriaPdfView', 'MiHistoriaClinicaView', 'MisRecetasView',
     'TratamientoView', 'MarcarDiaView', 'GuardarDiasView',
     'VacunaListView', 'VacunaCreateView', 'VacunaUpdateView', 'VacunaEstadoView',
+    'ConsultasVeterinarioView', 'VacunacionVeterinarioView',
 ]

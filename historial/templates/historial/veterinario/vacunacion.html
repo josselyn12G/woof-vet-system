@@ -1,0 +1,94 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{# Vacunación del veterinario: cifras, refuerzos vencidos y próximos de los pacientes y las vacunas que aplicó #}
+{% block titulo %}Vacunación · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=22" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-shield-plus{% endblock %}
+{% block panel_seccion %}Vacunación{% endblock %}
+{% block panel_titulo %}Vacunación{% endblock %}
+{% block panel_subtitulo %}Las aplicaciones, dosis y refuerzos de tus pacientes. Las vacunas se registran en la consulta.{% endblock %}
+
+{% block panel_contenido %}
+  <div class="hc">
+    <dl class="rx-cifras">
+      <div class="rx-cifra rx-cifra--acento">
+        <dt>Aplicadas este mes</dt><dd>{{ cifras.aplicadas_mes }}</dd>
+        <a class="rx-cifra__ir" href="#aplicadas" aria-label="Ver las vacunas aplicadas"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-shield-check" aria-hidden="true"></i></span>Por ti</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Refuerzos próximos</dt><dd>{{ cifras.proximos }}</dd>
+        <a class="rx-cifra__ir" href="#refuerzos" aria-label="Ver los refuerzos"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-calendar-event" aria-hidden="true"></i></span>En los próximos 30 días</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Refuerzos vencidos</dt><dd>{{ cifras.vencidos }}</dd>
+        <a class="rx-cifra__ir" href="#refuerzos" aria-label="Ver los refuerzos vencidos"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-exclamation-lg" aria-hidden="true"></i></span>{% if cifras.vencidos %}Avisa a sus dueños{% else %}Ninguno vencido{% endif %}</p>
+      </div>
+      <div class="rx-cifra">
+        <dt>Pacientes vacunados</dt><dd>{{ cifras.pacientes }}</dd>
+        <a class="rx-cifra__ir" href="{% url 'citas:pacientes' %}" aria-label="Ver los pacientes"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-heart" aria-hidden="true"></i></span>Por ti, en total</p>
+      </div>
+    </dl>
+
+    <div class="hc-fila vet-columnas">
+      <section class="hc-tarjeta" id="refuerzos" aria-labelledby="refuerzos-titulo">
+        <h2 class="hc-titulo hc-titulo--tarjeta" id="refuerzos-titulo"><i class="bi bi-calendar-event" aria-hidden="true"></i>Refuerzos</h2>
+        {% if vencidos or proximos %}
+          <ul class="hc-recientes__lista">
+            {% for refuerzo in vencidos %}
+              <li class="hc-reciente">
+                <span class="hc-registro__icono" aria-hidden="true"><i class="bi bi-exclamation-lg"></i></span>
+                <span class="hc-reciente__textos">
+                  <strong>{{ refuerzo.mascota.nombre }} · {{ refuerzo.vacuna.nombre }}</strong>
+                  <span>Tocaba el {{ refuerzo.proxima_dosis|date:'j M' }} · {{ refuerzo.mascota.dueno.get_full_name|default:refuerzo.mascota.dueno.username }}</span>
+                </span>
+                <span class="hc-insignia hc-insignia--alerta">Vencido hace {{ refuerzo.hace }} d</span>
+              </li>
+            {% endfor %}
+            {% for refuerzo in proximos %}
+              <li class="hc-reciente">
+                <span class="hc-registro__icono" aria-hidden="true"><i class="bi bi-shield-plus"></i></span>
+                <span class="hc-reciente__textos">
+                  <strong>{{ refuerzo.mascota.nombre }} · {{ refuerzo.vacuna.nombre }}</strong>
+                  <span>{{ refuerzo.proxima_dosis|date:'j M Y' }} · {{ refuerzo.mascota.dueno.get_full_name|default:refuerzo.mascota.dueno.username }}</span>
+                </span>
+                <span class="hc-insignia hc-insignia--acento">{% if refuerzo.faltan == 0 %}Hoy{% else %}En {{ refuerzo.faltan }} d{% endif %}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="hc-peso__fecha">No hay refuerzos vencidos ni en los próximos 30 días.</p>
+        {% endif %}
+      </section>
+
+      <section class="hc-tarjeta" id="aplicadas" aria-labelledby="aplicadas-titulo">
+        <h2 class="hc-titulo hc-titulo--tarjeta" id="aplicadas-titulo"><i class="bi bi-shield-check" aria-hidden="true"></i>Vacunas que aplicaste</h2>
+        {% if aplicadas %}
+          <ul class="hc-recientes__lista">
+            {% for aplicada in aplicadas %}
+              <li class="hc-reciente">
+                <span class="hc-registro__icono" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                <span class="hc-reciente__textos">
+                  <strong>{{ aplicada.mascota.nombre }} · {{ aplicada.vacuna.nombre }}</strong>
+                  <span>{{ aplicada.fecha_aplicacion|date:'j M Y' }}{% if aplicada.lote %} · lote {{ aplicada.lote }}{% endif %}{% if aplicada.proxima_dosis %} · refuerzo {{ aplicada.proxima_dosis|date:'j M Y' }}{% endif %}</span>
+                </span>
+                <a class="hc-pastilla vet-pastilla" href="{% url 'mascotas:historial' aplicada.mascota.pk %}">Historia <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="hc-peso__fecha">Todavía no aplicas vacunas. Se registran al guardar la consulta de una cita.</p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+{% endblock %}
