@@ -44,6 +44,24 @@
     </div>
   </section>
 
+  {# Gráficos de los últimos 30 días #}
+  <div class="graficos-fila entra entra--2">
+    <section class="grafico-tarjeta" aria-labelledby="gestion-estados-titulo">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="gestion-estados-titulo"><i class="bi bi-pie-chart" aria-hidden="true"></i>Citas por estado</h2>
+        <a class="paneles__enlace" href="{% url 'citas:indicadores' %}">Indicadores <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      {% include 'graficos/_dona.html' with dona=dona_estados titulo='30 días' %}
+    </section>
+    <section class="grafico-tarjeta" aria-labelledby="gestion-servicios-titulo">
+      <header class="grafico-tarjeta__cabecera">
+        <h2 class="grafico-tarjeta__titulo" id="gestion-servicios-titulo"><i class="bi bi-bar-chart" aria-hidden="true"></i>Por servicio</h2>
+        <span class="grafico-tarjeta__meta">Últimos 30 días</span>
+      </header>
+      {% include 'graficos/_columnas.html' with columnas=columnas_servicios %}
+    </section>
+  </div>
+
   {# Pestañas: conservan los filtros elegidos #}
   <nav class="pestanas-citas entra entra--2" aria-label="Qué citas ver">
     {% for valor, nombre in vistas %}
