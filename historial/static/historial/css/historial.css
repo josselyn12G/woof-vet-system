@@ -692,8 +692,11 @@
   .hc-reporte.con-pestanas .hc-vista:not([hidden]) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   /* La última tarjeta de cada pestaña crece hasta el pie de la foto */
   .hc-reporte.con-pestanas .hc-vista > :last-child { flex: 1; min-height: 0; }
-  /* En el Resumen, la vacunación y el tratamiento en curso se reparten el alto que queda bajo las cifras */
+  /* En el Resumen, las cifras, la vacunación y el tratamiento en curso se reparten el alto por igual:
+     así ninguna tarjeta queda estirada con espacio vacío. En cada cifra, el número ocupa el centro */
+  .hc-reporte.con-pestanas .hc-vista[data-panel="resumen"] > .rx-cifras,
   .hc-reporte.con-pestanas .hc-vista[data-panel="resumen"] > .hc-tarjeta { flex: 1 1 0; min-height: 0; }
+  .hc-reporte.con-pestanas .hc-vista[data-panel="resumen"] .rx-cifra { grid-template-rows: auto 1fr auto; }
   .hc-reporte.con-pestanas .hc-en-curso { overflow-y: auto; overscroll-behavior: contain; }
   .hc-reporte.con-pestanas .hc-vacunas,
   .hc-reporte.con-pestanas .hc-historial { overflow-y: auto; overscroll-behavior: contain; }
