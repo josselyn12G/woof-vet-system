@@ -1,7 +1,7 @@
 // País → provincia → ciudad: al elegir uno, pide al servidor las opciones del siguiente y lo llena.
 // El servidor vuelve a revisar que la ciudad sea de la provincia y la provincia del país (UbicacionService).
 // Sin JavaScript, el formulario vuelve del servidor con las listas filtradas por lo que se eligió.
-const formUbicacion = document.getElementById('form-registro');
+const formUbicacion = document.querySelector('form[data-url-provincias]');   // el registro y Mi cuenta
 
 if (formUbicacion) {
   const pais = formUbicacion.querySelector('[data-ubicacion="pais"]');

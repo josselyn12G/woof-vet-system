@@ -3774,3 +3774,64 @@ a.linea-citas__tarjeta {
   font-weight: 700;
   line-height: 1;
 }
+
+/* =========================================================
+   Mi cuenta (HU-21, HU-22, HU-13, HU-23): datos a la izquierda; correo, contraseña y términos al costado
+   ========================================================= */
+.mi-cuenta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.mi-cuenta__lado {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.mi-cuenta__lado .bloque-panel {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+
+.mi-cuenta__dato {
+  margin: 0;
+  color: var(--p-texto);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.mi-cuenta__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: #fdf1e3;
+  color: #9a5b00;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.mi-cuenta__estado--ok {
+  background: #e7f5ec;
+  color: #1e7b45;
+}
+
+.panel-menu__persona--enlace {
+  color: inherit;
+  text-decoration: none;
+}
+
+.panel-menu__persona--enlace:hover .panel-menu__nombre {
+  text-decoration: underline;
+}
+
+@media (max-width: 991.98px) {
+  .mi-cuenta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

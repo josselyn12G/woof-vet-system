@@ -76,6 +76,6 @@ if (form) {
   });
 
   // Si Django devolvió errores, se abre el primer paso que tenga uno
-  const pasoConError = pasos.findIndex((paso) => paso.querySelector('.campo--con-error'));
+  const pasoConError = pasos.findIndex((paso) => paso.querySelector('.campo--con-error, .campo__error'));
   mostrar(pasoConError >= 0 ? pasoConError : 0);
 }

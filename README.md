@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Django-5.2%20LTS-092E20?logo=django&logoColor=white" alt="Django 5.2 LTS">
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL en Neon">
-  <img src="https://img.shields.io/badge/pruebas-483%20pasan-2e7d32" alt="483 pruebas pasan">
+  <img src="https://img.shields.io/badge/pruebas-506%20pasan-2e7d32" alt="506 pruebas pasan">
 </p>
 
 <p align="center">
@@ -52,6 +52,7 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
 |---|---|---|
 | `v0.1.0` · Entrega 1 | Portada, registro, login con doble factor, CRUD de mascotas con URLs protegidas | Terminada |
 | `v0.2.0` · Roles y citas | Roles con su panel, cédula validada, catálogo de servicios, horario del veterinario, agendar y cancelar citas, agenda y pacientes, despliegue en Render | Terminada |
+| Fase 2 · Cuenta y correos | Verificar el correo, recuperar y cambiar la contraseña, Mi cuenta, términos y política de datos, país → provincia → ciudad | Terminada |
 | Fase 3 · Cierre del Core e historia clínica | Anticipación de 1 hora, bloques con citas protegidos, veterinarios verificados, calificación, filtro por mascota, avisos por correo y recordatorio de 24 h, indicadores, registrar consulta (receta y vacunas), historia clínica por rol, carnet de vacunación y plan de pruebas en PostgreSQL | Terminada |
 
 ## Funcionalidades
@@ -63,6 +64,10 @@ Es el proyecto de la materia **Ingeniería Web**, construido con Django siguiend
   - El código vence a los 5 minutos y se puede usar una sola vez.
   - Se genera con `secrets` y se compara con `secrets.compare_digest`.
 - **Cierre de sesión** por POST, protegido con CSRF.
+- **Verificar el correo:** al registrarse llega un enlace firmado (vence en 3 días); entrar con el código del correo también lo verifica.
+- **Recuperar la contraseña:** «¿Olvidaste tu contraseña?» en el login envía un enlace que sirve una sola vez. No revela si el correo tiene cuenta.
+- **Mi cuenta (todos los roles):** editar nombre, correo, teléfono y ciudad; cambiar la contraseña sin cerrar la sesión. Si cambia el correo, se vuelve a verificar.
+- **Términos y política de datos:** casilla obligatoria al registrarse; queda guardada la fecha en que se aceptaron.
 - **CRUD de mascotas:** crear, ver, editar y eliminar, con foto.
   - La foto se reduce a 800 px y se guarda en formato WEBP.
 - **URLs protegidas:** sin sesión, cualquier página de mascotas redirige al login y, al terminar, vuelve a la página que se pidió.
@@ -201,11 +206,11 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-483 pruebas:
+506 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 84 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada |
+| `cuentas` | 107 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada, verificar el correo, recuperar y cambiar la contraseña, Mi cuenta y términos |
 | `mascotas` | 92 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
 | `citas` | 242 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, avisos y recordatorios, filtro por mascota, agenda, pacientes, gestión, indicadores y acceso por rol |
 | `historial` | 57 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol y el catálogo de vacunas |

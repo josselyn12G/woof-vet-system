@@ -1,0 +1,24 @@
+{% extends 'panel_base.html' %}
+
+{% block titulo %}Cambiar contraseña · Woof{% endblock %}
+
+{% block panel_icono %}bi-key{% endblock %}
+{% block panel_seccion %}Mi cuenta{% endblock %}
+{% block panel_titulo %}Cambiar contraseña{% endblock %}
+{% block panel_subtitulo %}Después del cambio sigues con la sesión iniciada en este equipo.{% endblock %}
+
+{% block panel_contenido %}
+  <section class="bloque-panel">
+    <form class="formulario-panel" method="post" novalidate>
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}<p class="panel-aviso panel-aviso--error" role="alert">{{ error }}</p>{% endfor %}
+      {% with campo=form.old_password %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+      {% with campo=form.new_password1 %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+      {% with campo=form.new_password2 %}{% include 'cuentas/superadmin/_campo.html' %}{% endwith %}
+      <div class="formulario-panel__acciones">
+        <button type="submit" class="boton-panel">Guardar contraseña</button>
+        <a class="boton-panel boton-panel--secundario" href="{% url 'cuentas:mi_cuenta' %}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

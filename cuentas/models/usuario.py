@@ -31,6 +31,10 @@ class Usuario(AbstractUser):
     cedula = models.CharField(max_length=10, unique=True, validators=[validar_cedula])
     # Opcional en la base: las cuentas creadas antes no la tienen. El registro sí la pide (país → provincia → ciudad)
     ciudad = models.ForeignKey(Ciudad, on_delete=models.PROTECT, null=True, blank=True, related_name='usuarios')
+    # HU-13: se marca al abrir el enlace del correo (o al entrar con el código, que también llega al correo)
+    correo_verificado = models.BooleanField('correo verificado', default=False)
+    # HU-23: cuándo aceptó los términos y la política de tratamiento de datos al registrarse
+    terminos_aceptados_en = models.DateTimeField('aceptó los términos el', null=True, blank=True)
 
     REQUIRED_FIELDS = ['email', 'telefono', 'cedula']
 

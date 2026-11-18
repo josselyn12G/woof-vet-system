@@ -1,0 +1,29 @@
+{% extends 'cuentas/acceso/_pagina.html' %}
+{% block titulo %}Términos y política de datos · Woof{% endblock %}
+{% block panel_clase %} registro__panel--texto{% endblock %}
+{% block titulo_pagina %}Términos y política de datos{% endblock %}
+{% block subtitulo %}Lo que aceptas al crear tu cuenta en Woof.{% endblock %}
+{% block cuerpo %}
+  <div class="terminos">
+    <h2>Sobre Woof</h2>
+    <p>Woof es un proyecto académico de la materia Ingeniería Web (Universidad de las Américas). Sirve para agendar citas veterinarias, llevar la historia clínica y el carnet de vacunas de tus mascotas.</p>
+
+    <h2>Uso de la cuenta</h2>
+    <ul>
+      <li>Tu cuenta es personal: no compartas tu contraseña ni el código que llega a tu correo.</li>
+      <li>Solo puedes registrar mascotas tuyas y agendar citas para ellas.</li>
+      <li>Si cancelas una cita, el horario queda libre para otra persona.</li>
+    </ul>
+
+    <h2>Qué datos guardamos y para qué</h2>
+    <ul>
+      <li><strong>Tus datos:</strong> nombre, cédula, correo, teléfono y ciudad, para identificarte y avisarte de tus citas.</li>
+      <li><strong>Tus mascotas:</strong> sus datos, sus citas, consultas, recetas y vacunas, para que la clínica las atienda y tú tengas su historia.</li>
+      <li>Solo los ven tú, el veterinario que las atiende y el personal de la clínica. No los vendemos ni los compartimos con terceros.</li>
+    </ul>
+
+    <h2>Tus derechos</h2>
+    <p>Según la Ley Orgánica de Protección de Datos Personales del Ecuador, puedes pedir ver, corregir o eliminar tus datos. Tus datos básicos los puedes corregir tú mismo desde <em>Mi cuenta</em>.</p>
+  </div>
+  <a class="acceso__boton registro__boton d-block text-center text-decoration-none" href="{% url 'cuentas:registro' %}">Volver al registro</a>
+{% endblock %}

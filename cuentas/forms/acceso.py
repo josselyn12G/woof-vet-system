@@ -1,26 +1,26 @@
-"""Entrar a Woof: el registro y el código de 6 dígitos del login en dos pasos."""
+"""Entrar a Woof: el registro, el código de 6 dígitos del login en dos pasos y recuperar la contraseña."""
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.core.validators import RegexValidator
+from django.urls import reverse
+from django.utils import timezone
 
-from ..models import Provincia, Usuario
+from ..models import Usuario
+from ..services.correo import enviar_correo_con_enlace
 from ..services.ubicacion import UbicacionService
 from .comunes import ETIQUETAS
+from .ubicacion import UbicacionMixin
 
 
-class RegistroForm(UserCreationForm):
+class RegistroForm(UbicacionMixin, UserCreationForm):
     """
-    El registro del cliente. País → provincia → ciudad son desplegables dependientes: ubicacion.js los llena
-    con las vistas JSON, y el servidor vuelve a revisar que encajen (UbicacionService.validar).
-    Sin JavaScript también funciona: país y provincia se envían y la página vuelve con las listas filtradas.
+    El registro del cliente (HU-01). País → provincia → ciudad son desplegables dependientes (UbicacionMixin);
+    la casilla de los términos es obligatoria y se guarda cuándo se aceptaron (HU-23).
     """
-    pais = forms.ModelChoiceField(label='País', queryset=UbicacionService.paises(), empty_label='Elige tu país',
-                                  error_messages={'required': 'Elige tu país.'})
-    provincia = forms.ModelChoiceField(label='Provincia', queryset=Provincia.objects.none(),
-                                       empty_label='Elige tu provincia',
-                                       error_messages={'required': 'Elige tu provincia.',
-                                                       'invalid_choice': 'Elige una provincia de la lista.'})
+    acepto_terminos = forms.BooleanField(
+        label='Acepto los términos de uso y la política de tratamiento de datos',
+        error_messages={'required': 'Para crear la cuenta tienes que aceptar los términos y la política de datos.'},
+    )
 
     class Meta:
         model = Usuario
@@ -32,35 +32,40 @@ class RegistroForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # La ciudad es opcional en el modelo (cuentas antiguas), pero quien se registra la tiene que elegir
-        self.fields['ciudad'].required = True
-        self.fields['ciudad'].empty_label = 'Elige tu ciudad'
-        self.fields['ciudad'].error_messages.update({'required': 'Elige tu ciudad.',
-                                                     'invalid_choice': 'Elige una ciudad de la lista.'})
-        for nombre, rol in (('pais', 'pais'), ('provincia', 'provincia'), ('ciudad', 'ciudad')):
-            self.fields[nombre].widget.attrs['data-ubicacion'] = rol
-
-        # Cada lista se filtra por lo elegido antes (lo enviado o, al abrir, Ecuador)
-        pais = self.data.get('pais') if self.is_bound else getattr(UbicacionService.pais_por_defecto(), 'pk', None)
-        provincia = self.data.get('provincia') if self.is_bound else None
-        if not self.is_bound and pais:
-            self.initial.setdefault('pais', pais)
-        self.fields['provincia'].queryset = UbicacionService.provincias_de(pais if str(pais or '').isdigit() else None)
-        self.fields['ciudad'].queryset = UbicacionService.ciudades_de(
-            provincia if str(provincia or '').isdigit() else None
-        )
+        # Al abrir, Ecuador queda elegido y la provincia se elige de sus 24
+        self.preparar_ubicacion(pais=getattr(UbicacionService.pais_por_defecto(), 'pk', None))
 
     def clean(self):
         datos = super().clean()
-        pais, provincia, ciudad = datos.get('pais'), datos.get('provincia'), datos.get('ciudad')
-        if pais and provincia and ciudad:
-            try:
-                UbicacionService.validar(pais, provincia, ciudad)
-            except ValidationError as error:
-                # El service dice en qué campo está el problema (provincia o ciudad): el error sale debajo de él
-                for campo, mensajes in error.message_dict.items():
-                    self.add_error(campo, mensajes)
+        self.validar_ubicacion(datos)
         return datos
+
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        usuario.terminos_aceptados_en = timezone.now()   # HU-23: queda constancia de cuándo aceptó
+        if commit:
+            usuario.save()
+        return usuario
+
+
+class RecuperarContrasenaForm(PasswordResetForm):
+    """HU-14: el correo con el enlace para crear una contraseña nueva, con el mismo diseño que los demás de Woof."""
+
+    def send_mail(self, subject_template_name, email_template_name, context, from_email, to_email,
+                  html_email_template_name=None):
+        enlace = f"{context['protocol']}://{context['domain']}" + reverse(
+            'cuentas:contrasena_nueva', args=[context['uid'], context['token']],
+        )
+        enviar_correo_con_enlace(
+            context['user'],
+            asunto='Crea una contraseña nueva en Woof',
+            titulo='Crea una contraseña nueva',
+            texto='Pediste crear una contraseña nueva para tu cuenta de Woof. Toca el botón para elegirla.',
+            boton='Crear contraseña nueva',
+            enlace=enlace,
+            aviso='El enlace sirve una sola vez y vence en 3 días. Si no lo pediste, ignora este correo: '
+                  'tu contraseña sigue igual.',
+        )
 
 
 class VerificarCodigoForm(forms.Form):

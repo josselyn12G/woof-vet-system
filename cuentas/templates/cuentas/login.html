@@ -30,6 +30,9 @@
       <h1 class="registro__titulo">¡Qué bueno verte!</h1>
       <p class="registro__subtitulo">Ingresa tus datos para continuar.</p>
 
+      {# Avisos que llegan desde otras pantallas (por ejemplo, después de registrarse) #}
+      {% for mensaje in messages %}<p class="acceso__aviso" role="status">{{ mensaje }}</p>{% endfor %}
+
       <form method="post">
         {% csrf_token %}
 
@@ -62,6 +65,9 @@
             </button>
           </div>
         </div>
+
+        {# HU-14: recuperar la contraseña con un enlace por correo #}
+        <a class="registro__olvido" href="{% url 'cuentas:recuperar_contrasena' %}">¿Olvidaste tu contraseña?</a>
 
         {# Conserva la página a la que intentaba ir (?next=) para volver ahí después del login #}
         {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}

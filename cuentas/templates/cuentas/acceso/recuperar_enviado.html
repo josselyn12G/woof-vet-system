@@ -1,0 +1,7 @@
+{% extends 'cuentas/acceso/_pagina.html' %}
+{% block titulo %}Revisa tu correo · Woof{% endblock %}
+{% block titulo_pagina %}Revisa tu correo{% endblock %}
+{% block subtitulo %}Si ese correo tiene una cuenta en Woof, te llegará un enlace para crear una contraseña nueva. Revisa también la carpeta de spam.{% endblock %}
+{% block cuerpo %}
+  <a class="acceso__boton registro__boton d-block text-center text-decoration-none" href="{% url 'cuentas:login' %}">Volver a iniciar sesión</a>
+{% endblock %}
