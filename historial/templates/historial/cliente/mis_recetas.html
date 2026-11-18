@@ -7,7 +7,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=9" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=10" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -20,7 +20,7 @@
 {% block panel_contenido %}
   <div class="hc">
     {% if mascotas|length > 1 %}
-      {% include 'historial/cliente/_chips.html' with mascota_actual=mascota_elegida con_todas=True %}
+      {% include 'historial/cliente/_chips.html' with mascota_actual=mascota_elegida con_todas=True sin_fotos=True %}
     {% endif %}
 
     {% if tratamientos %}
@@ -55,22 +55,40 @@
         </section>
       </div>
 
-      {# ============ Un tratamiento por consulta: solo fecha, consulta y estado (lo demás va adentro) ============ #}
+      {% comment %}
+        Un tratamiento por consulta: una tarjeta que se voltea. Frente: la fecha, la consulta y el estado.
+        Atrás: las indicaciones del veterinario, los medicamentos y el enlace al tratamiento (voltear.js la gira).
+      {% endcomment %}
       <section class="rx-seccion" aria-labelledby="rx-lista-titulo">
         <h2 class="rx-seccion__titulo" id="rx-lista-titulo">Tratamientos por consulta <span>({{ tratamientos|length }})</span></h2>
-        <ul class="rx-lista">
+        <ul class="rx-flips">
           {% for tratamiento in tratamientos %}
             {% with consulta=tratamiento.consulta %}
-              <li{% if forloop.first %} class="rx-lista__destacado"{% endif %}>
-                <a class="rx-consulta rx-consulta--{{ tratamiento.estado }}" href="{% url 'historial:tratamiento' consulta.pk %}">
-                  <span class="rx-fecha" aria-hidden="true"><strong>{{ consulta.fecha|date:'j' }}</strong>{{ consulta.fecha|date:'M' }}</span>
-                  <span class="rx-consulta__titulos">
-                    <strong>{{ tratamiento.titulo }}</strong>
-                    <span>{{ consulta.fecha|date:'j \d\e F Y' }} · {{ consulta.veterinario.get_full_name|default:consulta.veterinario.username }}{% if not mascota_elegida and mascotas|length > 1 %} · {{ tratamiento.mascota.nombre }}{% endif %}</span>
-                  </span>
-                  <span class="rx-pastilla{% if tratamiento.estado == 'en_curso' %} rx-pastilla--acento{% endif %}">{{ tratamiento.estado_texto }}</span>
-                  <i class="bi bi-chevron-right rx-consulta__flecha" aria-hidden="true"></i>
-                </a>
+              <li class="rx-flip{% if tratamiento.estado == 'en_curso' %} rx-flip--en-curso{% endif %}" data-flip>
+                <div class="rx-flip__inclinacion">
+                  <div class="rx-flip__rotor">
+                    <button type="button" class="rx-flip__cara rx-flip__cara--frente" data-girar aria-expanded="false" aria-controls="rx-flip-{{ consulta.pk }}">
+                      <span class="rx-flip__fecha"><strong>{{ consulta.fecha|date:'j' }}</strong>{{ consulta.fecha|date:'F Y' }}</span>
+                      <span class="rx-flip__titulos">
+                        <strong>{{ tratamiento.titulo }}</strong>
+                        <span>{{ consulta.veterinario.get_full_name|default:consulta.veterinario.username }}{% if not mascota_elegida and mascotas|length > 1 %} · {{ tratamiento.mascota.nombre }}{% endif %}</span>
+                      </span>
+                      <span class="rx-flip__pie">
+                        <span class="rx-pastilla{% if tratamiento.estado == 'en_curso' %} rx-pastilla--acento{% endif %}">{{ tratamiento.estado_texto }}</span>
+                        <span class="rx-flip__pista">Ver indicaciones <i class="bi bi-arrow-repeat" aria-hidden="true"></i></span>
+                      </span>
+                    </button>
+                    <div class="rx-flip__cara rx-flip__cara--atras" id="rx-flip-{{ consulta.pk }}">
+                      <p class="rx-flip__etiqueta">Indicaciones · {{ consulta.fecha|date:'j M Y' }}</p>
+                      <p class="rx-flip__indicaciones">{{ consulta.indicaciones|default:'El veterinario no dejó indicaciones para esta consulta.'|truncatechars:180 }}</p>
+                      <p class="rx-flip__medicamentos">{% for receta in tratamiento.recetas %}{{ receta.medicamento }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+                      <span class="rx-flip__acciones">
+                        <button type="button" class="rx-flip__volver" data-girar aria-label="Volver al frente de la tarjeta"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></button>
+                        <a class="hc-boton" href="{% url 'historial:tratamiento' consulta.pk %}">Ver tratamiento<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </li>
             {% endwith %}
           {% endfor %}
@@ -83,4 +101,8 @@
       </section>
     {% endif %}
   </div>
+{% endblock %}
+
+{% block panel_scripts %}
+  <script src="{% static 'historial/js/voltear.js' %}?v=1" defer></script>
 {% endblock %}

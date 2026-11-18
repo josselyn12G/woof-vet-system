@@ -1019,7 +1019,6 @@ p.hc-vacio { padding: 24px 0 4px; }
   text-decoration: none;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--woof-curva);
 }
-.rx-consulta:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
 .rx-fecha {
   display: grid;
   place-items: center;
@@ -1150,7 +1149,6 @@ p.hc-vacio { padding: 24px 0 4px; }
 .rx-paso--hecho .rx-paso__marca { background: var(--hc-naranja); color: #fff; }
 .rx-paso__marca:empty { background: var(--p-superficie); box-shadow: inset 0 0 0 2px var(--woof-naranja-300); }
 
-/* Lista: la consulta más reciente ocupa todo el ancho; las demás, de a dos */
 .rx-seccion { display: grid; gap: 14px; }
 .rx-seccion__titulo {
   margin: 8px 0 0;
@@ -1162,10 +1160,6 @@ p.hc-vacio { padding: 24px 0 4px; }
 }
 .rx-seccion__titulo span { font-family: var(--woof-fuente-texto); font-size: 1rem; font-weight: 500; color: var(--p-texto-2); }
 .rx-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-@media (min-width: 900px) {
-  .rx-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rx-lista__destacado { grid-column: 1 / -1; }
-}
 .rx-consulta {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
@@ -1181,13 +1175,6 @@ p.hc-vacio { padding: 24px 0 4px; }
   text-decoration: none;
   transition: border-color 0.2s, transform 0.2s var(--woof-curva);
 }
-.rx-consulta:hover { border-color: var(--woof-naranja-300); color: inherit; transform: translateY(-1px); }
-.rx-consulta--en_curso { border-color: var(--woof-naranja-300); }
-.rx-consulta__titulos { display: grid; gap: 3px; min-width: 0; }
-.rx-consulta__titulos strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; color: var(--p-texto); }
-.rx-consulta__titulos span { font-size: 0.8125rem; color: var(--p-texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rx-consulta__flecha { color: var(--p-texto-2); font-size: 0.9rem; }
-.rx-consulta:hover .rx-consulta__flecha { color: var(--hc-naranja-texto); }
 
 /* Detalle: todos los medicamentos en naranja; el éxito en naranja sólido */
 .rx-imagen.rx-icono { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
@@ -1222,6 +1209,102 @@ p.hc-vacio { padding: 24px 0 4px; }
 .rx-consulta-barra__textos span { font-size: 0.875rem; color: var(--p-texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rx-consulta-barra .hc-boton { min-height: 40px; }
 .rx-consulta-barra .hc-boton i { order: 2; }
+
+/* ---------- Tarjetas que se voltean (como la FlipCard de React Bits, en CSS y sin React) ----------
+   La inclinación sigue al cursor (rápida); el giro va aparte con un resorte que se pasa un poco y vuelve.
+   Frente blanco con la fecha en naranja; atrás marrón oscuro con las indicaciones. */
+.rx-flips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+.rx-flip { height: 236px; perspective: 1100px; }
+.rx-flip__inclinacion {
+  height: 100%;
+  transform: rotateX(var(--rx-tx, 0deg)) rotateY(var(--rx-ty, 0deg)) scale(var(--rx-escala, 1));
+  transform-style: preserve-3d;
+  transition: transform 180ms var(--woof-curva);
+}
+.rx-flip__rotor {
+  position: relative;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 720ms cubic-bezier(0.3, 1.45, 0.45, 1);
+}
+.rx-flip.es-volteada .rx-flip__rotor { transform: rotateY(180deg); }
+.rx-flip__cara {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+  border-radius: 22px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  text-align: left;
+  font: inherit;
+}
+.rx-flip__cara--frente {
+  border: 1px solid var(--p-borde);
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  box-shadow: var(--hc-sombra);
+  cursor: pointer;
+}
+.rx-flip--en-curso .rx-flip__cara--frente { border-color: var(--woof-naranja-300); }
+.rx-flip__cara--frente:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 3px; }
+.rx-flip__cara--atras {
+  transform: rotateY(180deg);
+  background: var(--hc-marron);
+  color: #fff;
+  box-shadow: 0 18px 40px -22px rgba(59, 42, 34, 0.6);
+}
+.rx-flip__fecha { display: grid; gap: 2px; color: var(--hc-naranja-texto); font-size: 0.875rem; font-weight: 600; text-transform: capitalize; }
+.rx-flip__fecha strong {
+  font-family: var(--woof-fuente-titulos);
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--woof-marron);
+}
+.rx-flip__titulos { display: grid; gap: 3px; min-width: 0; }
+.rx-flip__titulos strong { font-size: 1.125rem; font-weight: 650; letter-spacing: -0.01em; }
+.rx-flip__titulos span { font-size: 0.875rem; color: var(--p-texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-flip__pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rx-flip__pista { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--hc-naranja-texto); }
+.rx-flip__etiqueta { margin: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--woof-naranja-300); }
+.rx-flip__indicaciones { margin: 0; font-size: 1rem; line-height: 1.45; color: #fff; }
+.rx-flip__medicamentos { margin: 0; font-size: 0.8125rem; line-height: 1.4; color: rgba(255, 255, 255, 0.7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-flip__acciones { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rx-flip__acciones .hc-boton { min-height: 40px; }
+.rx-flip__acciones .hc-boton i { order: 2; }
+.rx-flip__volver {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+}
+.rx-flip__volver:hover { background: rgba(255, 255, 255, 0.24); }
+.rx-flip__volver:focus-visible, .rx-flip__acciones .hc-boton:focus-visible { outline: 2px solid var(--woof-naranja-300); outline-offset: 2px; }
+/* Con "reducir movimiento": sin giro 3D, cambia de cara con un fundido */
+@media (prefers-reduced-motion: reduce) {
+  .rx-flip__inclinacion { transform: none; transition: none; }
+  .rx-flip__rotor { transition: none; }
+  .rx-flip.es-volteada .rx-flip__rotor { transform: none; }
+  .rx-flip__cara--atras { transform: none; opacity: 0; }
+  .rx-flip.es-volteada .rx-flip__cara--atras { opacity: 1; }
+  .rx-flip.es-volteada .rx-flip__cara--frente { opacity: 0; }
+}
 
 /* ---------- Tratamiento: una lista de medicamentos; cada uno abre su pop-up ---------- */
 .rx-medicamentos { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
@@ -1308,6 +1391,6 @@ p.hc-vacio { padding: 24px 0 4px; }
   .rx-consulta__flecha { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rx-consulta, .rx-medicamento { transition: none; }
+  .rx-medicamento { transition: none; }
   .rx-dialogo[open], .rx-dialogo.es-cerrando { animation: none; }
 }
