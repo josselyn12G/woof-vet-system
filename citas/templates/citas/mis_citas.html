@@ -219,8 +219,10 @@
     <button type="button" class="boton-panel confirmacion-cita__boton" data-cerrar-confirmacion>Listo</button>
   </dialog>
 
-  {# Pop-up para calificar una cita atendida (mis-citas.js). Envía el mismo POST que la página de calificar,
-     que vuelve a validar todo en el servidor (atendida, de una mascota suya, una sola vez) #}
+  {% comment %}
+    Pop-up para calificar una cita atendida (mis-citas.js). Envía el mismo POST que la página de calificar,
+    que vuelve a validar todo en el servidor (atendida, de una mascota suya, una sola vez).
+  {% endcomment %}
   <dialog class="calificar-popup" aria-labelledby="calificar-titulo" data-dialogo-calificar>
     <form method="post" action="" novalidate data-calificar-formulario>
       {% csrf_token %}

@@ -7,9 +7,11 @@
 {% block panel_cabecera %}{% endblock %}
 {% block panel_avisos %}{% endblock %}
 
-{# Una sola plantilla para crear y editar: al editar, la vista envía "mascota" y "nombre_original".
-   "volver" es a dónde llevan la flecha y Cancelar. La gestión del superadministrador la extiende
-   (mascotas/gestion/formulario.html) para sumar el dueño #}
+{% comment %}
+  Una sola plantilla para crear y editar: al editar, la vista envía "mascota" y "nombre_original".
+  "volver" es a dónde llevan la flecha y Cancelar. La gestión del superadministrador la extiende
+  (mascotas/gestion/formulario.html) para sumar el dueño.
+{% endcomment %}
 {% block titulo %}{% if mascota %}Editar a {{ nombre_original }}{% else %}Registrar mascota{% endif %} · Woof{% endblock %}
 
 {% block panel_estilos %}
