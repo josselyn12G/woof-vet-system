@@ -30,16 +30,9 @@
         {% endfor %}
       </nav>
 
-      {# Filtro por mascota (RF-15): enlaces con ?mascota= que conservan la pestaña. Con una sola mascota no hace falta #}
+      {# Filtro por mascota (RF-15): su foto en grande; los enlaces ?mascota= conservan la pestaña. Con una sola no hace falta #}
       {% if mascotas|length > 1 %}
-        <nav class="filtro-mascotas" aria-label="Filtrar por mascota">
-          <a class="filtro-mascotas__opcion{% if not mascota_elegida %} es-activo{% endif %}" href="?vista={{ vista }}"{% if not mascota_elegida %} aria-current="true"{% endif %}>Todas</a>
-          {% for mascota in mascotas %}
-            <a class="filtro-mascotas__opcion{% if mascota == mascota_elegida %} es-activo{% endif %}" href="?vista={{ vista }}&amp;mascota={{ mascota.pk }}"{% if mascota == mascota_elegida %} aria-current="true"{% endif %}>
-              <span class="filtro-mascotas__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>{{ mascota.nombre }}
-            </a>
-          {% endfor %}
-        </nav>
+        {% include '_elige_mascota.html' with elegida=mascota_elegida extra='vista='|add:vista|add:'&' %}
       {% endif %}
 
       {% for fecha, citas_del_dia in por_dia %}
@@ -180,23 +173,6 @@
         {% else %}
           <p class="lado-calificacion lado-calificacion--vacio">Aún no calificas ninguna cita. Cuando una cita quede atendida, podrás calificarla.</p>
         {% endif %}
-      </section>
-
-      <section class="lado-cita lado-cita--lista" aria-labelledby="lado-mascotas">
-        <h2 class="lado-cita__cabecera" id="lado-mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="lado-cita__titulo">Mascotas</span></h2>
-        <ul class="lado-mascotas">
-          {% for mascota in mascotas %}
-            <li>
-              <a href="{% url 'mascotas:detalle' mascota.pk %}">
-                <span class="lado-cita__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}">{% include 'mascotas/_avatar.html' %}</span>
-                <span><strong>{{ mascota.nombre }}</strong><span>{{ mascota.raza|default:mascota.especie }}</span></span>
-                <i class="bi bi-chevron-right lado-cita__flecha" aria-hidden="true"></i>
-              </a>
-            </li>
-          {% empty %}
-            <li class="lado-mascotas__vacio"><a href="{% url 'mascotas:crear' %}">Registra a tu primera mascota</a></li>
-          {% endfor %}
-        </ul>
       </section>
     </aside>
   </div>

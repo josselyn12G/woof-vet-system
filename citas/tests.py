@@ -2041,10 +2041,10 @@ class FiltroPorMascotaTests(TestCase):
 
     def test_con_una_sola_mascota_no_se_muestran_los_chips(self):
         self.luna.delete()
-        self.assertNotContains(self.mis_citas(), 'Filtrar por mascota')
+        self.assertNotContains(self.mis_citas(), 'Elegir mascota')
 
     def test_con_varias_mascotas_se_muestran_los_chips(self):
-        self.assertContains(self.mis_citas(), 'Filtrar por mascota')
+        self.assertContains(self.mis_citas(), 'Elegir mascota')
 
 
 class IndicadoresTests(TestCase):

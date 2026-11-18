@@ -3835,3 +3835,57 @@ a.linea-citas__tarjeta {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* ==========================================================================
+   Elegir mascota con su foto (Mis citas, Mis recetas): círculos al estilo de Apple, el nombre debajo
+   y un aro naranja con aire en la elegida. "Todas" es un mosaico con las fotos.
+   ========================================================================== */
+.elige-mascotas { display: flex; justify-content: center; gap: 28px; max-width: 100%; overflow-x: auto; padding: 10px 8px; margin: -10px -8px; scrollbar-width: none; }
+/* Fotos al estilo de Apple (Fotos, En familia): círculos, el nombre debajo y un aro fino con aire en la elegida */
+.elige-mascota {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 176px;
+  color: var(--p-texto-2);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.elige-mascota__foto {
+  display: grid;
+  place-items: center;
+  width: 168px;
+  height: 168px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--p-acento-texto);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 6px 16px -8px rgba(59, 42, 34, 0.35);
+  transition: box-shadow 0.25s, transform 0.25s var(--woof-curva);
+}
+/* Las fotos de mascotas suelen tenerla abajo al centro: el recorte baja un poco para no cortarle la cabeza */
+.elige-mascota__foto img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 72%; }
+.elige-mascota__inicial { font-size: 3.5rem; font-weight: 600; letter-spacing: -0.02em; }
+/* Mosaico de "Todas": 2 fotos en mitades; 3 o 4 en cuadros (la tercera ocupa el ancho) */
+.elige-mascota__foto--todas { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; place-items: stretch; background: var(--p-superficie); }
+.elige-mascota__foto--todas[data-n="1"] { grid-template-columns: 1fr; }
+.elige-mascota__foto--todas:not([data-n="1"]):not([data-n="2"]) { grid-template-rows: 1fr 1fr; }
+.elige-mascota__foto--todas[data-n="3"] .elige-mascota__pieza:last-child { grid-column: 1 / -1; }
+.elige-mascota__pieza { display: grid; place-items: center; min-width: 0; min-height: 0; overflow: hidden; background: var(--p-acento-tinte); }
+.elige-mascota__pieza img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 72%; }
+.elige-mascota__pieza .elige-mascota__inicial { font-size: 1.5rem; }
+.elige-mascota:hover { color: var(--p-texto); }
+.elige-mascota:hover .elige-mascota__foto { transform: scale(1.03); }
+.elige-mascota.es-activo { color: var(--p-texto); font-weight: 600; }
+.elige-mascota.es-activo .elige-mascota__foto { box-shadow: 0 0 0 4px var(--p-fondo), 0 0 0 7px var(--woof-naranja-500), 0 12px 28px -12px rgba(59, 42, 34, 0.45); }
+.elige-mascota:focus-visible { outline: none; }
+.elige-mascota:focus-visible .elige-mascota__foto { box-shadow: 0 0 0 3px var(--p-fondo), 0 0 0 5px var(--woof-marron); }
+@media (max-width: 720px) {
+  .elige-mascota { width: 112px; font-size: 0.9375rem; }
+  .elige-mascota__foto { width: 104px; height: 104px; }
+}
+@media (prefers-reduced-motion: reduce) { .elige-mascota__foto { transition: none; } }

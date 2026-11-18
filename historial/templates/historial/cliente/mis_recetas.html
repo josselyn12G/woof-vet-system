@@ -22,25 +22,7 @@
     {# ============ Arriba: la foto de cada mascota para elegir y las cifras al lado ============ #}
     {% if mascotas %}
       <div class="rx-cabeza">
-        <nav class="rx-mascotas" aria-label="Elegir mascota">
-          {% if mascotas|length > 1 %}
-            <a class="rx-mascota{% if not mascota_elegida %} es-activo{% endif %}" href="?" data-cargando="Cargando todas"{% if not mascota_elegida %} aria-current="true"{% endif %}>
-              {# "Todas": un mosaico con las fotos de sus mascotas, como los álbumes de Fotos #}
-              <span class="rx-mascota__foto rx-mascota__foto--todas" data-n="{% if mascotas|length > 4 %}4{% else %}{{ mascotas|length }}{% endif %}" aria-hidden="true">
-                {% for mascota in mascotas|slice:':4' %}
-                  <span class="rx-mascota__pieza">{% if mascota.tiene_foto %}<img src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="">{% else %}<span class="rx-mascota__inicial">{{ mascota.nombre|slice:':1'|upper }}</span>{% endif %}</span>
-                {% endfor %}
-              </span>
-              <span class="rx-mascota__nombre">Todas</span>
-            </a>
-          {% endif %}
-          {% for mascota in mascotas %}
-            <a class="rx-mascota{% if mascota == mascota_elegida %} es-activo{% endif %}" href="?mascota={{ mascota.pk }}" data-cargando="Cargando a {{ mascota.nombre }}"{% if mascota == mascota_elegida %} aria-current="true"{% endif %}>
-              <span class="rx-mascota__foto" aria-hidden="true">{% if mascota.tiene_foto %}<img src="{% url 'mascotas:foto' mascota.pk %}?v={{ mascota.actualizado|date:'U' }}" alt="">{% else %}<span class="rx-mascota__inicial">{{ mascota.nombre|slice:':1'|upper }}</span>{% endif %}</span>
-              <span class="rx-mascota__nombre">{{ mascota.nombre }}</span>
-            </a>
-          {% endfor %}
-        </nav>
+        {% include '_elige_mascota.html' with elegida=mascota_elegida extra='' %}
 
         {% comment %}
           Las cifras de la mascota elegida (o de todas): cuentan todos sus tratamientos, también los terminados.
