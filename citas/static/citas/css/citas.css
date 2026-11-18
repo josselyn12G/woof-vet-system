@@ -2556,10 +2556,12 @@ fieldset.formulario-panel__campo {
 
 /* Columna lateral: próxima cita (tinte naranja), última cita y mascotas.
    Queda fija a la altura de la pantalla (sticky) y la tarjeta de Mascotas ocupa lo que sobra:
-   así no queda gris vacío debajo, aunque la lista de citas sea larga o esté vacía */
+   así no queda gris vacío debajo, aunque la lista de citas sea larga o esté vacía.
+   El header (.panel-barra) también es sticky y mide 4.25rem: la columna se detiene justo debajo
+   de él (más un respiro de 1.25rem) en lugar de esconderse detrás al hacer scroll */
 .mis-citas__lado {
   position: sticky;
-  top: 1.25rem;
+  top: calc(4.25rem + 1.25rem);
   display: flex;
   flex-direction: column;
   gap: 1rem;

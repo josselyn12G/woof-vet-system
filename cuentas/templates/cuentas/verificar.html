@@ -19,7 +19,7 @@
       <h1 class="verificar__titulo" id="verificar-titulo">Revisa tu correo</h1>
       <p class="verificar__texto" id="verificar-texto">Te enviamos un código de 6 dígitos para terminar de iniciar sesión.</p>
 
-      <form method="post" novalidate>
+      <form method="post" novalidate data-cargando="Cargando">
         {% csrf_token %}
 
         {% comment %}
