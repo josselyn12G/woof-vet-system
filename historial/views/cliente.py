@@ -31,8 +31,8 @@ class MascotasDelClienteMixin(ClienteRequeridoMixin):
 
 class MiHistoriaClinicaView(MascotasDelClienteMixin, TemplateView):
     """
-    Historia clínica (menú del cliente): un chip por mascota y la historia de la elegida (la primera si no eligió).
-    La línea de tiempo es la misma que la de cada mascota (historial/_historia_columnas.html).
+    Historia clínica (menú del cliente): un reporte por mascota (la primera si no eligió) y flechas para pasar
+    a la anterior o a la siguiente. La vista es la misma que ven el veterinario y la clínica (_hc_vista.html).
     """
     template_name = 'historial/cliente/mi_historia.html'
 
@@ -42,6 +42,14 @@ class MiHistoriaClinicaView(MascotasDelClienteMixin, TemplateView):
         mascota = self.elegida(mascotas) or mascotas.first()
         contexto.update({'mascotas': mascotas, 'mascota': mascota})
         if mascota is not None:
+            # Para pasar de un reporte al otro con las flechas (da la vuelta al llegar al final)
+            lista = list(mascotas)
+            i = lista.index(mascota)
+            contexto.update({
+                'mascota_anterior': lista[i - 1] if len(lista) > 1 else None,
+                'mascota_siguiente': lista[(i + 1) % len(lista)] if len(lista) > 1 else None,
+                'posicion': i + 1,
+            })
             contexto.update(HistorialService.de_la_mascota(mascota))
             contexto.update(HistorialService.tablero(mascota, contexto['consultas']))
             contexto['historial_medico'] = HistorialService.historial_medico(contexto['consultas'], contexto['carnet'])

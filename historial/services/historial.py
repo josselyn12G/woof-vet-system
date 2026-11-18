@@ -194,7 +194,7 @@ class HistorialService:
         return list(por_mes.items())
 
     @staticmethod
-    def grafico_de_peso(barras, ancho=300, alto=110, margen=12):
+    def grafico_de_peso(barras, ancho=600, alto=180, margen=14):
         """
         Los puntos del gráfico de peso (SVG): x repartido a lo ancho y y entre el peso más bajo y el más alto.
         Con un solo registro, la línea queda plana de un borde al otro y el punto al final.

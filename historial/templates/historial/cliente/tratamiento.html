@@ -7,7 +7,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=13" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=15" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -115,7 +115,12 @@
 
         <section class="hc-tarjeta rx-resumen" aria-label="Avance del tratamiento">
           <p class="hc-etiqueta">Avance del tratamiento</p>
-          <div class="anillo rx-anillo" style="--avance: {{ tratamiento.avance|stringformat:'s' }}" role="img" aria-label="{{ tratamiento.avance }}% de los días marcados">
+          <div class="anillo rx-anillo" role="img" aria-label="{{ tratamiento.avance }}% de los días marcados">
+            {# Anillo plano: radio 15.915 = perímetro 100, así el porcentaje va directo al trazo #}
+            <svg class="anillo__svg" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+              <circle class="anillo__fondo" cx="18" cy="18" r="15.915"/>
+              {% if tratamiento.avance %}<circle class="anillo__avance" cx="18" cy="18" r="15.915" stroke-dasharray="{{ tratamiento.avance|stringformat:'s' }} 100"/>{% endif %}
+            </svg>
             <span class="anillo__dias">{{ tratamiento.avance }}<small>%</small></span>
             <span class="anillo__texto">cumplido</span>
           </div>

@@ -750,7 +750,7 @@ class HistoriaTableroTests(ClienteConRecetasBase):
         self.assertIsNone(HistorialService.grafico_de_peso([]))
         uno = HistorialService.grafico_de_peso([{'fecha': hoy, 'peso': Decimal('12.5')}])
         self.assertEqual(len(uno['puntos']), 1)
-        self.assertEqual(uno['ultimo']['x'], uno['ancho'] - 12)   # línea plana de borde a borde
+        self.assertEqual(uno['ultimo']['x'], uno['ancho'] - 14)   # línea plana de borde a borde
         varios = HistorialService.grafico_de_peso([{'fecha': hoy, 'peso': Decimal('10')},
                                                    {'fecha': hoy, 'peso': Decimal('12')}])
         primero, ultimo = varios['puntos']
