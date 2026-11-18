@@ -141,5 +141,5 @@ class DemoDeAtencionTests(TestCase):
 
     def test_el_comando_imprime_el_recorrido(self):
         salida = StringIO()
-        call_command('preparar_demo_atencion', stdout=salida)
+        call_command('preparar_demo_atencion', confirmar=True, stdout=salida)   # en PostgreSQL lo pide
         self.assertIn('Registrar consulta', salida.getvalue())
