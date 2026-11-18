@@ -1347,18 +1347,18 @@ p.hc-vacio { padding: 24px 0 4px; }
 .rx-consulta-barra .hc-boton i { order: 2; }
 
 /* ---------- Mis recetas arriba: la foto de cada mascota para elegir y las cifras al lado ---------- */
-.rx-cabeza { display: grid; gap: 20px; align-items: start; }
-@media (min-width: 1000px) { .rx-cabeza { grid-template-columns: auto minmax(0, 1fr); } }
-.rx-mascotas { display: flex; gap: 22px; overflow-x: auto; padding: 8px 6px; margin: -8px -6px; scrollbar-width: none; }
+.rx-cabeza { display: grid; gap: 28px; justify-items: center; }
+.rx-cabeza .rx-cifras { justify-self: stretch; }
+.rx-mascotas { display: flex; justify-content: center; gap: 28px; max-width: 100%; overflow-x: auto; padding: 10px 8px; margin: -10px -8px; scrollbar-width: none; }
 /* Fotos al estilo de Apple (Fotos, En familia): círculos, el nombre debajo y un aro fino con aire en la elegida */
 .rx-mascota {
   flex: none;
   display: grid;
   justify-items: center;
   gap: 12px;
-  width: 148px;
+  width: 176px;
   color: var(--p-texto-2);
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 500;
   letter-spacing: -0.01em;
   text-decoration: none;
@@ -1366,8 +1366,8 @@ p.hc-vacio { padding: 24px 0 4px; }
 .rx-mascota__foto {
   display: grid;
   place-items: center;
-  width: 140px;
-  height: 140px;
+  width: 168px;
+  height: 168px;
   overflow: hidden;
   border-radius: 50%;
   background: var(--p-acento-tinte);
@@ -1377,7 +1377,7 @@ p.hc-vacio { padding: 24px 0 4px; }
 }
 /* Las fotos de mascotas suelen tenerla abajo al centro: el recorte baja un poco para no cortarle la cabeza */
 .rx-mascota__foto img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 72%; }
-.rx-mascota__inicial { font-size: 3rem; font-weight: 600; letter-spacing: -0.02em; }
+.rx-mascota__inicial { font-size: 3.5rem; font-weight: 600; letter-spacing: -0.02em; }
 /* Mosaico de "Todas": 2 fotos en mitades; 3 o 4 en cuadros (la tercera ocupa el ancho) */
 .rx-mascota__foto--todas { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; place-items: stretch; background: var(--p-superficie); }
 .rx-mascota__foto--todas[data-n="1"] { grid-template-columns: 1fr; }
@@ -1400,7 +1400,7 @@ p.hc-vacio { padding: 24px 0 4px; }
   display: grid;
   align-content: space-between;
   gap: 12px;
-  height: 140px;
+  height: 128px;
   padding: 18px 20px;
   background: var(--p-superficie);
   border: 1px solid var(--p-borde);

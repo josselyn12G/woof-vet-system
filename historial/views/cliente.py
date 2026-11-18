@@ -53,7 +53,6 @@ class MiHistoriaClinicaView(MascotasDelClienteMixin, TemplateView):
             contexto.update(HistorialService.de_la_mascota(mascota))
             contexto.update(HistorialService.tablero(mascota, contexto['consultas']))
             contexto['historial_medico'] = HistorialService.historial_medico(contexto['consultas'], contexto['carnet'])
-        contexto['volver'] = reverse('panel:inicio_cliente')
         return contexto
 
 
@@ -69,8 +68,7 @@ class MisRecetasView(MascotasDelClienteMixin, TemplateView):
         mascotas = self.mascotas()
         elegida = self.elegida(mascotas)
         contexto.update(HistorialService.tratamientos_del_cliente(self.request.user, elegida))
-        contexto.update({'mascotas': mascotas, 'mascota_elegida': elegida,
-                         'volver': reverse('panel:inicio_cliente')})
+        contexto.update({'mascotas': mascotas, 'mascota_elegida': elegida})
         return contexto
 
 

@@ -1,6 +1,7 @@
 {# Cabecera de la historia clínica y de Mis recetas: volver, título y las acciones (carnet y PDF; se ocultan con sin_acciones). #}
 <header class="hc-cabecera">
-  <a class="hc-volver" href="{{ volver }}" aria-label="Volver"><i class="bi bi-arrow-left" aria-hidden="true"></i></a>
+  {# La flecha solo en las páginas internas (el tratamiento, la historia desde la ficha); las del menú no la llevan #}
+  {% if volver %}<a class="hc-volver" href="{{ volver }}" aria-label="Volver"><i class="bi bi-arrow-left" aria-hidden="true"></i></a>{% endif %}
   <div class="hc-cabecera__textos">
     <h1 class="hc-cabecera__titulo">{{ titulo|default:'Historia clínica' }}</h1>
     <p class="hc-cabecera__subtitulo">{{ subtitulo|default:'Consulta el historial médico y el estado de salud de tus mascotas.' }}</p>

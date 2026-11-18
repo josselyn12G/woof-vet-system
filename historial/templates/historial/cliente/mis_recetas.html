@@ -7,7 +7,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=15" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=16" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -42,11 +42,12 @@
           {% endfor %}
         </nav>
 
+        {# Las cifras de la mascota elegida (o de todas): cuentan todos sus tratamientos, también los terminados #}
         <dl class="rx-cifras">
-          <div class="rx-cifra{% if en_curso %} rx-cifra--acento{% endif %}"><dt>En curso</dt><dd>{{ en_curso }}</dd></div>
-          <div class="rx-cifra"><dt>Cumplido</dt><dd>{{ avance_en_curso }}<small>%</small></dd></div>
-          <div class="rx-cifra"><dt>Dosis pendientes hoy</dt><dd>{{ pendientes_hoy }}</dd></div>
           <div class="rx-cifra"><dt>Consultas con receta</dt><dd>{{ tratamientos|length }}</dd></div>
+          <div class="rx-cifra"><dt>Medicamentos</dt><dd>{{ total_medicamentos }}</dd></div>
+          <div class="rx-cifra{% if en_curso %} rx-cifra--acento{% endif %}"><dt>En curso</dt><dd>{{ en_curso }}</dd></div>
+          <div class="rx-cifra"><dt>Cumplimiento</dt><dd>{{ cumplimiento }}<small>%</small></dd></div>
         </dl>
       </div>
     {% endif %}

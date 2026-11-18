@@ -593,6 +593,10 @@ class HistoriaDelClienteTests(ClienteConRecetasBase):
         self.assertEqual(estados, {'Amoxicilina 250 mg': True, 'Jarabe antitusivo': False})
         self.assertEqual(respuesta.context['en_curso'], 1)
         self.assertEqual(respuesta.context['pendientes_hoy'], 1)
+        # Las cifras cuentan todos los tratamientos, también el terminado (si no, con todo terminado salen en cero)
+        self.assertEqual(respuesta.context['total_medicamentos'], 2)
+        TomaDia.objects.create(prescripcion=self.terminada, dia=timezone.localtime(self.terminada.fecha_inicio).date())
+        self.assertEqual(self.client.get(reverse('historial:mis_recetas')).context['cumplimiento'], 10)   # 1 de 10 días
         self.assertEqual([receta for _, receta in respuesta.context['hoy']], [self.en_curso])
         self.assertContains(respuesta, 'En curso')
         self.assertContains(respuesta, 'Control de dosis de hoy')

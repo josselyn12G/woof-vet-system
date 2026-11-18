@@ -416,10 +416,15 @@ class HistorialService:
         en_curso = [t for t in tratamientos if t['estado'] == 'en_curso']
         total = sum(t['total_dias'] for t in en_curso)
         hechos = sum(t['hechos'] for t in en_curso)
+        # Cumplimiento de todos los tratamientos (también los terminados): días marcados sobre días recetados
+        total_todos = sum(t['total_dias'] for t in tratamientos)
+        hechos_todos = sum(t['hechos'] for t in tratamientos)
         return {
             'tratamientos': tratamientos,
             'en_curso': len(en_curso),
             'avance_en_curso': round(hechos * 100 / total) if total else 0,
+            'cumplimiento': round(hechos_todos * 100 / total_todos) if total_todos else 0,
+            'total_medicamentos': sum(len(t['recetas']) for t in tratamientos),
             'hoy': [(t, receta) for t in en_curso for receta in t['recetas'] if receta.en_curso],
             'pendientes_hoy': sum(len(t['pendientes_hoy']) for t in en_curso),
         }
