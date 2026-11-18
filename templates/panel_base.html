@@ -70,10 +70,18 @@
           </ul>
         {% endif %}
 
-        <p class="panel-menu__grupo">Sistema</p>
-        <ul class="panel-menu__lista">
-          <li><a class="panel-menu__enlace" href="{% url 'cuentas:inicio' %}" title="Ver la portada"><i class="bi bi-house" aria-hidden="true"></i><span class="panel-menu__texto">Ver la portada</span></a></li>
-        </ul>
+        {% if user.es_cliente %}
+          {# Cliente: su perfil (el formulario para actualizar sus datos). Cerrar sesión ya lleva a la portada #}
+          <p class="panel-menu__grupo">Cuenta</p>
+          <ul class="panel-menu__lista">
+            <li><a class="panel-menu__enlace{% if ruta == 'cuentas:mi_cuenta' or ruta == 'cuentas:cambiar_contrasena' %} es-activo{% endif %}" href="{% url 'cuentas:mi_cuenta' %}" title="Perfil"{% if ruta == 'cuentas:mi_cuenta' %} aria-current="page"{% endif %}><i class="bi bi-person-circle" aria-hidden="true"></i><span class="panel-menu__texto">Perfil</span></a></li>
+          </ul>
+        {% else %}
+          <p class="panel-menu__grupo">Sistema</p>
+          <ul class="panel-menu__lista">
+            <li><a class="panel-menu__enlace" href="{% url 'cuentas:inicio' %}" title="Ver la portada"><i class="bi bi-house" aria-hidden="true"></i><span class="panel-menu__texto">Ver la portada</span></a></li>
+          </ul>
+        {% endif %}
       </nav>
 
       {# Usuario al pie: iniciales, nombre, rol y cerrar sesión (POST con CSRF, como pide Django 5) #}
