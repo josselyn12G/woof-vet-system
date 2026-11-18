@@ -1,0 +1,67 @@
+{% extends 'panel_base.html' %}
+{% load static %}
+
+{# «Historial médico» del cliente: cada mascota con sus tratamientos en curso y el acceso a su historia clínica #}
+{% block titulo %}Historial médico · Woof{% endblock %}
+
+{% block panel_estilos %}
+  <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block panel_icono %}bi-clipboard2-pulse{% endblock %}
+{% block panel_seccion %}Historial médico{% endblock %}
+{% block panel_titulo %}Historial médico{% endblock %}
+{% block panel_subtitulo %}Las consultas, recetas y vacunas de tus mascotas. Si alguna está con tratamiento, lo ves aquí mismo.{% endblock %}
+
+{% block panel_contenido %}
+  {% if mascotas %}
+    <div class="historiales">
+      {% for mascota in mascotas %}
+        <article class="historial-mascota{% if mascota.tratamientos %} historial-mascota--tratamiento{% endif %}">
+          <header class="historial-mascota__cabecera">
+            <span class="historial-mascota__foto foto-mascota foto-mascota--{{ mascota.especie.estilo }}" aria-hidden="true">{% include 'mascotas/_avatar.html' %}</span>
+            <div class="historial-mascota__nombre">
+              <h2>{{ mascota.nombre }}</h2>
+              <p>{{ mascota.especie }}{% if mascota.raza %} · {{ mascota.raza }}{% endif %}</p>
+            </div>
+          </header>
+
+          <dl class="historial-mascota__datos">
+            <div><dt>Consultas</dt><dd>{{ mascota.total_consultas }}</dd></div>
+            <div><dt>Última consulta</dt><dd>{% if mascota.ultima_consulta %}{{ mascota.ultima_consulta|date:'d/m/Y' }}{% else %}Ninguna aún{% endif %}</dd></div>
+          </dl>
+
+          {% if mascota.tratamientos %}
+            <div class="historial-mascota__tratamientos">
+              <p class="historial-mascota__aviso"><span class="receta__pulso" aria-hidden="true"></span>Tratamiento en curso</p>
+              <ul>
+                {% for receta in mascota.tratamientos %}
+                  <li>
+                    <i class="bi bi-capsule" aria-hidden="true"></i>
+                    <span>
+                      <strong>{{ receta.medicamento }}</strong>
+                      {{ receta.dosis }} cada {{ receta.frecuencia_horas }} h · día {{ receta.dia_actual }} de {{ receta.duracion_dias }}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% else %}
+            <p class="historial-mascota__tranquilo"><i class="bi bi-check2-circle" aria-hidden="true"></i>Sin tratamientos en curso</p>
+          {% endif %}
+
+          <a class="btn btn-primary rounded-pill historial-mascota__ver" href="{% url 'mascotas:historial' mascota.pk %}">
+            Ver historia clínica <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="bloque-panel historia__vacia">
+      <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>
+      <p>Todavía no tienes mascotas registradas. Cuando registres una y el veterinario la atienda, su historia clínica aparecerá aquí.</p>
+      <a class="boton-panel" href="{% url 'mascotas:lista' %}">Ir a Mis mascotas</a>
+    </section>
+  {% endif %}
+{% endblock %}

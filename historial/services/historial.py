@@ -1,11 +1,11 @@
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Max, Prefetch, Q
 from django.utils import timezone
 
 from citas.models import EstadoCita
-from historial.models import Consulta, Vacuna, VacunaAplicada
+from historial.models import Consulta, Prescripcion, Vacuna, VacunaAplicada
 from mascotas.models import Mascota
 
 # Una vacuna cuya próxima dosis cae dentro de estos días aparece como «próxima» en el carnet
@@ -38,10 +38,32 @@ class HistorialService:
             .select_related('veterinario', 'cita__servicio')
             .prefetch_related('prescripciones', Prefetch('vacunas_aplicadas', queryset=vacunas))
         )
+        consultas = list(consultas)
         return {
-            'consultas': list(consultas),
-            'vacunas': list(vacunas.filter(mascota=mascota)),
+            'consultas': consultas,
+            # Con su estado (al día, próxima, vencida), como en el carnet
+            'vacunas': HistorialService.carnet(mascota),
+            # Lo que el dueño tiene que darle hoy: va arriba de todo, bien a la vista
+            'tratamientos': [
+                receta for consulta in consultas for receta in consulta.prescripciones.all() if receta.en_curso
+            ],
         }
+
+    @staticmethod
+    def resumen_de(mascotas):
+        """
+        Para «Historial médico» del cliente: cada mascota con cuántas consultas tiene, la fecha de la última
+        y los tratamientos que sigue tomando (receta en curso), así sabe de un vistazo a cuál darle qué.
+        """
+        mascotas = list(mascotas.annotate(total_consultas=Count('consultas'), ultima_consulta=Max('consultas__fecha')))
+        recetas = Prescripcion.objects.filter(consulta__mascota__in=mascotas).select_related('consulta')
+        por_mascota = {}
+        for receta in recetas:
+            if receta.en_curso:
+                por_mascota.setdefault(receta.consulta.mascota_id, []).append(receta)
+        for mascota in mascotas:
+            mascota.tratamientos = por_mascota.get(mascota.pk, [])
+        return mascotas
 
     @staticmethod
     def estado_de_la_vacuna(proxima_dosis, hoy=None):

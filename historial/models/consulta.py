@@ -1,4 +1,5 @@
 """La consulta que registra el veterinario después de una cita atendida, y las líneas de su receta."""
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -101,3 +102,23 @@ class Prescripcion(models.Model):
     def tomas(self):
         """Cuántas tomas salen: 7 días cada 12 horas son 14 (las horas del tratamiento entre la frecuencia)."""
         return self.duracion_dias * 24 // self.frecuencia_horas
+
+    @property
+    def termina(self):
+        """Cuándo se acaba el tratamiento: la fecha de inicio más los días que dura."""
+        return self.fecha_inicio + timedelta(days=self.duracion_dias)
+
+    @property
+    def en_curso(self):
+        """Si el dueño todavía tiene que dárselo: ya empezó y aún no terminó."""
+        return self.fecha_inicio <= timezone.now() < self.termina
+
+    @property
+    def dia_actual(self):
+        """En qué día del tratamiento va (1, 2, ...), para el «Día 2 de 7» del dueño."""
+        return min((timezone.now() - self.fecha_inicio).days + 1, self.duracion_dias)
+
+    @property
+    def progreso(self):
+        """Qué parte del tratamiento ya pasó, de 0 a 100, para la barrita de avance."""
+        return round(self.dia_actual * 100 / self.duracion_dias)

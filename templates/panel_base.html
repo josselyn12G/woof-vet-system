@@ -61,7 +61,9 @@
           <p class="panel-menu__grupo">Plataforma</p>
           <ul class="panel-menu__lista">
             <li><a class="panel-menu__enlace{% if ruta == 'panel:inicio_cliente' %} es-activo{% endif %}" href="{% url 'panel:inicio_cliente' %}" title="Inicio"{% if ruta == 'panel:inicio_cliente' %} aria-current="page"{% endif %}><i class="bi bi-grid" aria-hidden="true"></i><span class="panel-menu__texto">Inicio</span></a></li>
-            <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
+            <li><a class="panel-menu__enlace{% if 'mascotas:' in ruta and ruta != 'mascotas:historial' and ruta != 'mascotas:historiales' %} es-activo{% endif %}" href="{% url 'mascotas:lista' %}" title="Mis mascotas"><i class="bi bi-heart" aria-hidden="true"></i><span class="panel-menu__texto">Mis mascotas</span></a></li>
+            {# La historia clínica de cada mascota, con la receta y la dosis que le toca: a un clic desde cualquier pantalla #}
+            <li><a class="panel-menu__enlace{% if ruta == 'mascotas:historial' or ruta == 'mascotas:historiales' %} es-activo{% endif %}" href="{% url 'mascotas:historiales' %}" title="Historial médico"{% if ruta == 'mascotas:historiales' %} aria-current="page"{% endif %}><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i><span class="panel-menu__texto">Historial médico</span></a></li>
             {# Agendar vive dentro de Mis citas (botón que abre un pop-up), así que el menú solo lleva Mis citas #}
             <li><a class="panel-menu__enlace{% if ruta == 'citas:mis_citas' or ruta == 'citas:agendar' %} es-activo{% endif %}" href="{% url 'citas:mis_citas' %}" title="Mis citas"{% if ruta == 'citas:mis_citas' %} aria-current="page"{% endif %}><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="panel-menu__texto">Mis citas</span></a></li>
           </ul>
