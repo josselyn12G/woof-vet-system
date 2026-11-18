@@ -2,7 +2,7 @@ from datetime import datetime, time, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Max, Prefetch, Q
 from django.utils import timezone
 
 from citas.models import EstadoCita
@@ -54,10 +54,32 @@ class HistorialService:
             .select_related('veterinario', 'cita__servicio')
             .prefetch_related('prescripciones', Prefetch('vacunas_aplicadas', queryset=vacunas))
         )
+        consultas = list(consultas)
         return {
-            'consultas': list(consultas),
-            'vacunas': list(vacunas.filter(mascota=mascota)),
+            'consultas': consultas,
+            # Con su estado (al día, próxima, vencida), como en el carnet
+            'vacunas': HistorialService.carnet(mascota),
+            # Lo que el dueño tiene que darle hoy: va arriba de todo, bien a la vista
+            'tratamientos': [
+                receta for consulta in consultas for receta in consulta.prescripciones.all() if receta.en_curso
+            ],
         }
+
+    @staticmethod
+    def resumen_de(mascotas):
+        """
+        Para «Historial médico» del cliente: cada mascota con cuántas consultas tiene, la fecha de la última
+        y los tratamientos que sigue tomando (receta en curso), así sabe de un vistazo a cuál darle qué.
+        """
+        mascotas = list(mascotas.annotate(total_consultas=Count('consultas'), ultima_consulta=Max('consultas__fecha')))
+        recetas = Prescripcion.objects.filter(consulta__mascota__in=mascotas).select_related('consulta')
+        por_mascota = {}
+        for receta in recetas:
+            if receta.en_curso:
+                por_mascota.setdefault(receta.consulta.mascota_id, []).append(receta)
+        for mascota in mascotas:
+            mascota.tratamientos = por_mascota.get(mascota.pk, [])
+        return mascotas
 
     @staticmethod
     def estado_de_la_vacuna(proxima_dosis, hoy=None):
@@ -168,13 +190,13 @@ class HistorialService:
                 'tono': 'acento' if recetas else 'neutro', 'consulta': consulta, 'recetas': recetas, 'vacunas': vacunas,
             })
             for receta in recetas:
-                termina = receta.fecha_inicio + timedelta(days=receta.duracion_dias)
-                en_curso = receta.fecha_inicio <= ahora < termina
+                # en_curso es propiedad de Prescripcion; las que ya acabaron dicen «Terminado»
+                insignia = 'En curso' if receta.en_curso else 'Por empezar' if ahora < receta.fecha_inicio else 'Terminado'
                 registros.append({
                     'tipo': 'receta', 'icono': 'bi-capsule', 'cuando': receta.fecha_inicio,
                     'titulo': receta.medicamento, 'veterinario': consulta.veterinario,
                     'detalle': f'{receta.dosis} cada {receta.frecuencia_horas} h · {receta.duracion_dias} días',
-                    'insignia': 'En curso' if en_curso else 'Receta', 'tono': 'ok' if en_curso else 'acento',
+                    'insignia': insignia, 'tono': 'ok' if receta.en_curso else 'acento' if insignia == 'Por empezar' else 'neutro',
                     'receta': receta, 'consulta': consulta,
                 })
         for linea in carnet:
@@ -357,8 +379,7 @@ class HistorialService:
 
         por_mascota = {}
         for receta in recetas:
-            receta.termina = receta.fecha_inicio + timedelta(days=receta.duracion_dias)
-            receta.en_curso = receta.fecha_inicio <= ahora < receta.termina
+            # termina y en_curso son propiedades de Prescripcion (cuándo acaba y si sigue)
             receta.por_empezar = ahora < receta.fecha_inicio
             receta.seguimiento = HistorialService.seguimiento(receta, timezone.localtime(ahora).date())
             receta.siguiente_toma = HistorialService.siguiente_toma(receta, ahora)

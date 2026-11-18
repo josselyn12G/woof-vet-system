@@ -1,9 +1,9 @@
 """La historia clínica de una mascota, de solo lectura: la ven el dueño, los veterinarios y la clínica."""
 from django.http import HttpResponse
 from django.urls import reverse
-from django.views.generic import DetailView
+from django.views.generic import DetailView, ListView
 
-from mascotas.mixins import MascotaVisiblePorRolMixin
+from mascotas.mixins import MascotasDelUsuarioMixin, MascotaVisiblePorRolMixin
 
 from ..services import HistorialService
 from ..services.pdf import generar_pdf, nombre_del_archivo
@@ -44,3 +44,15 @@ class HistoriaPdfView(MascotaVisiblePorRolMixin, DetailView):
         respuesta = HttpResponse(generar_pdf(mascota), content_type='application/pdf')
         respuesta['Content-Disposition'] = f'attachment; filename="{nombre_del_archivo(mascota)}"'
         return respuesta
+
+
+class MisHistorialesView(MascotasDelUsuarioMixin, ListView):
+    """
+    «Historial médico» del sidebar del cliente: sus mascotas con sus tratamientos en curso y un acceso
+    directo a la historia clínica de cada una. Otro rol que llega aquí vuelve a su panel.
+    """
+    template_name = 'historial/historiales.html'
+    context_object_name = 'mascotas'
+
+    def get_queryset(self):
+        return HistorialService.resumen_de(super().get_queryset())

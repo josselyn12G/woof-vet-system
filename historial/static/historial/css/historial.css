@@ -1390,6 +1390,16 @@ p.hc-vacio { padding: 24px 0 4px; }
   .rx-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .rx-cifras--tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+/* Tratamiento en curso (Resumen de la historia) */
+.hc-en-curso__lista { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.hc-en-curso__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; }
+.hc-en-curso__textos { display: grid; gap: 2px; min-width: 0; }
+.hc-en-curso__textos strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); }
+.hc-en-curso__textos span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.hc-en-curso__dia { padding: 4px 10px; border-radius: 999px; background: var(--p-acento-tinte); color: var(--p-acento-texto); font-size: 0.8125rem; font-weight: 700; white-space: nowrap; }
+.hc-en-curso__barra { grid-column: 1 / -1; height: 6px; }
+.hc-en-curso__barra span { background: var(--woof-naranja-500); }
+
 /* Lo más reciente (Resumen de la historia) */
 .hc-recientes__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .hc-recientes__cabecera .hc-pastilla { margin-top: 0; }
@@ -1668,3 +1678,72 @@ p.hc-vacio { padding: 24px 0 4px; }
 @media (min-width: 1000px) { .vet-columnas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
 .vet-boton-chico { min-height: 36px; padding: 0 14px; font-size: 0.875rem; }
 .vet-pastilla { margin-top: 0; }
+
+
+/* ================================================================
+   «Historial médico» del cliente (Adrián, PR #70): sus mascotas con los tratamientos en curso
+   ================================================================ */
+.tratamientos {
+  padding: 1.4rem;
+  border: 1px solid var(--woof-naranja-300);
+  border-radius: var(--p-radio);
+  background: linear-gradient(135deg, #fff4e6 0%, #fffaf3 60%, var(--p-superficie) 100%);
+  box-shadow: 0 10px 30px -18px rgba(196, 106, 10, 0.45);
+}
+.receta__pulso {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: #22a35a;
+  box-shadow: 0 0 0 0 rgba(34, 163, 90, 0.5);
+  animation: pulso-receta 1.8s ease-out infinite;
+}
+.historia__vacia {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  color: var(--p-texto-2);
+  text-align: center;
+}
+.historia__vacia .bi {
+  font-size: 2rem;
+  color: var(--p-acento);
+}
+.historia__vacia p {
+  max-width: 32rem;
+  margin: 0;
+}
+.historiales {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 1.25rem;
+}
+.historial-mascota {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--p-borde);
+  border-radius: var(--p-radio);
+  background: var(--p-superficie);
+}
+.historial-mascota--tratamiento {
+  border-color: var(--woof-naranja-300);
+  box-shadow: 0 10px 30px -18px rgba(196, 106, 10, 0.45);
+}
+@media (max-width: 575.98px) {
+  .tratamientos {
+    padding: 1.1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .receta__pulso {
+    animation: none;
+  }
+}
+@keyframes pulso-receta {
+  70% { box-shadow: 0 0 0 0.45rem rgba(34, 163, 90, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 163, 90, 0); }
+}

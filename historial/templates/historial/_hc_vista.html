@@ -96,6 +96,25 @@
         </section>
 
 
+        {# Tratamiento en curso (idea de Adrián, PR #70): lo que el dueño tiene que darle hoy, bien a la vista #}
+        {% if tratamientos %}
+          <section class="hc-tarjeta hc-en-curso" aria-labelledby="hc-en-curso-titulo">
+            <h2 class="hc-titulo hc-titulo--tarjeta" id="hc-en-curso-titulo"><i class="bi bi-capsule" aria-hidden="true"></i>Tratamiento en curso</h2>
+            <ul class="hc-en-curso__lista">
+              {% for receta in tratamientos %}
+                <li class="hc-en-curso__item">
+                  <span class="hc-en-curso__textos">
+                    <strong>{{ receta.medicamento }}</strong>
+                    <span>{{ receta.dosis }} cada {{ receta.frecuencia_horas }} h</span>
+                  </span>
+                  <span class="hc-en-curso__dia">Día {{ receta.dia_actual }} de {{ receta.duracion_dias }}</span>
+                  <span class="hc-barra hc-en-curso__barra" role="img" aria-label="{{ receta.progreso }}% del tratamiento"><span style="--ancho: {{ receta.progreso|stringformat:'s' }}%"></span></span>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endif %}
+
         {# Lo más reciente: los últimos registros del mes más nuevo (el detalle completo está en Historial) #}
         <section class="hc-tarjeta hc-recientes" aria-labelledby="hc-recientes-titulo">
           <div class="hc-recientes__cabecera">

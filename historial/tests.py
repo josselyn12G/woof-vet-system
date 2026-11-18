@@ -112,6 +112,19 @@ class PrescripcionTests(HistorialBaseTests):
         self.assertEqual([p.medicamento for p in self.consulta_milo.prescripciones.all()],
                          ['Amoxicilina 250 mg', 'Jarabe antitusivo'])
 
+    def test_sabe_si_el_tratamiento_sigue_y_en_que_dia_va(self):
+        hace_dos_dias = timezone.now() - timedelta(days=2, hours=1)
+        receta = self.receta(fecha_inicio=hace_dos_dias)
+        self.assertTrue(receta.en_curso)
+        self.assertEqual(receta.dia_actual, 3)
+        self.assertEqual(receta.progreso, 43)   # 3 de 7 días
+        self.assertEqual(receta.termina, hace_dos_dias + timedelta(days=7))
+
+    def test_un_tratamiento_que_ya_paso_no_esta_en_curso(self):
+        receta = self.receta(fecha_inicio=timezone.now() - timedelta(days=8))
+        self.assertFalse(receta.en_curso)
+        self.assertEqual(receta.dia_actual, 7)   # no pasa del último día
+
 
 class VacunaTests(HistorialBaseTests):
     def aplicar(self, vacuna=None, **datos):
@@ -188,7 +201,7 @@ class HistorialServiceTests(HistorialBaseTests):
     def test_no_mezcla_la_historia_de_otra_mascota(self):
         self.consulta().save()
         luna = crear_mascota(self.cliente, nombre='Luna')
-        self.assertEqual(HistorialService.de_la_mascota(luna), {'consultas': [], 'vacunas': []})
+        self.assertEqual(HistorialService.de_la_mascota(luna), {'consultas': [], 'vacunas': [], 'tratamientos': []})
 
     def test_vacunas_para_una_mascota_son_las_de_su_especie_y_las_generales(self):
         general = Vacuna.objects.create(nombre='Desparasitación preventiva')
@@ -419,6 +432,66 @@ class HistoriaClinicaVistaTests(HistorialBaseTests):
             with self.subTest(usuario=usuario.username):
                 self.client.force_login(usuario)
                 self.assertContains(self.client.get(pagina), self.url)
+
+    def test_el_tratamiento_en_curso_sale_arriba(self):
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, 'Tratamiento en curso')
+        self.assertContains(respuesta, 'Día 1 de 7')
+
+    def test_un_tratamiento_terminado_no_sale_como_en_curso(self):
+        Prescripcion.objects.update(fecha_inicio=timezone.now() - timedelta(days=10))
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(self.url)
+        self.assertNotContains(respuesta, 'Tratamiento en curso')
+        self.assertContains(respuesta, 'Terminado')
+        self.assertContains(respuesta, 'Amoxicilina 250 mg')   # sigue en la receta de su consulta
+
+
+class MisHistorialesVistaTests(HistorialBaseTests):
+    """«Historial médico» del sidebar: el cliente ve sus mascotas, sus tratamientos y el acceso a cada historia."""
+
+    def setUp(self):
+        super().setUp()
+        consulta = self.consulta()
+        consulta.save()
+        Prescripcion.objects.create(consulta=consulta, medicamento='Amoxicilina 250 mg', dosis='1 tableta',
+                                    frecuencia_horas=12, duracion_dias=7)
+        self.url = reverse('mascotas:historiales')
+
+    def test_el_cliente_ve_sus_mascotas_con_su_tratamiento(self):
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Milo')
+        self.assertContains(respuesta, 'Amoxicilina 250 mg')
+        self.assertContains(respuesta, reverse('mascotas:historial', args=[self.milo.pk]))
+
+    def test_no_ve_las_mascotas_de_otro(self):
+        carlos = crear_usuario('carlos')
+        crear_mascota(carlos, nombre='Rocky')
+        self.client.force_login(carlos)
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, 'Rocky')
+        self.assertNotContains(respuesta, 'Milo')
+        self.assertNotContains(respuesta, 'Amoxicilina 250 mg')
+
+    def test_un_tratamiento_terminado_no_aparece(self):
+        Prescripcion.objects.update(fecha_inicio=timezone.now() - timedelta(days=10))
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(self.url)
+        self.assertContains(respuesta, 'Sin tratamientos en curso')
+        self.assertNotContains(respuesta, 'Amoxicilina 250 mg')
+
+    def test_otro_rol_vuelve_a_su_panel(self):
+        self.client.force_login(self.veterinario)
+        self.assertRedirects(self.client.get(self.url), reverse('panel:panel'), fetch_redirect_response=False)
+
+    def test_el_sidebar_y_la_tarjeta_llevan_al_historial(self):
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(reverse('mascotas:lista'))
+        self.assertContains(respuesta, self.url)                                              # sidebar
+        self.assertContains(respuesta, reverse('mascotas:historial', args=[self.milo.pk]))   # tarjeta
 
 
 class CatalogoVacunasTests(HistorialBaseTests):
@@ -747,7 +820,7 @@ class HistoriaTableroTests(ClienteConRecetasBase):
         consultas = HistorialService.de_la_mascota(self.milo)['consultas']
         registros = [r for _, rs in HistorialService.historial_medico(consultas, []) for r in rs]
         insignias = {r['titulo']: r['insignia'] for r in registros if r['tipo'] == 'receta'}
-        self.assertEqual(insignias, {'Amoxicilina 250 mg': 'En curso', 'Jarabe antitusivo': 'Receta'})
+        self.assertEqual(insignias, {'Amoxicilina 250 mg': 'En curso', 'Jarabe antitusivo': 'Terminado'})
 
     def test_el_grafico_de_peso_con_uno_y_varios_registros(self):
         hoy = timezone.now()
