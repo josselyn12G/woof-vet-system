@@ -14,7 +14,7 @@ from cuentas.models import Roles
 from mascotas.models import Especie
 from mascotas.tests import crear_mascota, crear_usuario
 
-from .models import Consulta, Prescripcion, Vacuna, VacunaAplicada
+from .models import Consulta, Prescripcion, TomaDia, Vacuna, VacunaAplicada
 from .services import HistorialService
 
 
@@ -528,8 +528,8 @@ class CatalogoVacunasTests(HistorialBaseTests):
         self.assertTrue(all('rabia' in vacuna.nombre.lower() for vacuna in buscadas))
 
 
-class HistoriaDelClienteTests(HistorialBaseTests):
-    """Menú del cliente: Historia clínica y Mis recetas por mascota; y la historia en PDF."""
+class ClienteConRecetasBase(HistorialBaseTests):
+    """Milo con una consulta, una receta en curso (desde ayer), una terminada y la vacuna de rabia; Ana en sesión."""
 
     def setUp(self):
         super().setUp()
@@ -546,6 +546,11 @@ class HistoriaDelClienteTests(HistorialBaseTests):
                                       consulta=self.consulta_milo, fecha_aplicacion=timezone.localdate() - timedelta(days=1))
         self.luna = crear_mascota(self.cliente, nombre='Luna', especie='gato')
         self.client.force_login(self.cliente)
+
+
+
+class HistoriaDelClienteTests(ClienteConRecetasBase):
+    """Menú del cliente: Historia clínica y Mis recetas por mascota; y la historia en PDF."""
 
     # ---------- Historia clínica ----------
     def test_la_historia_muestra_la_primera_mascota_y_sus_consultas(self):
@@ -626,3 +631,62 @@ class HistoriaDelClienteTests(HistorialBaseTests):
     def test_un_diagnostico_con_simbolos_no_rompe_el_pdf(self):
         Consulta.objects.filter(pk=self.consulta_milo.pk).update(diagnostico='Fiebre < 39 °C & tos <b>leve</b>')
         self.assertTrue(self.client.get(reverse('mascotas:historial_pdf', args=[self.milo.pk])).content.startswith(b'%PDF'))
+
+
+
+class SeguimientoDelTratamientoTests(ClienteConRecetasBase):
+    """Un check por día del tratamiento: lo marca el dueño, nunca por adelantado y solo en sus recetas."""
+
+    def marcar(self, dia, receta=None, **datos):
+        receta = receta or self.en_curso
+        return self.client.post(reverse('historial:marcar_dia', args=[receta.pk]),
+                                {'dia': dia.isoformat(), **datos})
+
+    def test_el_seguimiento_trae_los_dias_y_el_avance(self):
+        seg = HistorialService.seguimiento(self.en_curso)
+        self.assertEqual(len(seg['dias']), 7)
+        self.assertEqual([d['estado'] for d in seg['dias'][:3]], ['sin_marcar', 'hoy', 'proximo'])
+        self.assertEqual((seg['hechos'], seg['avance'], seg['tomas_por_dia']), (0, 0, 2))
+        self.assertEqual(seg['tipo'], 'tableta')
+
+    def test_marcar_hoy_suma_avance_y_se_ve_en_mis_recetas(self):
+        hoy = timezone.localdate()
+        respuesta = self.marcar(hoy, volver=reverse('historial:mis_recetas'))
+        self.assertRedirects(respuesta, reverse('historial:mis_recetas') + f'#receta-{self.en_curso.pk}',
+                             fetch_redirect_response=False)
+        self.assertTrue(TomaDia.objects.filter(prescripcion=self.en_curso, dia=hoy).exists())
+        pagina = self.client.get(reverse('historial:mis_recetas'))
+        self.assertContains(pagina, '1 de 7')
+        self.assertContains(pagina, 'Dosis dada')
+
+    def test_marcar_dos_veces_lo_desmarca(self):
+        hoy = timezone.localdate()
+        self.marcar(hoy)
+        self.marcar(hoy)
+        self.assertFalse(TomaDia.objects.filter(prescripcion=self.en_curso).exists())
+
+    def test_un_dia_que_no_llega_o_fuera_del_tratamiento_se_rechaza(self):
+        for dia in (timezone.localdate() + timedelta(days=1), timezone.localdate() - timedelta(days=20)):
+            with self.subTest(dia=dia):
+                self.marcar(dia)
+        self.assertFalse(TomaDia.objects.exists())
+
+    def test_la_receta_de_otro_cliente_responde_404(self):
+        self.client.force_login(crear_usuario('luis'))
+        self.assertEqual(self.marcar(timezone.localdate()).status_code, 404)
+
+    def test_solo_por_post(self):
+        url = reverse('historial:marcar_dia', args=[self.en_curso.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_volver_a_otro_sitio_no_se_sigue(self):
+        respuesta = self.marcar(timezone.localdate(), volver='https://otro-sitio.com/')
+        self.assertTrue(respuesta.url.startswith(reverse('historial:mis_recetas')))
+
+    def test_el_tipo_de_medicamento_decide_la_imagen(self):
+        casos = {('Jarabe antitusivo', '5 ml'): 'jarabe', ('Gotas óticas', '4 gotas'): 'gotas',
+                 ('Pomada', 'una capa'): 'crema', ('Amoxicilina', '1 tableta'): 'tableta'}
+        for (medicamento, dosis), tipo in casos.items():
+            with self.subTest(medicamento=medicamento):
+                receta = Prescripcion(medicamento=medicamento, dosis=dosis, frecuencia_horas=8, duracion_dias=3)
+                self.assertEqual(HistorialService.tipo_de_medicamento(receta)[0], tipo)

@@ -1,11 +1,12 @@
 from datetime import timedelta
 
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from citas.models import EstadoCita
-from historial.models import Consulta, Prescripcion, Vacuna, VacunaAplicada
+from historial.models import Consulta, Prescripcion, TomaDia, Vacuna, VacunaAplicada
 from mascotas.models import Mascota
 
 # Una vacuna cuya próxima dosis cae dentro de estos días aparece como «próxima» en el carnet
@@ -16,6 +17,21 @@ AL_DIA = ('al_dia', 'Al día')
 PROXIMA = ('proxima', 'Próxima')
 VENCIDA = ('vencida', 'Vencida')
 REFORZADA = ('reforzada', 'Reforzada')
+
+# Qué imagen lleva cada receta: se deduce de la dosis y del nombre (palabras clave → tipo, texto e ícono)
+TIPOS_DE_MEDICAMENTO = [
+    (('gota',), ('gotas', 'Gotas', 'bi-eyedropper')),
+    (('jarabe', 'ml', 'suspensi'), ('jarabe', 'Jarabe', 'bi-cup-straw')),
+    (('inyec', 'ampolla', 'jeringa'), ('inyeccion', 'Inyección', 'bi-prescription2')),
+    (('crema', 'pomada', 'ungüento', 'gel'), ('crema', 'Crema', 'bi-bandaid')),
+]
+TABLETA = ('tableta', 'Tableta', 'bi-capsule-pill')
+
+# Estado de cada día del tratamiento: (clave para el CSS, texto)
+DIA_HECHO = ('hecho', 'Hecho')
+DIA_HOY = ('hoy', 'Hoy')
+DIA_SIN_MARCAR = ('sin_marcar', 'Sin marcar')
+DIA_PROXIMO = ('proximo', 'Próximo')
 
 
 class HistorialService:
@@ -153,6 +169,72 @@ class HistorialService:
         return mascotas.filter(pk=pedida).first() if str(pedida or '').isdigit() else None
 
     @staticmethod
+    def tipo_de_medicamento(receta):
+        """Tableta, jarabe, gotas, crema o inyección, según la dosis y el nombre (para su imagen)."""
+        texto = f'{receta.medicamento} {receta.dosis}'.lower()
+        for palabras, tipo in TIPOS_DE_MEDICAMENTO:
+            if any(palabra in texto for palabra in palabras):
+                return tipo
+        return TABLETA
+
+    @staticmethod
+    def seguimiento(receta, hoy=None):
+        """
+        Los días del tratamiento con su estado (hecho, hoy, sin marcar o próximo), cuántas tomas tocan por día
+        y el avance: días marcados sobre días del tratamiento. Usa receta.dias_marcados (mejor si ya vienen
+        con prefetch_related).
+        """
+        hoy = hoy or timezone.localdate()
+        inicio = timezone.localtime(receta.fecha_inicio).date()
+        marcados = {toma.dia for toma in receta.dias_marcados.all()}
+        dias = []
+        for numero in range(receta.duracion_dias):
+            dia = inicio + timedelta(days=numero)
+            if dia in marcados:
+                estado = DIA_HECHO
+            elif dia == hoy:
+                estado = DIA_HOY
+            elif dia < hoy:
+                estado = DIA_SIN_MARCAR
+            else:
+                estado = DIA_PROXIMO
+            dias.append({'numero': numero + 1, 'fecha': dia, 'estado': estado[0], 'texto': estado[1],
+                         'se_puede_marcar': dia <= hoy})
+        hechos = sum(1 for dia in dias if dia['estado'] == DIA_HECHO[0])
+        clave, texto, icono = HistorialService.tipo_de_medicamento(receta)
+        return {
+            'dias': dias,
+            'hechos': hechos,
+            'avance': round(hechos * 100 / receta.duracion_dias) if receta.duracion_dias else 0,
+            'tomas_por_dia': max(1, 24 // receta.frecuencia_horas),
+            'hoy_marcado': any(dia['estado'] == DIA_HECHO[0] and dia['fecha'] == hoy for dia in dias),
+            'tipo': clave, 'tipo_texto': texto, 'icono': icono,
+        }
+
+    @staticmethod
+    def marcar_dia(receta, dia, hoy=None):
+        """
+        Marca o desmarca un día del tratamiento (el check del dueño). Devuelve True si quedó marcado.
+        Solo días del tratamiento y que ya llegaron: no se puede marcar por adelantado.
+        """
+        hoy = hoy or timezone.localdate()
+        inicio = timezone.localtime(receta.fecha_inicio).date()
+        if not inicio <= dia < inicio + timedelta(days=receta.duracion_dias):
+            raise ValidationError('Ese día no es parte del tratamiento.')
+        if dia > hoy:
+            raise ValidationError('Todavía no llega ese día: márcalo cuando le des la dosis.')
+        marcado = TomaDia.objects.filter(prescripcion=receta, dia=dia)
+        if marcado.exists():
+            marcado.delete()
+            return False
+        try:
+            with transaction.atomic():
+                TomaDia.objects.create(prescripcion=receta, dia=dia)
+        except IntegrityError:
+            pass   # dos clics a la vez: la base deja uno solo y el día queda marcado
+        return True
+
+    @staticmethod
     def recetas_del_cliente(cliente, mascota=None, ahora=None):
         """
         Mis recetas: las líneas de receta de las mascotas del cliente, agrupadas por mascota
@@ -163,6 +245,7 @@ class HistorialService:
         recetas = (
             Prescripcion.objects.filter(consulta__mascota__dueno=cliente)
             .select_related('consulta__mascota__especie', 'consulta__veterinario')
+            .prefetch_related('dias_marcados')
             .order_by('consulta__mascota__nombre', '-fecha_inicio', 'pk')
         )
         if mascota is not None:
@@ -172,6 +255,7 @@ class HistorialService:
         for receta in recetas:
             receta.termina = receta.fecha_inicio + timedelta(days=receta.duracion_dias)
             receta.en_curso = receta.fecha_inicio <= ahora < receta.termina
+            receta.seguimiento = HistorialService.seguimiento(receta, timezone.localtime(ahora).date())
             por_mascota.setdefault(receta.consulta.mascota, []).append(receta)
         return list(por_mascota.items())
 

@@ -1,9 +1,18 @@
-"""El cliente ve la historia clínica y las recetas de sus mascotas desde su menú, eligiendo la mascota."""
+"""El cliente ve la historia clínica y las recetas de sus mascotas (con el seguimiento de cada tratamiento)."""
+from datetime import date
+
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views import View
 from django.views.generic import TemplateView
 
 from cuentas.mixins import ClienteRequeridoMixin
 from mascotas.services import MascotaService
 
+from ..models import Prescripcion
 from ..services import HistorialService
 
 
@@ -51,3 +60,32 @@ class MisRecetasView(MascotasDelClienteMixin, TemplateView):
             'en_curso': sum(1 for _, recetas in por_mascota for receta in recetas if receta.en_curso),
         })
         return contexto
+
+
+class MarcarDiaView(ClienteRequeridoMixin, View):
+    """
+    POST: marca (o desmarca) un día del tratamiento de una receta de sus mascotas. La de otra persona responde 404.
+    Vuelve a Mis recetas con el mismo filtro de mascota (?volver= solo si es una dirección de este sitio).
+    """
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        receta = get_object_or_404(Prescripcion.objects.filter(consulta__mascota__dueno=request.user), pk=pk)
+        try:
+            dia = date.fromisoformat(request.POST.get('dia', ''))
+        except ValueError:
+            dia = None
+        if dia is None:
+            messages.error(request, 'Ese día no es válido.')
+        else:
+            try:
+                marcado = HistorialService.marcar_dia(receta, dia)
+            except ValidationError as error:
+                messages.error(request, error.messages[0])
+            else:
+                if marcado:
+                    messages.success(request, f'Listo: {receta.medicamento} quedó marcado el {dia:%d/%m}.')
+        volver = request.POST.get('volver', '')
+        if not url_has_allowed_host_and_scheme(volver, allowed_hosts={request.get_host()}):
+            volver = reverse('historial:mis_recetas')
+        return redirect(f'{volver}#receta-{receta.pk}')

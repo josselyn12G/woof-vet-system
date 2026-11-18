@@ -6,7 +6,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=2" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=3" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -31,19 +31,48 @@
         </div>
         <ul class="recetas">
           {% for receta in recetas %}
-            <li class="receta{% if receta.en_curso %} receta--en-curso{% endif %}">
-              <div class="receta__fila">
-                <strong class="receta__medicamento"><i class="bi bi-capsule" aria-hidden="true"></i>{{ receta.medicamento }}</strong>
-                <span class="estado-receta{% if receta.en_curso %} estado-receta--en-curso{% endif %}">{% if receta.en_curso %}En curso{% else %}Terminada{% endif %}</span>
-              </div>
-              <p class="receta__dosis">{{ receta.dosis }} cada {{ receta.frecuencia_horas }} h durante {{ receta.duracion_dias }} día{{ receta.duracion_dias|pluralize }} · {{ receta.tomas }} toma{{ receta.tomas|pluralize }}</p>
-              {% if receta.indicaciones %}<p class="receta__nota">{{ receta.indicaciones }}</p>{% endif %}
-              <p class="receta__meta">
-                <i class="bi bi-calendar-range" aria-hidden="true"></i>Del {{ receta.fecha_inicio|date:'j M' }} al {{ receta.termina|date:'j M Y' }}
-                · <i class="bi bi-person-badge" aria-hidden="true"></i>{{ receta.consulta.veterinario.get_full_name|default:receta.consulta.veterinario.username }}
-                · {{ receta.consulta.diagnostico|truncatechars:70 }}
-              </p>
-            </li>
+            {% with seg=receta.seguimiento %}
+              <li class="receta{% if receta.en_curso %} receta--en-curso{% endif %}" id="receta-{{ receta.pk }}">
+                {# Cabecera: la imagen del tipo de medicamento, el nombre y quién lo indicó #}
+                <div class="receta__cabecera">
+                  <span class="receta__imagen receta__imagen--{{ seg.tipo }}" aria-hidden="true"><i class="bi {{ seg.icono }}"></i></span>
+                  <div class="receta__titulos">
+                    <h3 class="receta__medicamento">{{ receta.medicamento }}</h3>
+                    <p class="receta__quien">{{ seg.tipo_texto }} · indicado por {{ receta.consulta.veterinario.get_full_name|default:receta.consulta.veterinario.username }} el {{ receta.consulta.fecha|date:'j M' }}</p>
+                  </div>
+                  <span class="estado-receta{% if receta.en_curso %} estado-receta--en-curso{% endif %}">{% if receta.en_curso %}En curso{% else %}Terminada{% endif %}</span>
+                </div>
+
+                {# La dosis es la del veterinario: aquí solo se muestra, no se cambia #}
+                <div class="receta__dosis-bloque">
+                  <p class="receta__etiqueta">La dosis que indicó el veterinario</p>
+                  <p class="receta__dosis-grande">{{ receta.dosis }} <span>cada {{ receta.frecuencia_horas }} h</span></p>
+                  <p class="receta__dosis-detalle">{{ seg.tomas_por_dia }} toma{{ seg.tomas_por_dia|pluralize }} al día · {{ receta.duracion_dias }} día{{ receta.duracion_dias|pluralize }} · del {{ receta.fecha_inicio|date:'j M' }} al {{ receta.termina|date:'j M' }}</p>
+                  {% if receta.indicaciones %}<p class="receta__nota"><i class="bi bi-info-circle" aria-hidden="true"></i>{{ receta.indicaciones }}</p>{% endif %}
+                </div>
+
+                {% if receta.en_curso %}
+                  <div class="seguimiento">
+                    <div class="seguimiento__avance">
+                      <div class="anillo anillo--seguimiento" style="--avance: {{ seg.avance|stringformat:'s' }}" role="img" aria-label="{{ seg.avance }}% del tratamiento cumplido">
+                        <span class="anillo__dias">{{ seg.avance }}<small>%</small></span>
+                        <span class="anillo__texto">cumplido</span>
+                      </div>
+                      <p class="seguimiento__resumen"><strong>{{ seg.hechos }} de {{ receta.duracion_dias }}</strong> días marcados</p>
+                      <p class="seguimiento__ayuda">{% if seg.hoy_marcado %}Hoy ya está marcado.{% else %}Marca el día cuando le des {% if seg.tomas_por_dia > 1 %}las {{ seg.tomas_por_dia }} tomas{% else %}la toma{% endif %}.{% endif %}</p>
+                    </div>
+                    {% include 'historial/cliente/_dias_tratamiento.html' %}
+                  </div>
+                {% else %}
+                  <details class="seguimiento-cerrado">
+                    <summary><strong>{{ seg.hechos }} de {{ receta.duracion_dias }}</strong> días marcados · {{ seg.avance }}% cumplido</summary>
+                    {% include 'historial/cliente/_dias_tratamiento.html' %}
+                  </details>
+                {% endif %}
+
+                <p class="receta__meta"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>{{ receta.consulta.diagnostico|truncatechars:90 }}</p>
+              </li>
+            {% endwith %}
           {% endfor %}
         </ul>
       </section>

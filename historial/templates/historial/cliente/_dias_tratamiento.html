@@ -1,0 +1,26 @@
+{# Los días del tratamiento como pasos: un check por día. Marcar o desmarcar es un POST (MarcarDiaView) #}
+<ol class="dias-tratamiento" aria-label="Días del tratamiento">
+  {% for dia in seg.dias %}
+    <li class="dia-tratamiento dia-tratamiento--{{ dia.estado }}">
+      <span class="dia-tratamiento__marca" aria-hidden="true">
+        {% if dia.estado == 'hecho' %}<i class="bi bi-check-lg"></i>{% elif dia.estado == 'hoy' %}<span class="dia-tratamiento__punto"></span>{% endif %}
+      </span>
+      <span class="dia-tratamiento__texto">
+        <strong>Día {{ dia.numero }}{% if dia.estado == 'hoy' %} · hoy{% endif %}</strong>
+        <span>{{ dia.fecha|date:'l j \d\e F'|capfirst }} · {% if dia.estado == 'hecho' %}Dosis dada{% elif dia.estado == 'sin_marcar' %}Sin marcar{% elif dia.estado == 'hoy' %}Te toca hoy{% else %}Próximo{% endif %}</span>
+      </span>
+      {% if dia.se_puede_marcar %}
+        <form method="post" action="{% url 'historial:marcar_dia' receta.pk %}" class="dia-tratamiento__accion">
+          {% csrf_token %}
+          <input type="hidden" name="dia" value="{{ dia.fecha|date:'Y-m-d' }}">
+          <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+          {% if dia.estado == 'hecho' %}
+            <button type="submit" class="dia-tratamiento__boton dia-tratamiento__boton--deshacer" aria-label="Desmarcar el día {{ dia.numero }}">Deshacer</button>
+          {% else %}
+            <button type="submit" class="dia-tratamiento__boton" aria-label="Marcar el día {{ dia.numero }} como cumplido"><i class="bi bi-check2" aria-hidden="true"></i>Marcar</button>
+          {% endif %}
+        </form>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ol>
