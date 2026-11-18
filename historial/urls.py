@@ -10,6 +10,7 @@ urlpatterns = [
     # Menú del cliente: la historia clínica y las recetas de sus mascotas (403 para los demás roles)
     path('mi-historia/', views.MiHistoriaClinicaView.as_view(), name='mi_historia'),
     path('mis-recetas/', views.MisRecetasView.as_view(), name='mis_recetas'),
+    path('mis-recetas/consulta/<int:pk>/', views.TratamientoView.as_view(), name='tratamiento'),
     # El check de cada día del tratamiento (POST, solo recetas de sus mascotas: 404 con las de otro)
     path('mis-recetas/<int:pk>/marcar/', views.MarcarDiaView.as_view(), name='marcar_dia'),
     # Catálogo de vacunas: administrador y superadministrador (403 para los demás)

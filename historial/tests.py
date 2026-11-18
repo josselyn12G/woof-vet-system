@@ -584,24 +584,54 @@ class HistoriaDelClienteTests(ClienteConRecetasBase):
         self.assertContains(respuesta, reverse('historial:mis_recetas'))
 
     # ---------- Mis recetas ----------
-    def test_mis_recetas_agrupadas_por_mascota_y_con_su_estado(self):
+    def test_mis_recetas_agrupa_por_consulta_con_su_estado(self):
         respuesta = self.client.get(reverse('historial:mis_recetas'))
-        ((mascota, recetas),) = respuesta.context['por_mascota']
-        self.assertEqual(mascota, self.milo)
-        estados = {receta.medicamento: receta.en_curso for receta in recetas}
+        (tratamiento,) = respuesta.context['tratamientos']
+        self.assertEqual(tratamiento['consulta'], self.consulta_milo)
+        self.assertEqual(tratamiento['estado'], 'en_curso')
+        estados = {receta.medicamento: receta.en_curso for receta in tratamiento['recetas']}
         self.assertEqual(estados, {'Amoxicilina 250 mg': True, 'Jarabe antitusivo': False})
         self.assertEqual(respuesta.context['en_curso'], 1)
+        self.assertEqual([receta for _, receta in respuesta.context['hoy']], [self.en_curso])
         self.assertContains(respuesta, 'En curso')
-        self.assertContains(respuesta, 'Terminada')
+        self.assertContains(respuesta, 'Control de dosis de hoy')
+        self.assertContains(respuesta, reverse('historial:tratamiento', args=[self.consulta_milo.pk]))
 
     def test_mis_recetas_filtra_por_mascota(self):
         respuesta = self.client.get(reverse('historial:mis_recetas'), {'mascota': self.luna.pk})
-        self.assertEqual(respuesta.context['por_mascota'], [])
+        self.assertEqual(respuesta.context['tratamientos'], [])
         self.assertContains(respuesta, 'Luna no tiene recetas todavía')
 
     def test_no_muestra_recetas_de_otro_cliente(self):
         self.client.force_login(crear_usuario('luis'))
-        self.assertEqual(self.client.get(reverse('historial:mis_recetas')).context['por_mascota'], [])
+        self.assertEqual(self.client.get(reverse('historial:mis_recetas')).context['tratamientos'], [])
+
+    # ---------- Tratamiento (detalle de una consulta) ----------
+    def test_el_tratamiento_muestra_cada_medicamento_y_la_siguiente_dosis(self):
+        respuesta = self.client.get(reverse('historial:tratamiento', args=[self.consulta_milo.pk]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Amoxicilina 250 mg')
+        self.assertContains(respuesta, 'Jarabe antitusivo')
+        self.assertContains(respuesta, 'Siguiente dosis', count=1)   # la terminada ya no tiene
+        self.assertContains(respuesta, f'id="receta-{self.en_curso.pk}"')
+
+    def test_el_tratamiento_de_otro_cliente_o_sin_receta_responde_404(self):
+        otra_cita = crear_cita_pasada(self.milo, self.veterinario, self.servicio, dias=3)
+        sin_receta = self.consulta(otra_cita)
+        sin_receta.save()
+        self.assertEqual(self.client.get(reverse('historial:tratamiento', args=[sin_receta.pk])).status_code, 404)
+        self.client.force_login(crear_usuario('luis'))
+        url = reverse('historial:tratamiento', args=[self.consulta_milo.pk])
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_la_siguiente_toma_avanza_con_la_frecuencia(self):
+        inicio = self.en_curso.fecha_inicio
+        self.assertEqual(HistorialService.siguiente_toma(self.en_curso, inicio - timedelta(hours=1)), inicio)
+        self.assertEqual(HistorialService.siguiente_toma(self.en_curso, inicio + timedelta(hours=1)),
+                         inicio + timedelta(hours=12))
+        self.assertEqual(HistorialService.siguiente_toma(self.en_curso, inicio + timedelta(hours=12)),
+                         inicio + timedelta(hours=12))
+        self.assertIsNone(HistorialService.siguiente_toma(self.en_curso, inicio + timedelta(days=7)))
 
     # ---------- Tablero ----------
     def test_el_tablero_trae_el_peso_y_la_proxima_vacuna(self):
@@ -655,9 +685,11 @@ class SeguimientoDelTratamientoTests(ClienteConRecetasBase):
         self.assertRedirects(respuesta, reverse('historial:mis_recetas') + f'#receta-{self.en_curso.pk}',
                              fetch_redirect_response=False)
         self.assertTrue(TomaDia.objects.filter(prescripcion=self.en_curso, dia=hoy).exists())
-        pagina = self.client.get(reverse('historial:mis_recetas'))
-        self.assertContains(pagina, '1 de 7')
+        pagina = self.client.get(reverse('historial:tratamiento', args=[self.consulta_milo.pk]))
+        self.assertContains(pagina, '1 de 7 días')
         self.assertContains(pagina, 'Dosis dada')
+        self.assertContains(pagina, '¡Todo al día!')
+        self.assertContains(self.client.get(reverse('historial:mis_recetas')), 'Dosis dada')
 
     def test_marcar_dos_veces_lo_desmarca(self):
         hoy = timezone.localdate()

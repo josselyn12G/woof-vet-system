@@ -1,25 +1,37 @@
-{# Los días del tratamiento como pasos: un check por día. Marcar o desmarcar es un POST (MarcarDiaView) #}
+{% comment %}
+  Los días del tratamiento como una lista de checks (estilo "spring check"): la caja se llena con un resorte,
+  el visto se dibuja y el texto queda tachado. Cada check es un POST a MarcarDiaView (sin JS también funciona);
+  seguimiento.js solo anima el cambio antes de enviar. Los días que no llegan no se pueden marcar.
+{% endcomment %}
 <ol class="dias-tratamiento" aria-label="Días del tratamiento">
   {% for dia in seg.dias %}
     <li class="dia-tratamiento dia-tratamiento--{{ dia.estado }}">
-      <span class="dia-tratamiento__marca" aria-hidden="true">
-        {% if dia.estado == 'hecho' %}<i class="bi bi-check-lg"></i>{% elif dia.estado == 'hoy' %}<span class="dia-tratamiento__punto"></span>{% endif %}
-      </span>
-      <span class="dia-tratamiento__texto">
-        <strong>Día {{ dia.numero }}{% if dia.estado == 'hoy' %} · hoy{% endif %}</strong>
-        <span>{{ dia.fecha|date:'l j \d\e F'|capfirst }} · {% if dia.estado == 'hecho' %}Dosis dada{% elif dia.estado == 'sin_marcar' %}Sin marcar{% elif dia.estado == 'hoy' %}Te toca hoy{% else %}Próximo{% endif %}</span>
-      </span>
       {% if dia.se_puede_marcar %}
-        <form method="post" action="{% url 'historial:marcar_dia' receta.pk %}" class="dia-tratamiento__accion">
+        <form method="post" action="{% url 'historial:marcar_dia' receta.pk %}" data-spring-check>
           {% csrf_token %}
           <input type="hidden" name="dia" value="{{ dia.fecha|date:'Y-m-d' }}">
           <input type="hidden" name="volver" value="{{ request.get_full_path }}">
-          {% if dia.estado == 'hecho' %}
-            <button type="submit" class="dia-tratamiento__boton dia-tratamiento__boton--deshacer" aria-label="Desmarcar el día {{ dia.numero }}">Deshacer</button>
-          {% else %}
-            <button type="submit" class="dia-tratamiento__boton" aria-label="Marcar el día {{ dia.numero }} como cumplido"><i class="bi bi-check2" aria-hidden="true"></i>Marcar</button>
-          {% endif %}
+          <button type="submit" class="spring-check{% if dia.estado == 'hecho' %} es-hecho{% endif %}" role="checkbox"
+                  aria-checked="{% if dia.estado == 'hecho' %}true{% else %}false{% endif %}">
+      {% else %}
+          <span class="spring-check es-futuro">
+      {% endif %}
+            <span class="spring-check__caja" aria-hidden="true">
+              <span class="spring-check__relleno"></span>
+              <svg class="spring-check__visto" viewBox="0 0 24 24" focusable="false"><path d="M5.5 12.5l4.25 4.25L18.5 8" pathLength="1"/></svg>
+            </span>
+            <span class="spring-check__texto">
+              <span class="spring-check__titulo">
+                <span class="spring-check__palabras">Día {{ dia.numero }}{% if dia.estado == 'hoy' %} · hoy{% endif %}</span>
+                <span class="spring-check__raya" aria-hidden="true"></span>
+              </span>
+              <span class="spring-check__detalle">{{ dia.fecha|date:'l j \d\e F'|capfirst }} · <span data-estado>{% if dia.estado == 'hecho' %}Dosis dada{% elif dia.estado == 'sin_marcar' %}Sin marcar{% elif dia.estado == 'hoy' %}Te toca hoy{% else %}Próximo{% endif %}</span></span>
+            </span>
+      {% if dia.se_puede_marcar %}
+          </button>
         </form>
+      {% else %}
+          </span>
       {% endif %}
     </li>
   {% endfor %}

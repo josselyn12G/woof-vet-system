@@ -6,13 +6,13 @@ Vistas de la historia clínica, separadas por tema como en citas/views.
 - vacunas: el catálogo de vacunas (administrador).
 - cliente: Historia clínica y Mis recetas del menú del cliente.
 """
-from .cliente import MarcarDiaView, MiHistoriaClinicaView, MisRecetasView
+from .cliente import MarcarDiaView, MiHistoriaClinicaView, MisRecetasView, TratamientoView
 from .consulta import RegistrarConsultaView
 from .historia import HistoriaClinicaView, HistoriaPdfView
 from .vacunas import VacunaCreateView, VacunaEstadoView, VacunaListView, VacunaUpdateView
 
 __all__ = [
     'RegistrarConsultaView', 'HistoriaClinicaView', 'HistoriaPdfView', 'MiHistoriaClinicaView', 'MisRecetasView',
-    'MarcarDiaView',
+    'TratamientoView', 'MarcarDiaView',
     'VacunaListView', 'VacunaCreateView', 'VacunaUpdateView', 'VacunaEstadoView',
 ]

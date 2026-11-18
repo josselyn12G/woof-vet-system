@@ -3,8 +3,11 @@ from datetime import date
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.formats import date_format
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import TemplateView
@@ -47,19 +50,42 @@ class MiHistoriaClinicaView(MascotasDelClienteMixin, TemplateView):
 
 
 class MisRecetasView(MascotasDelClienteMixin, TemplateView):
-    """Mis recetas: todas las de sus mascotas agrupadas por mascota, o solo las de una (?mascota=<id>)."""
+    """
+    Mis recetas (portada): un tratamiento por consulta, de la más nueva a la más vieja, con su avance;
+    arriba el resumen de hoy (qué medicamento toca y si ya se dio). ?mascota=<id> deja solo esa mascota.
+    """
     template_name = 'historial/cliente/mis_recetas.html'
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         mascotas = self.mascotas()
         elegida = self.elegida(mascotas)
-        por_mascota = HistorialService.recetas_del_cliente(self.request.user, elegida)
+        contexto.update(HistorialService.tratamientos_del_cliente(self.request.user, elegida))
+        contexto.update({'mascotas': mascotas, 'mascota_elegida': elegida,
+                         'volver': reverse('panel:inicio_cliente')})
+        return contexto
+
+
+class TratamientoView(ClienteRequeridoMixin, TemplateView):
+    """
+    El tratamiento de una consulta: cada medicamento con su imagen, la dosis del veterinario, la siguiente toma
+    y un check por día. Solo consultas de sus mascotas que tienen receta (las demás responden 404).
+    """
+    template_name = 'historial/cliente/tratamiento.html'
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        datos = HistorialService.tratamientos_del_cliente(self.request.user, consulta=self.kwargs['pk'])
+        if not datos['tratamientos']:
+            raise Http404('Ese tratamiento no existe o no es de tus mascotas.')
+        tratamiento = datos['tratamientos'][0]
         contexto.update({
-            'mascotas': mascotas,
-            'mascota_elegida': elegida,
-            'por_mascota': por_mascota,
-            'en_curso': sum(1 for _, recetas in por_mascota for receta in recetas if receta.en_curso),
+            'tratamiento': tratamiento,
+            'mascota': tratamiento['mascota'],
+            'volver': reverse('historial:mis_recetas') + f"?mascota={tratamiento['mascota'].pk}",
+            'subtitulo': (f"{tratamiento['titulo']} del "
+                          f"{date_format(timezone.localtime(tratamiento['consulta'].fecha), 'j \\d\\e F')}"
+                          f" · {tratamiento['mascota'].nombre}"),
         })
         return contexto
 

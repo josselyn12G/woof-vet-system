@@ -313,29 +313,115 @@ class HistorialService:
         return True
 
     @staticmethod
-    def recetas_del_cliente(cliente, mascota=None, ahora=None):
+    def recetas_del_cliente(cliente, mascota=None, ahora=None, consulta=None):
         """
-        Mis recetas: las líneas de receta de las mascotas del cliente, agrupadas por mascota
+        Las líneas de receta de las mascotas del cliente, agrupadas por mascota
         [(mascota, [receta, ...]), ...], de la más nueva a la más vieja. Cada receta trae cuándo termina
-        (inicio + días) y si sigue en curso. Con mascota, solo las de esa mascota.
+        (inicio + días), si sigue en curso, su seguimiento y la siguiente toma.
+        Con mascota, solo las de esa mascota; con consulta (id), solo las de esa consulta.
         """
         ahora = ahora or timezone.now()
         recetas = (
             Prescripcion.objects.filter(consulta__mascota__dueno=cliente)
-            .select_related('consulta__mascota__especie', 'consulta__veterinario')
+            .select_related('consulta__mascota__especie', 'consulta__veterinario', 'consulta__cita__servicio')
             .prefetch_related('dias_marcados')
             .order_by('consulta__mascota__nombre', '-fecha_inicio', 'pk')
         )
         if mascota is not None:
             recetas = recetas.filter(consulta__mascota=mascota)
+        if consulta is not None:
+            recetas = recetas.filter(consulta_id=consulta)
 
         por_mascota = {}
         for receta in recetas:
             receta.termina = receta.fecha_inicio + timedelta(days=receta.duracion_dias)
             receta.en_curso = receta.fecha_inicio <= ahora < receta.termina
+            receta.por_empezar = ahora < receta.fecha_inicio
             receta.seguimiento = HistorialService.seguimiento(receta, timezone.localtime(ahora).date())
+            receta.siguiente_toma = HistorialService.siguiente_toma(receta, ahora)
+            receta.siguiente_dia = HistorialService.dia_relativo(receta.siguiente_toma, ahora)
             por_mascota.setdefault(receta.consulta.mascota, []).append(receta)
         return list(por_mascota.items())
+
+    @staticmethod
+    def dia_relativo(momento, ahora=None):
+        """'Hoy', 'Mañana' o None (la plantilla pone la fecha): para leer de un vistazo la siguiente dosis."""
+        if momento is None:
+            return None
+        hoy = timezone.localtime(ahora or timezone.now()).date()
+        dias = (timezone.localtime(momento).date() - hoy).days
+        return {0: 'Hoy', 1: 'Mañana'}.get(dias)
+
+    @staticmethod
+    def siguiente_toma(receta, ahora=None):
+        """
+        Cuándo toca la próxima dosis: el inicio más tantas veces la frecuencia como haga falta para pasar de ahora.
+        None si el tratamiento ya terminó (o si la siguiente caería después del último día).
+        """
+        ahora = ahora or timezone.now()
+        if ahora <= receta.fecha_inicio:
+            return receta.fecha_inicio
+        termina = receta.fecha_inicio + timedelta(days=receta.duracion_dias)
+        paso = timedelta(hours=receta.frecuencia_horas)
+        tomas_pasadas = -(-(ahora - receta.fecha_inicio) // paso)   # división hacia arriba
+        toma = receta.fecha_inicio + tomas_pasadas * paso
+        return toma if toma < termina else None
+
+    @staticmethod
+    def resumen_tratamiento(consulta, recetas):
+        """
+        Un tratamiento = las recetas de una consulta. Suma los días marcados de todas, dice su estado
+        (en curso si alguna sigue, por empezar, o terminado) y la siguiente toma más cercana.
+        """
+        total = sum(receta.duracion_dias for receta in recetas)
+        hechos = sum(receta.seguimiento['hechos'] for receta in recetas)
+        if any(receta.en_curso for receta in recetas):
+            estado = ('en_curso', 'En curso')
+        elif all(receta.por_empezar for receta in recetas):
+            estado = ('por_empezar', 'Por empezar')
+        else:
+            estado = ('terminado', 'Terminado')
+        tomas = [receta.siguiente_toma for receta in recetas if receta.siguiente_toma]
+        return {
+            'consulta': consulta,
+            'mascota': consulta.mascota,
+            'titulo': consulta.cita.servicio.nombre if consulta.cita_id else 'Consulta',
+            'recetas': recetas,
+            'hechos': hechos,
+            'total_dias': total,
+            'avance': round(hechos * 100 / total) if total else 0,
+            'estado': estado[0],
+            'estado_texto': estado[1],
+            'siguiente_toma': min(tomas) if tomas else None,
+            'pendientes_hoy': [r for r in recetas if r.en_curso and not r.seguimiento['hoy_marcado']],
+            'al_dia': estado[0] == 'en_curso' and all(r.seguimiento['hoy_marcado'] for r in recetas if r.en_curso),
+        }
+
+    @staticmethod
+    def tratamientos_del_cliente(cliente, mascota=None, ahora=None, consulta=None):
+        """
+        Mis recetas: las recetas agrupadas por la consulta en que se recetaron (un tratamiento por consulta),
+        de la consulta más nueva a la más vieja. Además, el resumen de hoy: los tratamientos en curso,
+        el avance de todos ellos juntos y cada medicamento que toca hoy (dado o pendiente).
+        """
+        ahora = ahora or timezone.now()
+        por_consulta = {}
+        for _, recetas in HistorialService.recetas_del_cliente(cliente, mascota, ahora, consulta):
+            for receta in recetas:
+                por_consulta.setdefault(receta.consulta, []).append(receta)
+        tratamientos = sorted(
+            (HistorialService.resumen_tratamiento(c, rs) for c, rs in por_consulta.items()),
+            key=lambda tratamiento: tratamiento['consulta'].fecha, reverse=True,
+        )
+        en_curso = [t for t in tratamientos if t['estado'] == 'en_curso']
+        total = sum(t['total_dias'] for t in en_curso)
+        hechos = sum(t['hechos'] for t in en_curso)
+        return {
+            'tratamientos': tratamientos,
+            'en_curso': len(en_curso),
+            'avance_en_curso': round(hechos * 100 / total) if total else 0,
+            'hoy': [(t, receta) for t in en_curso for receta in t['recetas'] if receta.en_curso],
+        }
 
     @staticmethod
     def vacunas_para(mascota):

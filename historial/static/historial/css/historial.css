@@ -153,127 +153,9 @@
 }
 
 /* ==========================================================================
-   Historia clínica (solo lectura): la ficha del paciente arriba, la línea de tiempo
-   de las consultas a la izquierda y todas las vacunas aplicadas a la derecha
+   Anillo de avance (Mis recetas y el tratamiento) y los días del tratamiento:
+   un check por día, como los pasos de un proceso
    ========================================================================== */
-.historia {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.historia__vacia {
-  display: grid;
-  justify-items: center;
-  gap: 0.5rem;
-  padding: 2rem 1rem;
-  color: var(--p-texto-2);
-  text-align: center;
-}
-
-.historia__vacia .bi {
-  font-size: 2rem;
-  color: var(--p-acento);
-}
-
-.historia__vacia p {
-  margin: 0;
-}
-
-.recetas-mascota__cabecera {
-  align-items: center;
-}
-
-.recetas-mascota__nombre {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.recetas-mascota__nombre .filtro-mascotas__foto {
-  margin-left: 0;
-}
-
-.recetas {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.receta {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--p-borde);
-  border-radius: var(--p-radio-control);
-  background: var(--p-superficie);
-}
-
-.receta--en-curso {
-  border-color: var(--p-acento);
-  background: var(--p-acento-tinte);
-}
-
-.receta__fila {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.receta__medicamento {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--p-texto);
-}
-
-.receta__medicamento .bi {
-  color: var(--p-acento);
-}
-
-.receta__dosis,
-.receta__nota,
-.receta__meta {
-  margin: 0;
-}
-
-.receta__dosis {
-  color: var(--p-texto);
-  font-variant-numeric: tabular-nums;
-}
-
-.receta__nota {
-  color: var(--p-texto-2);
-  font-size: 0.9rem;
-}
-
-.receta__meta {
-  color: var(--p-texto-2);
-  font-size: 0.82rem;
-}
-
-.receta__meta .bi {
-  margin-right: 0.3rem;
-}
-
-.estado-receta {
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  background: var(--p-fondo);
-  color: var(--p-texto-2);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.estado-receta--en-curso {
-  background: #e7f5ec;
-  color: #1e7b45;
-}
-
-/* Próxima vacuna: anillo que marca cuánto del refuerzo ya pasó */
 .anillo {
   display: grid;
   place-content: center;
@@ -286,10 +168,12 @@
     conic-gradient(var(--p-acento) calc(var(--avance, 0) * 1%), var(--p-acento-tinte) 0);
 }
 
+/* Números: semibold y apretados, con cifras tabulares (como los widgets de Salud) */
 .anillo__dias {
   color: var(--p-texto);
   font-size: 2rem;
-  font-weight: 300;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -299,230 +183,15 @@
   font-size: 0.75rem;
 }
 
-/* ==========================================================================
-   Historia clínica · tipografía y superficies (minimalista, al estilo de las apps de Apple)
-   Roles con nombre por su función: así el mismo papel se ve igual en todas las tarjetas.
-   La fuente es la del sistema (SF Pro en Mac/iPhone); la marca queda en el naranja y el café.
-   ========================================================================== */
-.historia {
-  --h-seccion: 1.375rem;       /* "Consultas" */
-  --h-tarjeta: 1.0625rem;      /* "Peso", "Próxima vacuna" */
-  --h-subtitulo: 0.875rem;     /* lo que mide cada tarjeta */
-  --h-cifra: 2.75rem;          /* los números grandes */
-  --h-texto: 1rem;             /* diagnóstico, indicaciones */
-  --h-etiqueta: 0.8125rem;     /* "Motivo", "Diagnóstico" */
-  --h-sombra: 0 1px 2px rgba(59, 42, 34, 0.05), 0 12px 32px -18px rgba(59, 42, 34, 0.28);
-  font-family: var(--woof-fuente-texto);
-}
-
-.historia__titulo-seccion {
-  margin: 0;
-  color: var(--p-texto);
-  font-family: inherit;
-  font-size: var(--h-seccion);
-  font-weight: 650;
-  letter-spacing: -0.022em;
-  line-height: 1.2;
-  text-wrap: balance;
-}
-
-/* Números: semibold y apretados, con cifras tabulares (como los widgets de Salud) */
-.anillo__dias {
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Mis recetas: el medicamento es el titular de cada receta */
-.receta {
-  border: 0;
-  border-radius: 1.1rem;
-  box-shadow: inset 0 0 0 1px var(--p-borde);
-}
-
-.receta--en-curso {
-  box-shadow: inset 0 0 0 1.5px var(--p-acento);
-}
-
-.receta__medicamento {
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.receta__dosis {
-  font-size: 0.9375rem;
-}
-
-/* Mis recetas: las secciones por mascota con la misma superficie que el tablero */
-.historia > .bloque-panel {
-  border: 0;
-  border-radius: 1.5rem;
-  box-shadow: var(--h-sombra);
-}
-
-.recetas-mascota__nombre .bloque-panel__titulo {
-  font-size: var(--h-tarjeta);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-}
-
-/* ==========================================================================
-   Mis recetas · seguimiento del tratamiento: la imagen del medicamento, la dosis del veterinario,
-   el anillo de avance y un check por día (como los pasos de un proceso)
-   ========================================================================== */
-.receta {
-  gap: 1.1rem;
-  padding: 1.35rem 1.4rem;
-}
-
-.receta__cabecera {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.receta__titulos {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.receta__medicamento {
-  margin: 0;
-  color: var(--p-texto);
-  font-family: var(--woof-fuente-texto);
-  font-size: var(--h-tarjeta);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.25;
-}
-
-.receta__quien {
-  margin: 0.15rem 0 0;
-  color: var(--p-texto-2);
-  font-size: var(--h-subtitulo);
-}
-
-/* La imagen del medicamento: un círculo con el ícono de su tipo, cada tipo con su tono */
-.receta__imagen {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 1rem;
-  font-size: 1.5rem;
-  background: var(--p-acento-tinte);
-  color: var(--p-acento-texto);
-}
-
-.receta__imagen--jarabe { background: #e8f1fb; color: #2f6db5; }
-.receta__imagen--gotas { background: #e6f5f2; color: #1f7a6a; }
-.receta__imagen--crema { background: #f6ecf8; color: #8a4aa0; }
-.receta__imagen--inyeccion { background: #fdecee; color: #b4232a; }
-
-.receta__dosis-bloque {
-  display: grid;
-  gap: 0.25rem;
-  padding: 1rem 1.1rem;
-  border-radius: 1rem;
-  background: var(--p-fondo);
-}
-
-.receta__etiqueta {
-  margin: 0;
-  color: var(--p-texto-2);
-  font-size: var(--h-etiqueta);
-  font-weight: 500;
-}
-
-.receta__dosis-grande {
-  margin: 0;
-  color: var(--p-texto);
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.receta__dosis-grande span {
-  color: var(--p-texto-2);
-  font-size: 1rem;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.receta__dosis-detalle {
-  margin: 0;
-  color: var(--p-texto-2);
-  font-size: var(--h-subtitulo);
-  font-variant-numeric: tabular-nums;
-}
-
-.receta__nota {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  margin: 0.35rem 0 0;
-  color: var(--p-texto);
-  font-size: 0.9rem;
-}
-
-.receta__nota .bi {
-  color: var(--p-acento);
-}
-
-.receta--en-curso {
-  background: var(--p-superficie);
-  box-shadow: var(--h-sombra), inset 0 0 0 1.5px var(--p-acento);
-}
-
-/* Avance + días: el anillo a la izquierda y los pasos a la derecha */
-.seguimiento {
-  display: grid;
-  grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
-  align-items: start;
-  gap: 1.5rem;
-}
-
-.seguimiento__avance {
-  display: grid;
-  justify-items: center;
-  gap: 0.35rem;
-  text-align: center;
-}
-
-.anillo--seguimiento {
-  width: 9rem;
-  height: 9rem;
-  margin-bottom: 0.4rem;
-}
-
 .anillo__dias small {
   margin-left: 0.05rem;
   font-size: 1rem;
   font-weight: 500;
 }
 
-.seguimiento__resumen {
-  margin: 0;
-  color: var(--p-texto-2);
-  font-size: var(--h-subtitulo);
-}
-
-.seguimiento__resumen strong {
-  color: var(--p-texto);
-  font-weight: 600;
-}
-
-.seguimiento__ayuda {
-  margin: 0;
-  color: var(--p-texto-2);
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
-
-/* Los días: un círculo por día unido por una línea; hecho = verde con check, hoy = anillo naranja */
+/* Los días del tratamiento: un "spring check" por día (como el de React Bits, en CSS y sin React).
+   Sin marcar: aro tenue. Al marcar, el relleno verde crece con un resorte (pasa un poco de su tamaño y vuelve),
+   el visto se dibuja y el texto se apaga con una raya que entra desde la izquierda. */
 .dias-tratamiento {
   display: grid;
   margin: 0;
@@ -532,152 +201,222 @@
 
 .dia-tratamiento {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.55rem 0;
 }
 
+/* La línea que une las cajas (verde cuando el día ya está hecho) */
 .dia-tratamiento:not(:last-child)::after {
   content: '';
   position: absolute;
-  top: 2.3rem;
-  bottom: -0.45rem;
-  left: 0.875rem;
+  top: 40px;
+  bottom: -6px;
+  left: 13px;
   width: 2px;
+  border-radius: 2px;
   background: var(--p-linea);
 }
 
 .dia-tratamiento--hecho:not(:last-child)::after {
-  background: #5fbf8a;
+  background: #9fd8b6;
 }
 
-.dia-tratamiento__marca {
+.spring-check {
+  --sc-tinta: var(--p-texto);
+  --sc-relleno: #2f9e5b;
+  --sc-visto: #fff;
+  --sc-resorte: cubic-bezier(0.34, 1.56, 0.64, 1);   /* pasa del final y vuelve: el "bounce" */
+  --sc-salida: cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 8px 8px 8px 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--sc-tinta);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.spring-check.es-futuro {
+  cursor: default;
+}
+
+.spring-check:focus-visible {
+  outline: none;
+}
+
+.spring-check:focus-visible .spring-check__caja {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 3px;
+}
+
+/* La caja: aro + relleno + visto. Al presionar se hunde un poco */
+.spring-check__caja {
+  position: relative;
+  z-index: 1;
   display: grid;
   flex: none;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 2px solid var(--p-borde);
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  margin-top: 1px;
+  border-radius: 9px;
+  overflow: hidden;
   background: var(--p-superficie);
-  color: #fff;
-  font-size: 0.95rem;
+  box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.24);
+  transition: transform 160ms var(--sc-salida), box-shadow 120ms ease;
 }
 
-.dia-tratamiento--hecho .dia-tratamiento__marca {
-  border-color: #3f9f6c;
-  background: #3f9f6c;
+.spring-check:not(.es-futuro):active .spring-check__caja {
+  transform: scale(0.95);
 }
 
-.dia-tratamiento--hoy .dia-tratamiento__marca {
-  border-color: var(--p-acento);
+@media (hover: hover) and (pointer: fine) {
+  .spring-check:not(.es-futuro):not(.es-hecho):hover .spring-check__caja {
+    box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.45);
+  }
 }
 
-.dia-tratamiento__punto {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: var(--p-acento);
+.dia-tratamiento--hoy .spring-check:not(.es-hecho) .spring-check__caja {
+  box-shadow: inset 0 0 0 2px var(--p-acento);
 }
 
-.dia-tratamiento--sin_marcar .dia-tratamiento__marca {
-  border-style: dashed;
+.dia-tratamiento--sin_marcar .spring-check:not(.es-hecho) .spring-check__caja {
+  box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.24);
 }
 
-.dia-tratamiento__texto {
+.spring-check.es-futuro .spring-check__caja {
+  box-shadow: inset 0 0 0 2px rgba(29, 29, 31, 0.1);
+}
+
+.spring-check__relleno {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--sc-relleno);
+  transform: scale(0);
+  transition: transform 300ms var(--sc-resorte);
+}
+
+.spring-check__visto {
+  position: relative;
+  width: 70%;
+  height: 70%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--sc-visto);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 200ms var(--sc-salida);
+}
+
+/* El texto: el título se tacha; el detalle (fecha y estado) va debajo */
+.spring-check__texto {
   display: grid;
-  flex: 1 1 auto;
+  gap: 2px;
   min-width: 0;
 }
 
-.dia-tratamiento__texto strong {
-  color: var(--p-texto);
-  font-size: 0.9375rem;
+.spring-check__titulo {
+  position: relative;
+  justify-self: start;
+  font-size: 0.9875rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
-.dia-tratamiento__texto span {
+.spring-check__palabras {
+  display: inline-block;
+  transition: opacity 260ms var(--sc-salida);
+}
+
+.spring-check__raya {
+  position: absolute;
+  top: 52%;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 260ms var(--sc-salida);
+  pointer-events: none;
+}
+
+.spring-check__detalle {
   color: var(--p-texto-2);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
-.dia-tratamiento--proximo .dia-tratamiento__texto {
-  opacity: 0.55;
-}
-
-.dia-tratamiento--hecho .dia-tratamiento__texto span {
-  color: #2f7d55;
-}
-
-.dia-tratamiento__boton {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  min-height: 2rem;
-  padding: 0 0.85rem;
-  border: 0;
-  border-radius: 999px;
-  background: var(--p-acento);
-  color: #fff;
-  font-size: 0.82rem;
+.dia-tratamiento--hoy .spring-check:not(.es-hecho) .spring-check__detalle [data-estado] {
+  color: var(--p-acento-texto);
   font-weight: 600;
-  cursor: pointer;
-  transition: transform 150ms ease, background-color 150ms ease;
 }
 
-.dia-tratamiento__boton:hover {
-  background: var(--p-acento-texto);
+.spring-check.es-futuro .spring-check__texto {
+  opacity: 0.5;
 }
 
-.dia-tratamiento__boton:active {
-  transform: scale(0.97);
+/* Marcado: relleno, visto y el texto apagado y tachado (con un poco de retraso, como el strikeLag) */
+.spring-check.es-hecho .spring-check__caja {
+  box-shadow: none;
 }
 
-.dia-tratamiento__boton:focus-visible {
-  outline: 2px solid var(--p-acento);
-  outline-offset: 2px;
+.spring-check.es-hecho .spring-check__relleno {
+  transform: scale(1);
 }
 
-.dia-tratamiento__boton--deshacer {
-  background: transparent;
-  color: var(--p-texto-2);
-  box-shadow: inset 0 0 0 1px var(--p-borde);
+.spring-check.es-hecho .spring-check__visto {
+  stroke-dashoffset: 0;
+  transition-delay: 90ms;
 }
 
-.dia-tratamiento__boton--deshacer:hover {
-  background: var(--p-fondo);
-  color: var(--p-texto);
+.spring-check.es-hecho .spring-check__palabras {
+  opacity: 0.42;
 }
 
-.seguimiento-cerrado summary {
-  color: var(--p-texto-2);
-  font-size: var(--h-subtitulo);
-  cursor: pointer;
+.spring-check.es-hecho .spring-check__raya {
+  transform: scaleX(1);
+  transition-delay: 40ms;
 }
 
-.seguimiento-cerrado summary strong {
-  color: var(--p-texto);
+.spring-check.es-hecho .spring-check__detalle [data-estado] {
+  color: #1f7a44;
 }
 
-.seguimiento-cerrado .dias-tratamiento {
-  margin-top: 0.75rem;
+/* El "swell": al marcar con el mouse o el dedo, la caja crece un poco y vuelve (lo pone seguimiento.js) */
+.spring-check.es-animando.es-hecho .spring-check__caja {
+  animation: sc-swell 340ms var(--sc-salida);
 }
 
-@media (max-width: 767.98px) {
-  .seguimiento {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .receta__cabecera {
-    flex-wrap: wrap;
-  }
+@keyframes sc-swell {
+  0% { transform: scale(0.95); }
+  45% { transform: scale(1.12); }
+  100% { transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dia-tratamiento__boton {
+  .spring-check__caja,
+  .spring-check__relleno,
+  .spring-check__visto,
+  .spring-check__palabras,
+  .spring-check__raya {
     transition: none;
+    animation: none !important;
   }
 }
 
@@ -777,7 +516,8 @@
   .hc-fila--resumen { align-items: stretch; }
   .hc-fila--resumen > .hc-columna { grid-template-rows: auto 1fr; }
   .hc-fila--detalle { align-items: start; }
-  .hc-fila--detalle > .hc-historial { grid-column: 2; grid-row: 1; }
+  .hc-fila--detalle > .hc-historial,
+  .hc-fila--detalle > .rx-detalles { grid-column: 2; grid-row: 1; }
   .hc-fila--detalle > .hc-lateral { grid-column: 1; grid-row: 1; }
 }
 
@@ -1229,3 +969,213 @@ p.hc-vacio { padding: 24px 0 4px; }
 @media (prefers-reduced-motion: reduce) {
   .hc-volver, .hc-boton, .hc-registro__flecha { transition: none; }
 }
+
+/* ================================================================
+   Mis recetas (rx-): portada por consulta y el detalle de cada tratamiento.
+   Mismas columnas, tarjetas y colores planos que la historia clínica (hc-).
+   ================================================================ */
+/* Cada tipo de medicamento con su tono (tableta = naranja de la marca) */
+.rx-icono { background: var(--p-acento-tinte); color: var(--p-acento-texto); }
+.rx-icono--jarabe { background: #e8f1fb; color: #2f6db5; }
+.rx-icono--gotas { background: #e6f5f2; color: #1f7a6a; }
+.rx-icono--crema { background: #f6ecf8; color: #8a4aa0; }
+.rx-icono--inyeccion { background: #fdecee; color: #b4232a; }
+
+/* ---------- Resumen: el anillo ---------- */
+.rx-resumen { display: grid; justify-items: center; align-content: center; gap: 10px; text-align: center; }
+.rx-resumen .hc-etiqueta { justify-self: stretch; text-align: left; }
+.rx-anillo {
+  width: 9.5rem;
+  height: 9.5rem;
+  margin: 6px 0 2px;
+  background:
+    radial-gradient(closest-side, var(--p-superficie) 82%, transparent 83%),
+    conic-gradient(var(--hc-verde) calc(var(--avance, 0) * 1%), var(--p-linea) 0);
+}
+.rx-anillo .anillo__dias { font-weight: 700; letter-spacing: -0.03em; color: var(--woof-marron); }
+.rx-resumen__texto { margin: 0; font-size: 0.9375rem; line-height: 1.4; color: var(--p-texto-2); }
+.rx-resumen__texto strong { color: var(--p-texto); }
+
+/* ---------- Control de dosis de hoy: pasos unidos por una línea ---------- */
+.rx-pasos { list-style: none; margin: 16px 0 0; padding: 0; display: grid; }
+.rx-paso { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 0; }
+.rx-paso:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 46px;
+  bottom: -10px;
+  width: 2px;
+  background: var(--p-linea);
+}
+.rx-paso--hecho:not(:last-child)::after { background: var(--hc-verde); }
+.rx-paso__marca {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--p-acento-tinte);
+  color: var(--hc-naranja-texto);
+  font-size: 1rem;
+}
+.rx-paso--hecho .rx-paso__marca { background: var(--hc-verde); color: #fff; }
+.rx-paso__texto { display: grid; gap: 2px; min-width: 0; color: inherit; text-decoration: none; }
+.rx-paso__texto strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); }
+.rx-paso__texto span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-paso__texto:hover strong { color: var(--hc-naranja-texto); }
+.rx-vacio-corto { margin: 16px 0 0; color: var(--p-texto-2); font-size: 0.9375rem; }
+
+/* ---------- Lista de tratamientos por consulta ---------- */
+.rx-lista__cabecera { display: flex; align-items: baseline; gap: 12px; margin: 4px 0 14px; }
+.rx-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+@media (min-width: 900px) { .rx-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rx-consulta {
+  display: grid;
+  gap: 14px;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--woof-curva);
+}
+.rx-consulta:hover { border-color: var(--woof-naranja-300); color: inherit; transform: translateY(-2px); }
+.rx-consulta:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-consulta--en_curso { border-color: var(--woof-naranja-300); }
+.rx-consulta__cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+.rx-fecha {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--hc-crema);
+  color: var(--hc-naranja-texto);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.rx-fecha strong { font-size: 1.375rem; font-weight: 700; color: var(--woof-marron); letter-spacing: -0.02em; }
+.rx-consulta__titulos { display: grid; gap: 2px; min-width: 0; }
+.rx-consulta__titulos strong { font-size: 1.0625rem; font-weight: 650; color: var(--p-texto); }
+.rx-consulta__titulos span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-consulta__mascota { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.875rem; line-height: 1.4; color: var(--p-texto-2); }
+.rx-consulta__mascota .filtro-mascotas__foto { flex: none; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; font-size: 0.75rem; }
+.rx-consulta__mascota .filtro-mascotas__foto img { width: 100%; height: 100%; object-fit: cover; }
+.rx-medicamentos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.rx-medicamentos li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: var(--p-fondo);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--p-texto);
+}
+.rx-medicamentos .rx-icono { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 0.9rem; }
+.rx-consulta__avance { display: grid; gap: 6px; }
+.rx-consulta__avance > span { font-size: 0.8125rem; color: var(--p-texto-2); font-variant-numeric: tabular-nums; }
+.rx-consulta__ver { justify-self: end; display: inline-flex; align-items: center; gap: 4px; font-size: 0.875rem; font-weight: 600; color: var(--hc-naranja-texto); }
+
+/* ---------- Detalle: un medicamento ---------- */
+.rx-detalles { gap: 20px; }
+.rx-detalle { display: grid; gap: 20px; scroll-margin-top: 90px; }
+.rx-detalle__cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 22px; }
+.rx-imagen {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 28px;
+  font-size: 3.25rem;
+}
+.rx-detalle__nombre {
+  margin: 2px 0 6px;
+  font-family: var(--woof-fuente-titulos);
+  font-size: clamp(1.375rem, 1.1rem + 0.8vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--woof-marron);
+}
+.rx-detalle__descripcion { margin: 0; font-size: 0.9875rem; line-height: 1.5; color: var(--p-texto-2); max-width: 60ch; }
+.rx-detalle__descripcion strong { color: var(--p-texto); }
+.rx-datos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--p-linea);
+  border-radius: 16px;
+}
+.rx-datos > div { padding: 12px 16px; min-width: 0; }
+.rx-datos > div + div { border-left: 1px solid var(--p-linea); }
+.rx-datos dt { font-size: 0.75rem; font-weight: 600; color: var(--p-texto-2); }
+.rx-datos dd { margin: 4px 0 0; font-size: 0.9375rem; font-weight: 600; line-height: 1.3; color: var(--p-texto); font-variant-numeric: tabular-nums; }
+
+.rx-siguiente {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: var(--hc-crema);
+}
+.rx-siguiente__icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--hc-naranja);
+  color: #fff;
+  font-size: 1.15rem;
+}
+.rx-siguiente__cuando { margin: 2px 0 0; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; color: var(--woof-marron); font-variant-numeric: tabular-nums; }
+.rx-siguiente__dosis { padding: 6px 12px; border-radius: 999px; background: var(--p-superficie); font-size: 0.875rem; font-weight: 600; color: var(--p-texto); }
+
+.rx-control { display: grid; gap: 12px; padding-top: 18px; border-top: 1px solid var(--p-linea); }
+.rx-control__cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* ---------- ¡Todo al día! ---------- */
+.rx-exito {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: var(--hc-radio);
+  background: var(--hc-verde);
+  color: #fff;
+  box-shadow: var(--hc-sombra);
+}
+.rx-exito--neutro { background: var(--hc-marron); }
+.rx-exito__icono {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 1.5rem;
+}
+.rx-exito__titulo { margin: 0; font-family: var(--woof-fuente-titulos); font-size: 1.1875rem; font-weight: 700; letter-spacing: -0.015em; color: #fff; }
+.rx-exito p { margin: 4px 0 0; font-size: 0.9rem; line-height: 1.45; color: rgba(255, 255, 255, 0.88); }
+.rx-consulta-ficha { display: grid; gap: 14px; }
+.rx-consulta-ficha .hc-datos { margin: 0; }
+.rx-consulta-ficha .hc-pastilla { grid-column: auto; justify-self: start; margin-top: 0; }
+
+@media (max-width: 720px) {
+  .rx-detalle__cabecera { grid-template-columns: 1fr; gap: 14px; }
+  .rx-imagen { width: 84px; height: 84px; border-radius: 22px; font-size: 2.5rem; }
+  .rx-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rx-datos > div:nth-child(3) { border-left: 0; }
+  .rx-datos > div:nth-child(n + 3) { border-top: 1px solid var(--p-linea); }
+  .rx-siguiente { grid-template-columns: auto minmax(0, 1fr); }
+  .rx-siguiente__dosis { grid-column: 2; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { .rx-consulta { transition: none; } }
