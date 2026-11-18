@@ -1,0 +1,7 @@
+{% if is_paginated %}
+  <nav class="filtros" aria-label="Páginas">
+    {% if page_obj.has_previous %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.previous_page_number }}{% if consulta %}&{{ consulta }}{% endif %}">Anterior</a>{% endif %}
+    <span class="tabla-panel__total align-self-center">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="boton-panel boton-panel--secundario" href="?page={{ page_obj.next_page_number }}{% if consulta %}&{{ consulta }}{% endif %}">Siguiente</a>{% endif %}
+  </nav>
+{% endif %}

@@ -9,6 +9,7 @@ o las reglas a los services y responden; urls.py las sigue usando como views.<Vi
 - gestion: todas las citas, los horarios y los indicadores de la agenda de la clínica.
 - calificaciones: el cliente califica una cita atendida.
 - perfil: el perfil del veterinario con su reputación.
+- resenas: las opiniones que recibe el veterinario (Mis calificaciones) y las de la clínica (Reseñas).
 - notificaciones: los avisos de las citas (la campana del panel).
 """
 from .agenda import AgendaVeterinarioView, PacientesView, ResultadoCitaView
@@ -21,6 +22,7 @@ from .catalogo import ServicioCreateView, ServicioDeleteView, ServicioEstadoView
 from .gestion import GestionCancelarCitaView, GestionCitasView, GestionHorariosView, IndicadoresView
 from .notificaciones import NotificacionesView, PanelNotificacionesView
 from .perfil import PerfilVeterinarioView
+from .resenas import MisCalificacionesView, ResenasView
 from .horarios import (
     CopiarSemanaView, GestionCopiarSemanaView, GestionHorarioEditarView, GestionHorarioEliminarView,
     GestionHorarioView, GestionServiciosVeterinarioView, HorarioEditarView, HorarioEliminarView, MiHorarioView,
@@ -41,6 +43,8 @@ __all__ = [
     'CalificarCitaView',
     # perfil
     'PerfilVeterinarioView',
+    # resenas
+    'MisCalificacionesView', 'ResenasView',
     # notificaciones
     'NotificacionesView', 'PanelNotificacionesView',
     # agenda

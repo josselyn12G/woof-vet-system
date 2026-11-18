@@ -1730,6 +1730,105 @@ class PerfilVeterinarioVistaTests(TestCase):
         self.assertIn(reverse('cuentas:login'), self.client.get(self.url).url)
 
 
+class ResenasTests(TestCase):
+    """Mis calificaciones del veterinario y Reseñas del administrador: las opiniones de los clientes."""
+
+    def setUp(self):
+        self.valeria = crear_veterinario('valeria', first_name='Valeria', last_name='Ruiz')
+        self.mario = crear_veterinario('mario', first_name='Mario', last_name='Paz')
+        self.sin_opiniones = crear_veterinario('nadia', first_name='Nadia')
+        self.servicio = crear_servicio()
+        self.cliente = crear_usuario('ana', first_name='Carlos', last_name='Mena')
+        self.mascota = crear_mascota(self.cliente)
+        self.administrador = crear_usuario('laura', rol=Roles.ADMINISTRADOR)
+
+    def calificar(self, veterinario, estrellas, comentario='', dias=1):
+        cita = crear_cita_pasada(self.mascota, veterinario, self.servicio, dias=dias)
+        return AgendaService.calificar(cita, self.cliente, estrellas, comentario)
+
+    # ---------- Mis calificaciones (veterinario) ----------
+    def test_el_veterinario_ve_solo_sus_calificaciones(self):
+        self.calificar(self.valeria, 5, 'Muy atenta con Luna', dias=1)
+        self.calificar(self.valeria, 3, dias=2)
+        self.calificar(self.mario, 1, 'No me gustó', dias=3)
+        self.client.force_login(self.valeria)
+        respuesta = self.client.get(reverse('citas:mis_calificaciones'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(len(respuesta.context['calificaciones']), 2)
+        self.assertEqual(respuesta.context['reputacion']['promedio'], 4.0)
+        self.assertContains(respuesta, 'Muy atenta con Luna')
+        self.assertContains(respuesta, 'Carlos Mena')
+        self.assertNotContains(respuesta, 'No me gustó')
+
+    def test_el_veterinario_no_puede_ver_las_de_otro_por_la_url(self):
+        self.calificar(self.mario, 1, 'No me gustó')
+        self.client.force_login(self.valeria)
+        respuesta = self.client.get(reverse('citas:mis_calificaciones'), {'veterinario': self.mario.pk})
+        self.assertEqual(len(respuesta.context['calificaciones']), 0)
+        self.assertNotContains(respuesta, 'No me gustó')
+
+    def test_filtra_por_estrellas(self):
+        self.calificar(self.valeria, 5, 'Excelente', dias=1)
+        self.calificar(self.valeria, 2, 'Regular', dias=2)
+        self.client.force_login(self.valeria)
+        respuesta = self.client.get(reverse('citas:mis_calificaciones'), {'estrellas': '2'})
+        self.assertEqual([c.estrellas for c in respuesta.context['calificaciones']], [2])
+        # Un valor inventado no rompe la página: se ignora
+        respuesta = self.client.get(reverse('citas:mis_calificaciones'), {'estrellas': '9'})
+        self.assertEqual(len(respuesta.context['calificaciones']), 2)
+
+    def test_sin_calificaciones_lo_dice(self):
+        self.client.force_login(self.valeria)
+        self.assertContains(self.client.get(reverse('citas:mis_calificaciones')), 'Todavía no tienes calificaciones')
+
+    def test_mis_calificaciones_solo_la_abre_el_veterinario(self):
+        for usuario in (self.cliente, self.administrador):
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('citas:mis_calificaciones')).status_code, 403)
+
+    # ---------- Reseñas (administrador) ----------
+    def test_resenas_solo_la_abren_el_administrador_y_el_superadministrador(self):
+        for usuario, codigo in [(self.valeria, 403), (self.cliente, 403), (self.administrador, 200),
+                                (crear_usuario('sara', rol=Roles.SUPERADMIN), 200)]:
+            self.client.force_login(usuario)
+            with self.subTest(rol=usuario.rol):
+                self.assertEqual(self.client.get(reverse('citas:resenas')).status_code, codigo)
+
+    def test_resenas_muestra_todas_las_opiniones_y_el_desempeno(self):
+        self.calificar(self.valeria, 5, 'Excelente trato', dias=1)
+        self.calificar(self.valeria, 4, dias=2)
+        self.calificar(self.mario, 2, 'Llegó tarde', dias=3)
+        self.client.force_login(self.administrador)
+        respuesta = self.client.get(reverse('citas:resenas'))
+        self.assertEqual(respuesta.context['reputacion']['total'], 3)
+        self.assertEqual(respuesta.context['reputacion']['promedio'], 3.7)
+        self.assertEqual(respuesta.context['reputacion']['satisfaccion'], 67)
+        self.assertContains(respuesta, 'Excelente trato')
+        self.assertContains(respuesta, 'Llegó tarde')
+        # De mejor a peor calificado; el que nadie calificó va al final
+        desempeno = respuesta.context['desempeno']
+        self.assertEqual([fila['veterinario'] for fila in desempeno], [self.valeria, self.mario, self.sin_opiniones])
+        self.assertEqual((desempeno[0]['promedio'], desempeno[0]['total'], desempeno[0]['positivas']), (4.5, 2, 2))
+        self.assertEqual((desempeno[1]['negativas'], desempeno[2]['promedio']), (1, None))
+
+    def test_resenas_filtra_por_veterinario_y_estrellas(self):
+        self.calificar(self.valeria, 5, 'Excelente trato', dias=1)
+        self.calificar(self.mario, 2, 'Llegó tarde', dias=2)
+        self.client.force_login(self.administrador)
+        respuesta = self.client.get(reverse('citas:resenas'), {'veterinario': self.mario.pk})
+        self.assertEqual([c.estrellas for c in respuesta.context['calificaciones']], [2])
+        self.assertEqual(respuesta.context['reputacion']['total'], 1)   # las cifras siguen al veterinario
+        respuesta = self.client.get(reverse('citas:resenas'), {'estrellas': '5'})
+        self.assertEqual([c.estrellas for c in respuesta.context['calificaciones']], [5])
+
+    def test_resenas_aparece_en_el_menu_del_administrador(self):
+        self.client.force_login(self.administrador)
+        self.assertContains(self.client.get(reverse('citas:gestion_citas')), reverse('citas:resenas'))
+        self.client.force_login(self.valeria)
+        self.assertContains(self.client.get(reverse('citas:agenda')), reverse('citas:mis_calificaciones'))
+
+
 class CalificacionEnMisCitasTests(TestCase):
     """Mis citas: el botón Calificar, el promedio que dio el cliente y los enlaces al perfil del doctor."""
 
