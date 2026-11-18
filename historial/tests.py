@@ -775,3 +775,31 @@ class HistoriaTableroTests(ClienteConRecetasBase):
         self.assertContains(respuesta, 'Historial médico')
         self.assertContains(respuesta, 'Amoxicilina 250 mg')
         self.assertNotContains(respuesta, 'Carnet de vacunas')
+
+
+class FiltroPorFechaTests(ClienteConRecetasBase):
+    """Mis recetas: con consultas de meses distintos aparece el filtro por fecha con cada mes y su cuenta."""
+
+    def test_el_filtro_lista_los_meses_con_receta(self):
+        otra_cita = crear_cita_pasada(self.milo, self.veterinario, self.servicio, dias=40)
+        vieja = self.consulta(otra_cita)
+        vieja.save()
+        Prescripcion.objects.create(consulta=vieja, medicamento='Meloxicam', dosis='1 gota', frecuencia_horas=24,
+                                    duracion_dias=3, fecha_inicio=vieja.fecha)
+        respuesta = self.client.get(reverse('historial:mis_recetas'))
+        self.assertContains(respuesta, 'data-filtro-fecha')
+        for consulta in (self.consulta_milo, vieja):
+            self.assertContains(respuesta, f'data-mes="{timezone.localtime(consulta.fecha):%Y-%m}"')
+            self.assertContains(respuesta, f'<option value="{timezone.localtime(consulta.fecha):%Y-%m}">')
+
+    def test_con_una_sola_consulta_no_hay_filtro(self):
+        self.assertNotContains(self.client.get(reverse('historial:mis_recetas')), 'data-filtro-fecha')
+
+    def test_la_historia_tambien_filtra_por_mes(self):
+        otra_cita = crear_cita_pasada(self.milo, self.veterinario, self.servicio, dias=40)
+        self.consulta(otra_cita).save()
+        respuesta = self.client.get(reverse('historial:mi_historia'), {'mascota': self.milo.pk})
+        self.assertContains(respuesta, 'data-filtro-mes')
+        for dias in (1, 40):
+            mes = timezone.localtime(timezone.now() - timedelta(days=dias))
+            self.assertContains(respuesta, f'data-mes-valor="{mes:%Y-%m}"')

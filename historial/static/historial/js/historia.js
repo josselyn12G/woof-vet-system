@@ -1,4 +1,4 @@
-// Historia clínica: filtra la línea de tiempo por tipo (Todas / Consultas / Vacunas / Recetas) y por texto.
+// Historia clínica: filtra la línea de tiempo por tipo (Todas / Consultas / Vacunas / Recetas), por mes y por texto.
 // Sin JS se ve todo; esto solo esconde filas. Cada mes recalcula su cuenta y se oculta si queda vacío.
 (function () {
   const historial = document.querySelector('[data-historial]');
@@ -8,15 +8,23 @@
   const busqueda = historial.querySelector('[data-busqueda]');
   const abrirBusqueda = historial.querySelector('[data-abrir-busqueda]');
   const sinResultados = historial.querySelector('[data-sin-resultados]');
+  const filtroMes = historial.querySelector('[data-filtro-mes]');
+  const selectMes = filtroMes ? filtroMes.querySelector('select') : null;
   let tipo = 'todos';
+  if (filtroMes) filtroMes.hidden = false;
 
   const normalizar = (texto) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   function aplicar() {
     const buscado = normalizar(busqueda ? busqueda.value.trim() : '');
     let visibles = 0;
+    const mesElegido = selectMes ? selectMes.value : '';
     historial.querySelectorAll('[data-mes]').forEach((mes) => {
       let enElMes = 0;
+      if (mesElegido && mes.dataset.mesValor !== mesElegido) {
+        mes.hidden = true;
+        return;
+      }
       mes.querySelectorAll('[data-tipo]').forEach((registro) => {
         const pasa = (tipo === 'todos' || registro.dataset.tipo === tipo)
           && (!buscado || normalizar(registro.textContent).includes(buscado));
@@ -42,6 +50,8 @@
       aplicar();
     });
   });
+
+  if (selectMes) selectMes.addEventListener('change', aplicar);
 
   if (abrirBusqueda && busqueda) {
     abrirBusqueda.addEventListener('click', () => {

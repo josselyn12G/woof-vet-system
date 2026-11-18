@@ -682,16 +682,28 @@
 }
 
 /* ---------- Historia como reporte: la foto grande a la izquierda y las pestañas a la derecha ---------- */
+/* La foto y el panel comparten la misma altura (--hc-alto): cada pestaña llena ese alto y, si el contenido
+   no cabe (el historial largo), se desplaza dentro de su tarjeta */
+.hc-reporte { --hc-alto: clamp(460px, calc(100vh - 220px), 720px); }
 .hc-reporte__marco { display: grid; gap: 24px; align-items: start; }
 @media (min-width: 1000px) {
   .hc-reporte__marco { grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.5fr); }
+  .hc-reporte.con-pestanas .hc-reporte__panel { display: flex; flex-direction: column; height: var(--hc-alto); }
+  .hc-reporte.con-pestanas .hc-vista:not([hidden]) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  /* La última tarjeta de cada pestaña crece hasta el pie de la foto */
+  .hc-reporte.con-pestanas .hc-vista > :last-child { flex: 1; min-height: 0; }
+  .hc-reporte.con-pestanas .hc-recientes { overflow-y: auto; }
+  .hc-reporte.con-pestanas .hc-vacunas,
+  .hc-reporte.con-pestanas .hc-historial { overflow-y: auto; overscroll-behavior: contain; }
+  .hc-reporte.con-pestanas .hc-peso { display: flex; flex-direction: column; }
+  .hc-reporte.con-pestanas .hc-grafico { flex: 1; min-height: 0; width: 100%; height: auto; margin-top: auto; }
 }
 .hc-foto {
   position: relative;
   isolation: isolate;
   display: flex;
   align-items: flex-end;
-  height: clamp(440px, calc(100vh - 220px), 720px);
+  height: var(--hc-alto);
   overflow: hidden;
   border-radius: 28px;
   background: var(--hc-naranja);
@@ -928,7 +940,8 @@
 
 /* ---------- Historial médico ---------- */
 .hc-historial { padding: 24px; }
-.hc-historial__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.hc-historial__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; }
+.hc-historial__cabecera .rx-filtro-fecha select { min-height: 36px; font-size: 0.875rem; }
 .hc-filtros { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .hc-filtro,
 .hc-buscar {
@@ -1294,6 +1307,27 @@ p.hc-vacio { padding: 24px 0 4px; }
   letter-spacing: -0.02em;
   color: var(--woof-marron);
 }
+.rx-seccion__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rx-filtro-fecha { position: relative; display: inline-flex; align-items: center; }
+.rx-filtro-fecha .bi { position: absolute; left: 14px; color: var(--hc-naranja-texto); pointer-events: none; }
+.rx-filtro-fecha select {
+  min-height: 40px;
+  padding: 0 38px 0 38px;
+  border: 1px solid var(--p-borde);
+  border-radius: 999px;
+  background: var(--p-superficie) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%235f5f66' stroke-width='2' d='M3 6l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 14px center;
+  color: var(--p-texto);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.rx-filtro-fecha select:hover { border-color: var(--p-control); }
+.rx-filtro-fecha select:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-flip[hidden] { display: none; }
+.rx-sin-resultados { margin: 0; padding: 28px 0; text-align: center; color: var(--p-texto-2); }
 .rx-seccion__titulo span { font-family: var(--woof-fuente-texto); font-size: 1rem; font-weight: 500; color: var(--p-texto-2); }
 .rx-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
 .rx-consulta {
@@ -1393,33 +1427,77 @@ p.hc-vacio { padding: 24px 0 4px; }
 .rx-mascota:focus-visible { outline: none; }
 .rx-mascota:focus-visible .rx-mascota__foto { box-shadow: 0 0 0 3px var(--p-fondo), 0 0 0 5px var(--woof-marron); }
 
-/* Cifras: cuatro números, sin íconos; el primero en naranja si hay algo en curso */
-.rx-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
-@media (min-width: 640px) { .rx-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* Cifras como tarjetas de panel: título y una flecha en círculo arriba, el número grande y una nota en naranja.
+   La primera va en naranja sólido; las demás en blanco */
+.rx-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
+@media (min-width: 760px) {
+  .rx-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .rx-cifras--tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Lo más reciente (Resumen de la historia) */
+.hc-recientes__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hc-recientes__cabecera .hc-pastilla { margin-top: 0; }
+.hc-recientes__lista { list-style: none; margin: 14px 0 0; padding: 0; display: grid; }
+.hc-reciente { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 0; }
+.hc-reciente + .hc-reciente { border-top: 1px solid var(--p-linea); }
+.hc-reciente__textos { display: grid; gap: 2px; min-width: 0; }
+.hc-reciente__textos strong { font-size: 0.9875rem; font-weight: 650; color: var(--p-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-reciente__textos span { font-size: 0.8125rem; color: var(--p-texto-2); }
 .rx-cifra {
   display: grid;
-  align-content: space-between;
-  gap: 12px;
-  height: 128px;
-  padding: 18px 20px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "titulo ir" "numero numero" "nota nota";
+  align-items: center;
+  row-gap: 10px;
+  padding: 20px 20px 18px 22px;
   background: var(--p-superficie);
   border: 1px solid var(--p-borde);
-  border-radius: 20px;
+  border-radius: 22px;
+  box-shadow: var(--hc-sombra);
 }
-.rx-cifra dt { font-size: 0.8125rem; font-weight: 500; color: var(--p-texto-2); line-height: 1.3; }
+.rx-cifra dt { grid-area: titulo; font-size: 0.9375rem; font-weight: 600; color: var(--p-texto); }
 .rx-cifra dd {
-  margin: 0;
-  font-size: 2.25rem;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  grid-area: numero;
+  margin: 6px 0 0;
+  font-size: clamp(2.5rem, 2rem + 1.4vw, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
   line-height: 1;
-  color: var(--woof-marron);
+  color: var(--p-texto);
   font-variant-numeric: tabular-nums;
 }
-.rx-cifra dd small { font-size: 1rem; font-weight: 600; letter-spacing: 0; color: var(--p-texto-2); margin-left: 2px; }
+.rx-cifra dd small { margin-left: 2px; font-size: 1.125rem; font-weight: 600; letter-spacing: 0; color: var(--p-texto-2); }
+.rx-cifra__ir {
+  grid-area: ir;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--p-control);
+  color: var(--p-texto-2);
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s var(--woof-curva);
+}
+.rx-cifra__ir:hover { background: var(--p-acento-tinte); color: var(--hc-naranja-texto); box-shadow: none; transform: rotate(45deg); }
+.rx-cifra__ir:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-cifra__nota { grid-area: nota; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.8125rem; font-weight: 500; color: var(--hc-naranja-texto); }
+.rx-cifra__chip {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 18px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--woof-naranja-300);
+  font-size: 0.7rem;
+}
+/* La primera, en naranja sólido */
 .rx-cifra--acento { background: var(--hc-naranja); border-color: var(--hc-naranja); }
-.rx-cifra--acento dt { color: rgba(255, 255, 255, 0.88); }
-.rx-cifra--acento dd { color: #fff; }
+.rx-cifra--acento dt, .rx-cifra--acento dd, .rx-cifra--acento .rx-cifra__nota { color: #fff; }
+.rx-cifra--acento .rx-cifra__ir { background: #fff; color: var(--woof-marron); box-shadow: none; }
+.rx-cifra--acento .rx-cifra__chip { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7); }
+@media (prefers-reduced-motion: reduce) { .rx-cifra__ir { transition: none; } }
 .rx-hoy__titulo { margin: 0; font-family: var(--woof-fuente-titulos); font-size: 1.0625rem; font-weight: 700; color: var(--woof-marron); }
 @media (prefers-reduced-motion: reduce) { .rx-mascota__foto { transition: none; } }
 

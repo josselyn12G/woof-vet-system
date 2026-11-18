@@ -46,11 +46,28 @@
       </div>
 
       <div class="hc-vista" role="tabpanel" id="hc-vista-resumen" aria-labelledby="hc-pestana-resumen" data-panel="resumen">
-        <dl class="hc-cifras">
-          <div class="hc-cifra"><span class="hc-cifra__icono" aria-hidden="true"><i class="bi bi-clipboard2-pulse"></i></span><dd>{{ consultas|length }}</dd><dt>Consultas</dt></div>
-          <div class="hc-cifra"><span class="hc-cifra__icono" aria-hidden="true"><i class="bi bi-shield-plus"></i></span><dd>{{ carnet|length }}</dd><dt>Vacunas</dt></div>
-          <div class="hc-cifra"><span class="hc-cifra__icono" aria-hidden="true"><i class="bi bi-capsule"></i></span><dd>{{ total_recetas }}</dd><dt>Recetas</dt></div>
+        {# Tres cifras al estilo de Mis recetas: título, flecha a su pestaña, número grande y una nota en naranja #}
+        <dl class="rx-cifras rx-cifras--tres">
+          <div class="rx-cifra rx-cifra--acento">
+            <dt>Consultas</dt>
+            <dd>{{ consultas|length }}</dd>
+            <a class="rx-cifra__ir" href="#hc-vista-historial" data-ir-vista="historial" aria-label="Ver el historial"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-calendar-event" aria-hidden="true"></i></span>{% if consultas %}Última: {{ consultas.0.fecha|date:'j M Y' }}{% else %}Sin consultas{% endif %}</p>
+          </div>
+          <div class="rx-cifra">
+            <dt>Vacunas</dt>
+            <dd>{{ carnet|length }}</dd>
+            <a class="rx-cifra__ir" href="#hc-vista-vacunas" data-ir-vista="vacunas" aria-label="Ver las vacunas"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-shield-check" aria-hidden="true"></i></span>{{ al_dia }} al día{% if cuenta_carnet.vencida %} · {{ cuenta_carnet.vencida }} vencida{{ cuenta_carnet.vencida|pluralize }}{% endif %}</p>
+          </div>
+          <div class="rx-cifra">
+            <dt>Recetas</dt>
+            <dd>{{ total_recetas }}</dd>
+            <a class="rx-cifra__ir" href="#hc-vista-historial" data-ir-vista="historial" aria-label="Ver las recetas en el historial"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-capsule" aria-hidden="true"></i></span>{{ recetas_en_curso }} en curso</p>
+          </div>
         </dl>
+
 
         <section class="hc-tarjeta hc-vacunacion" aria-labelledby="hc-vacunacion-titulo">
           <div class="hc-vacunacion__estado">
@@ -76,6 +93,33 @@
             </div>
             <a class="hc-pastilla" href="#hc-vista-vacunas" data-ir-vista="vacunas">Ver todas <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
           </div>
+        </section>
+
+
+        {# Lo más reciente: los últimos registros del mes más nuevo (el detalle completo está en Historial) #}
+        <section class="hc-tarjeta hc-recientes" aria-labelledby="hc-recientes-titulo">
+          <div class="hc-recientes__cabecera">
+            <h2 class="hc-titulo hc-titulo--tarjeta" id="hc-recientes-titulo"><i class="bi bi-clock-history" aria-hidden="true"></i>Lo más reciente</h2>
+            <a class="hc-pastilla" href="#hc-vista-historial" data-ir-vista="historial">Ver historial <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+          </div>
+          {% if historial_medico %}
+            <ul class="hc-recientes__lista">
+              {% for mes, registros in historial_medico|slice:':1' %}
+                {% for registro in registros|slice:':4' %}
+                  <li class="hc-reciente hc-registro--{{ registro.tipo }}">
+                    <span class="hc-registro__icono" aria-hidden="true"><i class="bi {{ registro.icono }}"></i></span>
+                    <span class="hc-reciente__textos">
+                      <strong>{{ registro.titulo }}</strong>
+                      <span>{{ registro.cuando|date:'j M' }} · {{ registro.veterinario.get_full_name|default:registro.veterinario.username }}</span>
+                    </span>
+                    <span class="hc-insignia hc-insignia--{{ registro.tono }}">{{ registro.insignia }}</span>
+                  </li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="hc-peso__fecha">Aún no hay consultas registradas.</p>
+          {% endif %}
         </section>
       </div>
 
@@ -136,6 +180,19 @@
               <button type="button" class="hc-filtro" data-filtro="receta" aria-pressed="false">Recetas</button>
               <button type="button" class="hc-buscar" data-abrir-busqueda aria-label="Buscar en el historial"><i class="bi bi-search" aria-hidden="true"></i></button>
             </div>
+            {# Filtro por fecha: los meses con registros (historia.js lo combina con el tipo y la búsqueda) #}
+            {% if historial_medico|length > 1 %}
+              <label class="rx-filtro-fecha" data-filtro-mes hidden>
+                <i class="bi bi-calendar3" aria-hidden="true"></i>
+                <span class="visually-hidden">Filtrar por fecha</span>
+                <select>
+                  <option value="">Todas las fechas</option>
+                  {% for mes, registros in historial_medico %}
+                    <option value="{{ mes|date:'Y-m' }}">{{ mes|date:'F Y'|capfirst }} ({{ registros|length }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+            {% endif %}
           </div>
           <label class="visually-hidden" for="hc-busqueda">Buscar en el historial</label>
           <input class="control-panel hc-busqueda" type="search" id="hc-busqueda" placeholder="Buscar por motivo, medicamento o vacuna" data-busqueda hidden>
@@ -143,7 +200,7 @@
           {% if historial_medico %}
             <ol class="hc-meses">
               {% for mes, registros in historial_medico %}
-                <li class="hc-mes" data-mes>
+                <li class="hc-mes" data-mes data-mes-valor="{{ mes|date:'Y-m' }}">
                   <p class="hc-mes__titulo"><span>{{ mes|date:'F Y'|capfirst }}</span><span class="hc-mes__cuenta" data-cuenta>{{ registros|length }} registro{{ registros|length|pluralize }}</span></p>
                   <ul class="hc-registros">
                     {% for registro in registros %}

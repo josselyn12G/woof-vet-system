@@ -7,7 +7,7 @@
 {% block panel_estilos %}
   <link href="{% static 'mascotas/css/mascotas.css' %}" rel="stylesheet">
   <link href="{% static 'citas/css/citas.css' %}?v=2" rel="stylesheet">
-  <link href="{% static 'historial/css/historial.css' %}?v=16" rel="stylesheet">
+  <link href="{% static 'historial/css/historial.css' %}?v=21" rel="stylesheet">
 {% endblock %}
 
 {% block panel_icono %}bi-capsule{% endblock %}
@@ -42,12 +42,35 @@
           {% endfor %}
         </nav>
 
-        {# Las cifras de la mascota elegida (o de todas): cuentan todos sus tratamientos, también los terminados #}
+        {% comment %}
+          Las cifras de la mascota elegida (o de todas): cuentan todos sus tratamientos, también los terminados.
+          Cada tarjeta: título, flecha que lleva a su sección, el número grande y una nota corta en naranja.
+        {% endcomment %}
         <dl class="rx-cifras">
-          <div class="rx-cifra"><dt>Consultas con receta</dt><dd>{{ tratamientos|length }}</dd></div>
-          <div class="rx-cifra"><dt>Medicamentos</dt><dd>{{ total_medicamentos }}</dd></div>
-          <div class="rx-cifra{% if en_curso %} rx-cifra--acento{% endif %}"><dt>En curso</dt><dd>{{ en_curso }}</dd></div>
-          <div class="rx-cifra"><dt>Cumplimiento</dt><dd>{{ cumplimiento }}<small>%</small></dd></div>
+          <div class="rx-cifra rx-cifra--acento">
+            <dt>Consultas con receta</dt>
+            <dd>{{ tratamientos|length }}</dd>
+            <a class="rx-cifra__ir" href="#rx-lista-titulo" aria-label="Ver los tratamientos por consulta"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-calendar-event" aria-hidden="true"></i></span>{% if tratamientos %}Última: {{ tratamientos.0.consulta.fecha|date:'j M Y' }}{% else %}Sin consultas{% endif %}</p>
+          </div>
+          <div class="rx-cifra">
+            <dt>Medicamentos</dt>
+            <dd>{{ total_medicamentos }}</dd>
+            <a class="rx-cifra__ir" href="#rx-lista-titulo" aria-label="Ver los medicamentos de cada consulta"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-capsule" aria-hidden="true"></i></span>{{ hoy|length }} en curso hoy</p>
+          </div>
+          <div class="rx-cifra">
+            <dt>En curso</dt>
+            <dd>{{ en_curso }}</dd>
+            <a class="rx-cifra__ir" href="{% if hoy %}#rx-hoy-titulo{% else %}#rx-lista-titulo{% endif %}" aria-label="Ver lo que toca hoy"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-clock" aria-hidden="true"></i></span>{% if pendientes_hoy %}{{ pendientes_hoy }} dosis pendiente{{ pendientes_hoy|pluralize }} hoy{% else %}Nada pendiente hoy{% endif %}</p>
+          </div>
+          <div class="rx-cifra">
+            <dt>Cumplimiento</dt>
+            <dd>{{ cumplimiento }}<small>%</small></dd>
+            <a class="rx-cifra__ir" href="#rx-lista-titulo" aria-label="Ver el avance de cada tratamiento"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <p class="rx-cifra__nota"><span class="rx-cifra__chip"><i class="bi bi-check2" aria-hidden="true"></i></span>{{ dias_marcados }} de {{ dias_recetados }} días marcados</p>
+          </div>
         </dl>
       </div>
     {% endif %}
@@ -77,11 +100,27 @@
         Atrás: las indicaciones del veterinario, los medicamentos y el enlace al tratamiento (voltear.js la gira).
       {% endcomment %}
       <section class="rx-seccion" aria-labelledby="rx-lista-titulo">
-        <h2 class="rx-seccion__titulo" id="rx-lista-titulo">Tratamientos por consulta <span>({{ tratamientos|length }})</span></h2>
+        <div class="rx-seccion__cabecera">
+          <h2 class="rx-seccion__titulo" id="rx-lista-titulo">Tratamientos por consulta <span data-cuenta-tratamientos>({{ tratamientos|length }})</span></h2>
+          {# Filtro por fecha: los meses que tienen consultas con receta (voltear.js esconde las demás tarjetas) #}
+          {% if tratamientos|length > 1 %}
+            <label class="rx-filtro-fecha" data-filtro-fecha hidden>
+              <i class="bi bi-calendar3" aria-hidden="true"></i>
+              <span class="visually-hidden">Filtrar por fecha</span>
+              <select>
+                <option value="">Todas las fechas</option>
+                {% regroup tratamientos by consulta.fecha|date:'Y-m' as por_mes %}
+                {% for mes in por_mes %}
+                  <option value="{{ mes.grouper }}">{{ mes.list.0.consulta.fecha|date:'F Y'|capfirst }} ({{ mes.list|length }})</option>
+                {% endfor %}
+              </select>
+            </label>
+          {% endif %}
+        </div>
         <ul class="rx-flips">
           {% for tratamiento in tratamientos %}
             {% with consulta=tratamiento.consulta %}
-              <li class="rx-flip{% if tratamiento.estado == 'en_curso' %} rx-flip--en-curso{% endif %}" data-flip>
+              <li class="rx-flip{% if tratamiento.estado == 'en_curso' %} rx-flip--en-curso{% endif %}" data-flip data-mes="{{ consulta.fecha|date:'Y-m' }}">
                 <div class="rx-flip__inclinacion">
                   <div class="rx-flip__rotor">
                     <div class="rx-flip__cara rx-flip__cara--frente" data-frente>
@@ -113,6 +152,7 @@
             {% endwith %}
           {% endfor %}
         </ul>
+        <p class="rx-sin-resultados" data-sin-tratamientos hidden>No hay tratamientos en esa fecha.</p>
       </section>
     {% else %}
       <section class="hc-tarjeta hc-vacio">
@@ -124,5 +164,5 @@
 {% endblock %}
 
 {% block panel_scripts %}
-  <script src="{% static 'historial/js/voltear.js' %}?v=2" defer></script>
+  <script src="{% static 'historial/js/voltear.js' %}?v=3" defer></script>
 {% endblock %}

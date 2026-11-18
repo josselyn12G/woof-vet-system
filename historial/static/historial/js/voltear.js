@@ -47,3 +47,24 @@
     });
   });
 })();
+
+// Filtro por fecha de Mis recetas: deja solo las tarjetas del mes elegido (y la cuenta del título al día)
+(function () {
+  const filtro = document.querySelector('[data-filtro-fecha]');
+  if (!filtro) return;
+  filtro.hidden = false;
+  const select = filtro.querySelector('select');
+  const tarjetas = [...document.querySelectorAll('[data-flip][data-mes]')];
+  const cuenta = document.querySelector('[data-cuenta-tratamientos]');
+  const vacio = document.querySelector('[data-sin-tratamientos]');
+  select.addEventListener('change', () => {
+    let visibles = 0;
+    tarjetas.forEach((tarjeta) => {
+      const ver = !select.value || tarjeta.dataset.mes === select.value;
+      tarjeta.hidden = !ver;
+      if (ver) visibles += 1;
+    });
+    if (cuenta) cuenta.textContent = `(${visibles})`;
+    if (vacio) vacio.hidden = visibles > 0;
+  });
+})();
