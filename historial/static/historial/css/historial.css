@@ -1118,9 +1118,6 @@ p.hc-vacio { padding: 24px 0 4px; }
 }
 .rx-exito__titulo { margin: 0; font-family: var(--woof-fuente-titulos); font-size: 1.1875rem; font-weight: 700; letter-spacing: -0.015em; color: #fff; }
 .rx-exito p { margin: 4px 0 0; font-size: 0.9rem; line-height: 1.45; color: rgba(255, 255, 255, 0.88); }
-.rx-consulta-ficha { display: grid; gap: 14px; }
-.rx-consulta-ficha .hc-datos { margin: 0; }
-.rx-consulta-ficha .hc-pastilla { grid-column: auto; justify-self: start; margin-top: 0; }
 
 /* ---------- Dos colores: neutro y el naranja de la marca como único acento ---------- */
 .rx-pastilla {
@@ -1207,7 +1204,90 @@ p.hc-vacio { padding: 24px 0 4px; }
 }
 .rx-exito--neutro { background: var(--hc-marron); }
 .hc-lateral .hc-mascota { min-height: 280px; }
-.rx-consulta-ficha__fecha { margin: -4px 0 0; font-size: 0.875rem; color: var(--p-texto-2); }
+
+/* La consulta en una línea, arriba del tratamiento */
+.rx-consulta-barra {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  box-shadow: var(--hc-sombra);
+}
+.rx-consulta-barra__textos { display: grid; gap: 3px; min-width: 0; }
+.rx-consulta-barra__textos strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; color: var(--p-texto); }
+.rx-consulta-barra__textos span { font-size: 0.875rem; color: var(--p-texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-consulta-barra .hc-boton { min-height: 40px; }
+.rx-consulta-barra .hc-boton i { order: 2; }
+
+/* ---------- Tratamiento: una lista de medicamentos; cada uno abre su pop-up ---------- */
+.rx-medicamentos { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rx-medicamento {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 18px 16px 16px;
+  background: var(--p-superficie);
+  border: 1px solid var(--p-borde);
+  border-radius: 18px;
+  box-shadow: var(--hc-sombra);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s var(--woof-curva);
+}
+.rx-medicamento:hover { border-color: var(--woof-naranja-300); transform: translateY(-1px); }
+.rx-medicamento:active { transform: scale(0.99); }
+.rx-medicamento:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-medicamento--en-curso { border-color: var(--woof-naranja-300); }
+.rx-medicamento__imagen { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; font-size: 1.6rem; }
+.rx-medicamento__textos { display: grid; gap: 3px; min-width: 0; }
+.rx-medicamento__textos > strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; color: var(--p-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-medicamento__textos > span { font-size: 0.8125rem; color: var(--p-texto-2); }
+.rx-medicamento__avance { display: grid; grid-template-columns: minmax(0, 220px) auto; align-items: center; gap: 10px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.rx-medicamento__avance .hc-barra { height: 6px; }
+.rx-medicamento__avance .hc-barra span { background: var(--hc-naranja); }
+.rx-medicamento__lado { display: inline-flex; align-items: center; gap: 12px; color: var(--p-texto-2); }
+
+.rx-dialogo {
+  width: min(36rem, calc(100% - 2rem));
+  max-height: min(88vh, 52rem);
+  padding: 24px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--p-superficie);
+  color: var(--p-texto);
+  box-shadow: 0 30px 80px -30px rgba(29, 24, 20, 0.5);
+  overscroll-behavior: contain;
+}
+.rx-dialogo[open] { display: grid; gap: 18px; animation: rx-entra 280ms cubic-bezier(0.32, 0.72, 0, 1); }
+.rx-dialogo::backdrop { background: rgba(29, 24, 20, 0.42); backdrop-filter: blur(4px); }
+.rx-dialogo.es-cerrando { animation: rx-sale 160ms ease-in forwards; }
+@keyframes rx-entra { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes rx-sale { to { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.rx-dialogo__cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 16px; }
+.rx-dialogo .rx-imagen { width: 72px; height: 72px; border-radius: 20px; font-size: 2rem; }
+.rx-dialogo .rx-detalle__nombre { font-size: 1.375rem; }
+.rx-dialogo__cerrar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--p-fondo);
+  color: var(--p-texto-2);
+  cursor: pointer;
+}
+.rx-dialogo__cerrar:hover { color: var(--p-texto); background: var(--p-linea); }
+.rx-dialogo__cerrar:focus-visible { outline: 2px solid var(--hc-naranja); outline-offset: 2px; }
+.rx-dialogo .rx-control { padding-top: 0; border-top: 0; }
 
 @media (max-width: 720px) {
   .rx-detalle__cabecera { grid-template-columns: 1fr; gap: 14px; }
@@ -1218,6 +1298,16 @@ p.hc-vacio { padding: 24px 0 4px; }
   .rx-siguiente { grid-template-columns: auto minmax(0, 1fr); }
   .rx-siguiente__dosis { grid-column: 2; justify-self: start; }
   .rx-consulta { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .rx-medicamento { grid-template-columns: auto minmax(0, 1fr); }
+  .rx-consulta-barra { grid-template-columns: auto minmax(0, 1fr); }
+  .rx-consulta-barra .hc-boton { grid-column: 1 / -1; justify-content: center; }
+  .rx-medicamento__lado { grid-column: 2; }
+  .rx-medicamento__lado .bi { display: none; }
+  .rx-dialogo { width: 100%; max-width: none; max-height: 92vh; margin: auto 0 0; border-radius: 24px 24px 0 0; padding: 20px 18px 28px; }
+  .rx-dialogo .rx-imagen { width: 56px; height: 56px; font-size: 1.6rem; }
   .rx-consulta__flecha { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .rx-consulta { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .rx-consulta, .rx-medicamento { transition: none; }
+  .rx-dialogo[open], .rx-dialogo.es-cerrando { animation: none; }
+}
