@@ -2,6 +2,6 @@
 
 {{ notificacion.mensaje }}
 
-Puedes ver tus citas cuando quieras entrando a Woof.
+{% if notificacion.tipo == 'vacuna' %}Puedes ver el carnet de vacunación de tu mascota cuando quieras entrando a Woof.{% else %}Puedes ver tus citas cuando quieras entrando a Woof.{% endif %}
 
 Sistema Veterinario Woof{% endautoescape %}

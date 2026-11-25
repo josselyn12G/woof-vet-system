@@ -31,7 +31,7 @@ class CalificacionAdmin(admin.ModelAdmin):
 
 @admin.register(Notificacion)
 class NotificacionAdmin(admin.ModelAdmin):
-    list_display = ['usuario', 'tipo', 'cita', 'creado', 'leida']
+    list_display = ['usuario', 'tipo', 'cita', 'vacuna_aplicada', 'creado', 'leida']
     list_filter = ['tipo', 'leida']
     search_fields = ['usuario__username', 'usuario__first_name', 'usuario__last_name', 'mensaje']
-    list_select_related = ['usuario', 'cita', 'cita__mascota']
+    list_select_related = ['usuario', 'cita', 'cita__mascota', 'vacuna_aplicada__vacuna', 'vacuna_aplicada__mascota']

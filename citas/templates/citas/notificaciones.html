@@ -10,14 +10,14 @@
 {% block panel_icono %}bi-bell{% endblock %}
 {% block panel_seccion %}Notificaciones{% endblock %}
 {% block panel_titulo %}Notificaciones{% endblock %}
-{% block panel_subtitulo %}Los avisos de tus citas: también te llegan por correo.{% endblock %}
+{% block panel_subtitulo %}Los avisos de tus citas y vacunas: también te llegan por correo.{% endblock %}
 
 {% block panel_contenido %}
   <section class="bloque-panel">
     {% for notificacion in notificaciones %}
       <article class="aviso{% if not notificacion.leida %} aviso--nuevo{% endif %}">
         <span class="aviso__icono aviso__icono--{{ notificacion.tipo }}" aria-hidden="true">
-          <i class="bi {% if notificacion.tipo == 'agendada' %}bi-calendar-check{% elif notificacion.tipo == 'reprogramada' %}bi-calendar2-week{% elif notificacion.tipo == 'cancelada' %}bi-calendar-x{% else %}bi-alarm{% endif %}"></i>
+          <i class="bi {% if notificacion.tipo == 'agendada' %}bi-calendar-check{% elif notificacion.tipo == 'reprogramada' %}bi-calendar2-week{% elif notificacion.tipo == 'cancelada' %}bi-calendar-x{% elif notificacion.tipo == 'vacuna' %}bi-shield-plus{% else %}bi-alarm{% endif %}"></i>
         </span>
         <div class="aviso__cuerpo">
           <p class="aviso__cabecera">

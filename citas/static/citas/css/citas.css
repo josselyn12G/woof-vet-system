@@ -4196,6 +4196,11 @@ button.cal-cita {
   color: var(--p-acento-texto);
 }
 
+.aviso__icono--vacuna {
+  background: #e7f0fb;
+  color: #1f5fa8;
+}
+
 .aviso__icono--cancelada {
   background: #f1f1f3;
   color: #5f5f66;

@@ -17,7 +17,7 @@
     {% for aviso in avisos %}
       <article class="campana-aviso{% if not aviso.leida %} es-nuevo{% endif %}">
         <span class="campana-aviso__icono" aria-hidden="true">
-          <i class="bi {% if aviso.tipo == 'agendada' %}bi-calendar-check{% elif aviso.tipo == 'reprogramada' %}bi-calendar2-week{% elif aviso.tipo == 'cancelada' %}bi-calendar-x{% else %}bi-alarm{% endif %}"></i>
+          <i class="bi {% if aviso.tipo == 'agendada' %}bi-calendar-check{% elif aviso.tipo == 'reprogramada' %}bi-calendar2-week{% elif aviso.tipo == 'cancelada' %}bi-calendar-x{% elif aviso.tipo == 'vacuna' %}bi-shield-plus{% else %}bi-alarm{% endif %}"></i>
         </span>
         <div class="campana-aviso__cuerpo">
           <p class="campana-aviso__cabecera">

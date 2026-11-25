@@ -3,20 +3,27 @@ Los avisos de las citas (F8): cada uno se guarda como Notificacion (la campana d
 
 RF-23: al agendar, reprogramar o cancelar avisa al cliente y al veterinario.
 RF-24: el recordatorio de 24 horas lo manda el comando enviar_recordatorios.
+HU-37: el mismo comando avisa al dueño una semana antes de la próxima dosis de cada vacuna.
 """
 import threading
 from datetime import timedelta
 
 from django.conf import settings
 from django.db import IntegrityError, connection, transaction
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from django.utils.formats import date_format
 
 from citas.models import Cita, EstadoCita, Notificacion, TipoNotificacion
+from historial.models import VacunaAplicada
 
 # El recordatorio sale para las citas que empiezan entre 23 y 25 horas desde ahora: si el comando corre
 # cada hora, cada cita cae en la ventana al menos una vez (y la regla de la base evita repetirlo)
 VENTANA_RECORDATORIO = (timedelta(hours=23), timedelta(hours=25))
+
+# El recordatorio de vacuna sale cuando faltan 7 días o menos para la próxima dosis (y todavía no pasó):
+# si una vacuna se registra con la próxima dosis a 3 días, o el comando no corrió un día, igual se avisa
+ANTICIPACION_VACUNA = timedelta(days=7)
 
 
 def cuando(momento):
@@ -26,6 +33,20 @@ def cuando(momento):
 
 def nombre(persona):
     return persona.get_full_name() or persona.username
+
+
+def que_dia(fecha):
+    """"martes 1 de diciembre" (solo el día, para la próxima dosis de una vacuna)."""
+    return date_format(fecha, r'l j \d\e F')
+
+
+def en_cuantos_dias(fecha, hoy):
+    dias = (fecha - hoy).days
+    if dias == 0:
+        return 'hoy'
+    if dias == 1:
+        return 'mañana'
+    return f'en {dias} días'
 
 
 def de_la_cita(cita):
@@ -140,6 +161,43 @@ class NotificacionService:
             Cita.objects.filter(estado=EstadoCita.CONFIRMADA, inicio__gte=desde, inicio__lte=hasta)
             .exclude(notificaciones__tipo=TipoNotificacion.RECORDATORIO)
             .select_related('mascota__dueno', 'veterinario', 'servicio')
+        )
+
+    @staticmethod
+    def recordatorio_vacuna(aplicada, hoy=None):
+        """El aviso de la próxima dosis, solo para el dueño (HU-37). None si ya se le había enviado."""
+        hoy = hoy or timezone.localdate()
+        mascota = aplicada.mascota
+        try:
+            with transaction.atomic():
+                notificacion = Notificacion.objects.create(
+                    usuario=mascota.dueno, vacuna_aplicada=aplicada, tipo=TipoNotificacion.VACUNA,
+                    mensaje=f'A {mascota} le toca la próxima dosis de {aplicada.vacuna.nombre} '
+                            f'{en_cuantos_dias(aplicada.proxima_dosis, hoy)}, el {que_dia(aplicada.proxima_dosis)}. '
+                            f'Agenda su cita de vacunación en Woof para mantener su carnet al día.',
+                )
+        except IntegrityError:
+            return None   # otra ejecución del comando ya lo creó
+        notificacion.enviar()
+        return notificacion
+
+    @staticmethod
+    def vacunas_para_recordar(hoy=None):
+        """
+        Las dosis cuya próxima dosis cae entre hoy y dentro de 7 días, que todavía no tienen su recordatorio.
+        Si la mascota ya recibió otra dosis de esa misma vacuna después, ya está al día y no se avisa.
+        """
+        hoy = hoy or timezone.localdate()
+        dosis_posterior = VacunaAplicada.objects.filter(
+            mascota=OuterRef('mascota'), vacuna=OuterRef('vacuna'), fecha_aplicacion__gt=OuterRef('fecha_aplicacion'),
+        )
+        return (
+            VacunaAplicada.objects
+            .filter(proxima_dosis__gte=hoy, proxima_dosis__lte=hoy + ANTICIPACION_VACUNA)
+            .exclude(Exists(dosis_posterior))
+            .exclude(notificaciones__tipo=TipoNotificacion.VACUNA)
+            .select_related('mascota__dueno', 'vacuna')
+            .order_by('proxima_dosis', 'pk')
         )
 
     # ---------- La campana del panel ----------

@@ -195,7 +195,7 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 | Start Command: `gunicorn config.wsgi:application` | Arranca Django |
 | Estáticos | Los sirve WhiteNoise, comprimidos y con caché |
 | Variables | `DATABASE_URL`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `DJANGO_DOBLE_FACTOR=False` y `DJANGO_CORREO_AVISOS=False` (el plan gratuito bloquea el SMTP) |
-| Recordatorios de 24 h | *Cron Job* con el mismo repositorio y variables: Build `./build.sh`, Command `python manage.py enviar_recordatorios`, Schedule `0 * * * *` (cada hora) |
+| Recordatorios (citas a 24 h y vacunas a 7 días) | *Cron Job* con el mismo repositorio y variables: Build `./build.sh`, Command `python manage.py enviar_recordatorios`, Schedule `0 * * * *` (cada hora) |
 | Publicar cambios | *Manual Deploy* → *Deploy latest commit* después de fusionar el PR |
 
 > [!WARNING]
