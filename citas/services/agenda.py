@@ -5,10 +5,13 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from citas.models import ESTRELLAS_MAX, ESTRELLAS_MIN, Calificacion, Cita, EstadoCita, HorarioVeterinario
+from citas.models import Cita, EstadoCita, HorarioVeterinario
 from cuentas.services import VERIFICADO, PerfilVeterinarioService
 
+from .catalogo import ServicioService
+
 TURNO_OCUPADO = 'Ese horario ya no está disponible. Elige otra hora.'
+SERVICIO_INACTIVO = 'Ese servicio ya no se ofrece.'
 
 # Un turno se reserva con al menos esta anticipación (§2.1 paso d.1, RF-12): a las 08:20 ya no se ofrece el de 09:00
 ANTICIPACION_MINIMA = timedelta(hours=1)
@@ -23,7 +26,8 @@ def primer_inicio_permitido():
 
 class AgendaService:
     """
-    Reglas del Core: qué turnos están libres, cómo se agenda y cómo se cancela una cita.
+    Reglas del Core: qué turnos están libres, cómo se agenda, se reprograma, se cancela y se cierra una cita.
+    Calificar una cita es otra responsabilidad y vive en CalificacionService.
 
     Las vistas solo llaman a estos métodos; así la lógica del negocio vive en un solo lugar
     y se puede probar sin pasar por formularios ni plantillas.
@@ -113,8 +117,8 @@ class AgendaService:
         piden el mismo turno a la vez, el segundo espera y luego ve que ya no está libre.
         """
         if not servicio.activo:
-            raise ValidationError('Ese servicio ya no se ofrece.')
-        if not servicio.veterinarios.filter(pk=veterinario.pk).exists():
+            raise ValidationError(SERVICIO_INACTIVO)
+        if not ServicioService.lo_atiende(servicio, veterinario):
             raise ValidationError('Ese veterinario no atiende este servicio.')
         if not PerfilVeterinarioService.esta_verificado(veterinario):
             raise ValidationError('Ese veterinario todavía no está verificado por la clínica.')
@@ -199,8 +203,8 @@ class AgendaService:
             if nuevo_inicio == cita.inicio:
                 raise ValidationError('Esa ya es la hora de la cita. Elige otra.')
             if not cita.servicio.activo:
-                raise ValidationError('Ese servicio ya no se ofrece.')
-            if not cita.servicio.veterinarios.filter(pk=cita.veterinario_id).exists():
+                raise ValidationError(SERVICIO_INACTIVO)
+            if not ServicioService.lo_atiende(cita.servicio, cita.veterinario):
                 raise ValidationError('El veterinario ya no atiende este servicio.')
 
             fecha = timezone.localtime(nuevo_inicio).date()
@@ -217,29 +221,6 @@ class AgendaService:
                 # La UniqueConstraint atrapó un choque que se coló: ROLLBACK, la cita queda en su hora anterior
                 raise ValidationError(TURNO_OCUPADO)
         return cita
-
-    @staticmethod
-    def calificar(cita, cliente, estrellas, comentario=''):
-        """
-        El cliente califica una cita atendida de una de sus mascotas, de 1 a 5 estrellas, una sola vez (RF-21).
-
-        Si dos envíos llegan a la vez, el OneToOne de la base deja pasar solo uno; el otro recibe el mismo aviso.
-        """
-        if cita.mascota.dueno_id != cliente.pk:
-            raise ValidationError('Solo puedes calificar las citas de tus mascotas.')
-        if cita.estado != EstadoCita.ATENDIDA:
-            raise ValidationError('Solo se puede calificar una cita atendida.')
-        if not (isinstance(estrellas, int) and ESTRELLAS_MIN <= estrellas <= ESTRELLAS_MAX):
-            raise ValidationError('Elige de 1 a 5 estrellas.')
-
-        ya_calificada = ValidationError('Ya calificaste esta cita: solo se califica una vez.')
-        if Calificacion.objects.filter(cita=cita).exists():
-            raise ya_calificada
-        try:
-            with transaction.atomic():
-                return Calificacion.objects.create(cita=cita, estrellas=estrellas, comentario=comentario.strip())
-        except IntegrityError:
-            raise ya_calificada
 
     @staticmethod
     def registrar_resultado(cita, estado):

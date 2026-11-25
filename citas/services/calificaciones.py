@@ -1,4 +1,6 @@
 """Las calificaciones de las citas: quién puede calificar y la reputación de cada veterinario (F7)."""
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Avg, Count, Q
 
 from citas.models import ESTRELLAS_MAX, ESTRELLAS_MIN, Calificacion, EstadoCita
@@ -17,6 +19,29 @@ class CalificacionService:
     def puede_calificar(cita):
         """Solo una cita atendida que todavía no tiene calificación."""
         return cita.estado == EstadoCita.ATENDIDA and not Calificacion.objects.filter(cita=cita).exists()
+
+    @staticmethod
+    def calificar(cita, cliente, estrellas, comentario=''):
+        """
+        El cliente califica una cita atendida de una de sus mascotas, de 1 a 5 estrellas, una sola vez (RF-21).
+
+        Si dos envíos llegan a la vez, el OneToOne de la base deja pasar solo uno; el otro recibe el mismo aviso.
+        """
+        if cita.mascota.dueno_id != cliente.pk:
+            raise ValidationError('Solo puedes calificar las citas de tus mascotas.')
+        if cita.estado != EstadoCita.ATENDIDA:
+            raise ValidationError('Solo se puede calificar una cita atendida.')
+        if not (isinstance(estrellas, int) and ESTRELLAS_MIN <= estrellas <= ESTRELLAS_MAX):
+            raise ValidationError('Elige de 1 a 5 estrellas.')
+
+        ya_calificada = ValidationError('Ya calificaste esta cita: solo se califica una vez.')
+        if Calificacion.objects.filter(cita=cita).exists():
+            raise ya_calificada
+        try:
+            with transaction.atomic():
+                return Calificacion.objects.create(cita=cita, estrellas=estrellas, comentario=comentario.strip())
+        except IntegrityError:
+            raise ya_calificada
 
     @staticmethod
     def del_veterinario(veterinario):

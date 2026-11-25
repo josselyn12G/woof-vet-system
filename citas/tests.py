@@ -1569,7 +1569,7 @@ def crear_cita_pasada(mascota, veterinario, servicio, estado=EstadoCita.ATENDIDA
 
 
 class CalificarServiceTests(TestCase):
-    """AgendaService.calificar() y la reputación del veterinario."""
+    """CalificacionService.calificar() y la reputación del veterinario."""
 
     def setUp(self):
         self.veterinario = crear_veterinario()
@@ -1579,14 +1579,14 @@ class CalificarServiceTests(TestCase):
         self.cita = crear_cita_pasada(self.mascota, self.veterinario, self.servicio)
 
     def test_califica_una_cita_atendida(self):
-        calificacion = AgendaService.calificar(self.cita, self.cliente, 5, '  Muy amable  ')
+        calificacion = CalificacionService.calificar(self.cita, self.cliente, 5, '  Muy amable  ')
         self.assertEqual((calificacion.estrellas, calificacion.comentario), (5, 'Muy amable'))
         self.assertFalse(CalificacionService.puede_calificar(self.cita))
 
     def test_calificar_dos_veces_se_rechaza(self):
-        AgendaService.calificar(self.cita, self.cliente, 4)
+        CalificacionService.calificar(self.cita, self.cliente, 4)
         with self.assertRaises(ValidationError):
-            AgendaService.calificar(self.cita, self.cliente, 2)
+            CalificacionService.calificar(self.cita, self.cliente, 2)
         self.assertEqual(Calificacion.objects.get().estrellas, 4)
 
     def test_la_base_tambien_rechaza_una_segunda_calificacion(self):
@@ -1600,17 +1600,17 @@ class CalificarServiceTests(TestCase):
                 cita = crear_cita_pasada(self.mascota, self.veterinario, self.servicio, estado=estado, dias=dias)
                 self.assertFalse(CalificacionService.puede_calificar(cita))
                 with self.assertRaises(ValidationError):
-                    AgendaService.calificar(cita, self.cliente, 5)
+                    CalificacionService.calificar(cita, self.cliente, 5)
         self.assertFalse(Calificacion.objects.exists())
 
     def test_no_se_califica_la_cita_de_otro_cliente(self):
         with self.assertRaises(ValidationError):
-            AgendaService.calificar(self.cita, crear_usuario('luis'), 5)
+            CalificacionService.calificar(self.cita, crear_usuario('luis'), 5)
 
     def test_las_estrellas_van_de_1_a_5(self):
         for estrellas in (0, 6):
             with self.subTest(estrellas=estrellas), self.assertRaises(ValidationError):
-                AgendaService.calificar(self.cita, self.cliente, estrellas)
+                CalificacionService.calificar(self.cita, self.cliente, estrellas)
         with self.assertRaises(IntegrityError):
             Calificacion.objects.create(cita=self.cita, estrellas=6)
 
@@ -1618,7 +1618,7 @@ class CalificarServiceTests(TestCase):
         for dias, estrellas in ((1, 5), (2, 4), (3, 4), (4, 2)):
             cita = self.cita if dias == 1 else crear_cita_pasada(self.mascota, self.veterinario, self.servicio,
                                                                  dias=dias)
-            AgendaService.calificar(cita, self.cliente, estrellas)
+            CalificacionService.calificar(cita, self.cliente, estrellas)
         resumen = CalificacionService.resumen_del_veterinario(self.veterinario)
         self.assertEqual(resumen['promedio'], 3.8)   # (5 + 4 + 4 + 2) / 4 = 3.75
         self.assertEqual(resumen['total'], 4)
@@ -1704,7 +1704,7 @@ class PerfilVeterinarioVistaTests(TestCase):
 
     def calificar(self, estrellas, comentario='', dias=1):
         cita = crear_cita_pasada(self.mascota, self.veterinario, self.servicio, dias=dias)
-        return AgendaService.calificar(cita, self.cliente, estrellas, comentario)
+        return CalificacionService.calificar(cita, self.cliente, estrellas, comentario)
 
     def test_muestra_especialidad_promedio_y_opiniones(self):
         self.calificar(5, 'Excelente trato', dias=1)
@@ -1745,7 +1745,7 @@ class ResenasTests(TestCase):
 
     def calificar(self, veterinario, estrellas, comentario='', dias=1):
         cita = crear_cita_pasada(self.mascota, veterinario, self.servicio, dias=dias)
-        return AgendaService.calificar(cita, self.cliente, estrellas, comentario)
+        return CalificacionService.calificar(cita, self.cliente, estrellas, comentario)
 
     # ---------- Mis calificaciones (veterinario) ----------
     def test_el_veterinario_ve_solo_sus_calificaciones(self):
@@ -1861,7 +1861,7 @@ class CalificacionEnMisCitasTests(TestCase):
         self.assertEqual(self.atendida.calificacion.estrellas, 5)
 
     def test_una_ya_calificada_muestra_sus_estrellas_y_no_el_boton(self):
-        AgendaService.calificar(self.atendida, self.cliente, 4)
+        CalificacionService.calificar(self.atendida, self.cliente, 4)
         respuesta = self.pasadas()
         self.assertNotContains(respuesta, reverse('citas:calificar', args=[self.atendida.pk]))
         self.assertContains(respuesta, 'La calificaste con 4 de 5 estrellas')
@@ -1873,9 +1873,9 @@ class CalificacionEnMisCitasTests(TestCase):
 
     def test_muestra_la_calificacion_promedio_que_dio(self):
         self.assertIsNone(self.pasadas().context['promedio_dado'])
-        AgendaService.calificar(self.atendida, self.cliente, 5)
-        AgendaService.calificar(crear_cita_pasada(self.mascota, self.veterinario, self.servicio, dias=3),
-                                self.cliente, 4)
+        CalificacionService.calificar(self.atendida, self.cliente, 5)
+        CalificacionService.calificar(crear_cita_pasada(self.mascota, self.veterinario, self.servicio, dias=3),
+                                      self.cliente, 4)
         respuesta = self.pasadas()
         self.assertEqual(respuesta.context['promedio_dado'], 4.5)
         self.assertContains(respuesta, 'Tu calificación promedio')
