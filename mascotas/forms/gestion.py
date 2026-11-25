@@ -9,7 +9,7 @@ class DuenoOpcion(forms.ModelChoiceField):
     """En el desplegable se ve el nombre del dueño y su cédula, no su id."""
 
     def label_from_instance(self, dueno):
-        return f'{dueno.get_full_name() or dueno.username} · {dueno.cedula}'
+        return f'{dueno.nombre_completo} · {dueno.cedula}'
 
 
 class MascotaGestionForm(MascotaForm):

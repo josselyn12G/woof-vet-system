@@ -6,14 +6,14 @@ class VeterinarioCasillas(forms.ModelMultipleChoiceField):
     """Cada veterinario es una casilla con su nombre (nunca un input donde se escribe el id)."""
 
     def label_from_instance(self, veterinario):
-        return veterinario.get_full_name() or veterinario.username
+        return veterinario.nombre_completo
 
 
 class VeterinarioOpcion(forms.ModelChoiceField):
     """En el desplegable se ve el nombre del veterinario, no su usuario."""
 
     def label_from_instance(self, veterinario):
-        return veterinario.get_full_name() or veterinario.username
+        return veterinario.nombre_completo
 
 
 class SelectorHora(forms.TimeInput):

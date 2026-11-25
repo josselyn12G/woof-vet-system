@@ -109,7 +109,7 @@ class TurnosDelDiaView(ClienteRequeridoMixin, View):
         turnos = [
             {
                 'veterinario': veterinario.pk,
-                'nombre': veterinario.get_full_name() or veterinario.username,
+                'nombre': veterinario.nombre_completo,
                 'perfil': reverse('citas:perfil_veterinario', args=[veterinario.pk]),
                 'horas': [f'{timezone.localtime(inicio):%H:%M}' for inicio in espacios],
             }

@@ -78,6 +78,12 @@ class UsuarioModelTests(TestCase):
         self.assertEqual(str(con_nombre), 'Ana Pérez')
         self.assertEqual(str(sin_nombre), 'luis')
 
+    def test_nombre_completo_es_el_que_se_muestra_en_todo_woof(self):
+        con_nombre = crear_usuario(first_name='Ana', last_name='Pérez')
+        sin_nombre = crear_usuario(username='luis', email='luis@woof.ec', cedula='0926687856')
+        self.assertEqual(con_nombre.nombre_completo, 'Ana Pérez')
+        self.assertEqual(sin_nombre.nombre_completo, 'luis')
+
 
 class LoginTests(TestCase):
     def setUp(self):

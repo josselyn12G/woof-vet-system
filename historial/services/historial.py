@@ -237,7 +237,7 @@ class HistorialService:
                 'fecha': aplicada.fecha_aplicacion.strftime('%d/%m/%Y'),
                 'lote': aplicada.lote or '—',
                 'proxima': aplicada.proxima_dosis.strftime('%d/%m/%Y') if aplicada.proxima_dosis else '—',
-                'veterinario': aplicada.veterinario.get_full_name() or aplicada.veterinario.username,
+                'veterinario': aplicada.veterinario.nombre_completo,
                 'estado': aplicada.estado,
                 'estado_texto': aplicada.estado_texto,
             }
