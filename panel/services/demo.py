@@ -13,7 +13,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario, Servicio
-from citas.services import AgendaService
+from citas.services import AgendaService, CalificacionService
 from cuentas.models import Ciudad, PerfilVeterinario, Roles
 from historial.models import Consulta, Prescripcion, Vacuna, VacunaAplicada
 from mascotas.models import Especie, Mascota, Raza
@@ -233,8 +233,8 @@ class DemoService:
                 VacunaAplicada.objects.create(mascota=cita.mascota, vacuna=vacuna, consulta=visita,
                                               veterinario=veterinario, fecha_aplicacion=dia, lote='L-2026-11')
             if estrellas:
-                AgendaService.calificar(cita, cita.mascota.dueno, estrellas,
-                                        'Muy amable y explicó cada paso del tratamiento.')
+                CalificacionService.calificar(cita, cita.mascota.dueno, estrellas,
+                                              'Muy amable y explicó cada paso del tratamiento.')
 
 
 # ---------- Demo del flujo de atención (para la defensa) ----------

@@ -5,7 +5,7 @@ from ..services import TEXTO_ESTRELLAS
 
 
 class CalificarCitaForm(forms.Form):
-    """Solo valida la entrada; que la cita se pueda calificar lo decide AgendaService.calificar()."""
+    """Solo valida la entrada; que la cita se pueda calificar lo decide CalificacionService.calificar()."""
     estrellas = forms.TypedChoiceField(
         label='¿Cómo fue la atención?',
         choices=list(TEXTO_ESTRELLAS.items()),

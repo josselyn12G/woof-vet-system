@@ -7,7 +7,7 @@ from django.views.generic import FormView
 from cuentas.mixins import ClienteRequeridoMixin
 
 from ..forms import CalificarCitaForm
-from ..services import AgendaService, CalificacionService
+from ..services import CalificacionService
 from .agendar import CitaDelClienteMixin
 
 NO_SE_PUEDE_CALIFICAR = 'Solo se puede calificar una cita atendida, y una sola vez.'
@@ -45,8 +45,8 @@ class CalificarCitaView(ClienteRequeridoMixin, CitaDelClienteMixin, FormView):
     def form_valid(self, form):
         cita = self.get_cita()
         try:
-            AgendaService.calificar(cita, self.request.user, form.cleaned_data['estrellas'],
-                                    form.cleaned_data['comentario'])
+            CalificacionService.calificar(cita, self.request.user, form.cleaned_data['estrellas'],
+                                          form.cleaned_data['comentario'])
         except ValidationError as error:
             # Por ejemplo, se calificó en otra pestaña mientras esta seguía abierta
             form.add_error(None, error)
