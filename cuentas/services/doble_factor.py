@@ -1,3 +1,4 @@
+import logging
 import secrets
 import time
 
@@ -7,6 +8,10 @@ from .correo import crear_correo
 from .verificacion import marcar_verificado
 
 MINUTOS_VALIDEZ = 5
+CODIGO_NO_ENVIADO = ('No pudimos enviarte el código a tu correo. Intenta de nuevo en unos minutos; '
+                     'si sigue pasando, avisa a la clínica.')
+
+registro = logging.getLogger(__name__)
 
 
 def generar_codigo():
@@ -16,14 +21,28 @@ def generar_codigo():
 
 
 def enviar_codigo(request, usuario):
-    """Genera un código, lo guarda en la sesión con su vencimiento y lo envía al correo del usuario."""
+    """
+    Genera un código, lo guarda en la sesión con su vencimiento y lo envía al correo del usuario.
+    Devuelve True si el correo salió.
+
+    Si Gmail falla, no hay un plan B seguro (mostrar el código en pantalla anularía el doble factor):
+    el error queda en el registro, el código se borra de la sesión y devuelve False para que el login
+    avise a la persona en vez de caerse con un error 500.
+    """
     codigo = generar_codigo()
     vence = time.time() + MINUTOS_VALIDEZ * 60
     request.session['codigo_2fa'] = codigo
     request.session['codigo_2fa_vence'] = vence
 
-    crear_correo(usuario, 'Tu código de acceso a Woof', 'cuentas/correos/codigo',
-                 {'codigo': codigo, 'minutos': MINUTOS_VALIDEZ}).send()
+    try:
+        crear_correo(usuario, 'Tu código de acceso a Woof', 'cuentas/correos/codigo',
+                     {'codigo': codigo, 'minutos': MINUTOS_VALIDEZ}).send()
+    except Exception:   # noqa: BLE001 (cualquier falla del SMTP)
+        registro.exception('No se pudo enviar el código de acceso a %s', usuario.email)
+        request.session.pop('codigo_2fa', None)
+        request.session.pop('codigo_2fa_vence', None)
+        return False
+    return True
 
 
 def verificar_codigo(request, codigo_escrito):
@@ -43,10 +62,16 @@ def verificar_codigo(request, codigo_escrito):
 
 
 def iniciar_login_pendiente(request, usuario, siguiente):
-    """Primer paso: recuerda en la sesión quién pasó la contraseña y a dónde iba, y le envía el código."""
+    """
+    Primer paso: recuerda en la sesión quién pasó la contraseña y a dónde iba, y le envía el código.
+    Devuelve False si el código no salió: entonces no queda ningún login a medias en la sesión.
+    """
     request.session['pre_2fa_user'] = usuario.pk   # la sesión es JSON: se guarda el pk, no el objeto
     request.session['pre_2fa_next'] = siguiente    # a dónde ir al terminar (respeta ?next=)
-    enviar_codigo(request, usuario)
+    if enviar_codigo(request, usuario):
+        return True
+    cancelar_login_pendiente(request)
+    return False
 
 
 def completar_login(request):

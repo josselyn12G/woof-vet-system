@@ -11,6 +11,7 @@ from ..services import (
     PerfilVeterinarioService, PoliticaDeCuentas, cancelar_login_pendiente, completar_login, enviar_verificacion,
     hay_login_pendiente, iniciar_login_pendiente, verificar_codigo,
 )
+from ..services.doble_factor import CODIGO_NO_ENVIADO
 
 
 class InicioView(TemplateView):
@@ -59,7 +60,9 @@ class LoginDosPasosView(LoginView):
         if not settings.DOBLE_FACTOR:
             return super().form_valid(form)
 
-        iniciar_login_pendiente(self.request, self.usuario_que_entra, self.get_success_url())
+        if not iniciar_login_pendiente(self.request, self.usuario_que_entra, self.get_success_url()):
+            # Gmail no respondió: la persona vuelve al login con un aviso, no ve un error 500
+            return self.render_to_response(self.get_context_data(form=form, codigo_no_enviado=CODIGO_NO_ENVIADO))
         return redirect('cuentas:verificar')
 
 
