@@ -18,6 +18,7 @@ from mascotas.tests import cedula_de_prueba, crear_mascota
 from .models import Ciudad, Pais, PerfilVeterinario, Provincia, Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
 from .services import PoliticaDeCuentas, UbicacionService, completar_login, iniciar_login_pendiente
+from .services.correo import bytes_del_logo, crear_correo, saludo
 
 
 def ubicacion(provincia='Pichincha', ciudad='Quito'):
@@ -700,6 +701,31 @@ class ServiciosDeCuentasTests(TestCase):
         PoliticaDeCuentas.exigir_gestion(administrador, cliente)    # el administrador gestiona clientes
         with self.assertRaises(PermissionDenied):
             PoliticaDeCuentas.exigir_gestion(administrador, superadmin)
+
+
+class FabricaDeCorreosTests(TestCase):
+    """crear_correo() arma todos los correos de Woof igual: texto, HTML, saludo y logo."""
+
+    def test_arma_el_correo_con_las_dos_plantillas_y_el_logo(self):
+        usuario = crear_usuario(first_name='Ana')
+        correo = crear_correo(usuario, 'Tu código de acceso a Woof', 'cuentas/correos/codigo',
+                              {'codigo': '123456', 'minutos': 5})
+        self.assertEqual(correo.to, ['ana@woof.ec'])
+        self.assertIn('Ana', correo.body)
+        self.assertIn('123456', correo.body)
+        self.assertEqual(correo.alternatives[0][1], 'text/html')
+        self.assertIn('cid:logo-woof', correo.alternatives[0][0])
+        self.assertEqual(len(mail.outbox), 0)   # la fábrica solo lo arma: enviarlo es decisión de quien lo pide
+
+    def test_sin_nombre_saluda_con_el_usuario(self):
+        self.assertEqual(saludo(crear_usuario()), 'ana')
+
+    def test_el_logo_se_lee_del_disco_una_sola_vez(self):
+        bytes_del_logo.cache_clear()
+        usuario = crear_usuario()
+        for _ in range(3):
+            crear_correo(usuario, 'Prueba', 'cuentas/correos/codigo', {'codigo': '1', 'minutos': 5})
+        self.assertEqual(bytes_del_logo.cache_info().misses, 1)
 
 
 class PerfilVeterinarioTests(TestCase):

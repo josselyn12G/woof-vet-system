@@ -1,33 +1,64 @@
-"""Lo que comparten los correos de Woof (el código del login, los enlaces de la cuenta y los avisos de las citas)."""
+"""
+Los correos de Woof (el código del login, los enlaces de la cuenta y los avisos de las citas y vacunas).
+
+crear_correo() es la fábrica (patrón Factory) de todos ellos: recibe a quién, el asunto, la plantilla y los
+datos, y devuelve el correo armado en texto y en HTML con el logo adentro, listo para .send(). Así quien
+manda un correo no repite cómo se arma, y si cambia el formato (otro logo, otro remitente) cambia aquí solo.
+"""
 from email.mime.image import MIMEImage
+from functools import lru_cache
 
 from django.contrib.staticfiles import finders
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+RUTA_LOGO = 'cuentas/img/logo-correo.png'
+
+
+def saludo(usuario):
+    """Cómo se saluda en los correos: "Hola, Ana" (el nombre de pila o, si no lo tiene, el usuario)."""
+    return usuario.first_name or usuario.username
+
+
+@lru_cache(maxsize=1)
+def bytes_del_logo():
+    """
+    El logo se lee del disco una sola vez por proceso y después se reutiliza en cada correo (una única
+    instancia compartida, la idea del patrón Singleton). None si el archivo no está.
+    """
+    ruta = finders.find(RUTA_LOGO)
+    if not ruta:
+        return None
+    with open(ruta, 'rb') as archivo:
+        return archivo.read()
+
 
 def adjuntar_logo(correo):
     """Pone el logo dentro del correo (no como adjunto aparte); la plantilla lo muestra con src="cid:logo-woof"."""
     correo.mixed_subtype = 'related'
-    ruta_logo = finders.find('cuentas/img/logo-correo.png')
-    if not ruta_logo:
+    datos = bytes_del_logo()
+    if datos is None:
         return
-    with open(ruta_logo, 'rb') as archivo:
-        logo = MIMEImage(archivo.read())
+    logo = MIMEImage(datos)
     logo.add_header('Content-ID', '<logo-woof>')
     logo.add_header('Content-Disposition', 'inline', filename='logo-woof.png')
     correo.attach(logo)
 
 
-def enviar_correo_con_enlace(usuario, asunto, titulo, texto, boton, enlace, aviso):
+def crear_correo(usuario, asunto, plantilla, contexto=None):
     """
-    Un correo con un botón (verificar el correo, crear una contraseña nueva...), en texto y en HTML con el logo.
-    Usa las mismas plantillas para todos: cuentas/correos/enlace.txt y enlace.html.
+    Arma un correo para el usuario con <plantilla>.txt y <plantilla>.html (por ejemplo 'cuentas/correos/codigo').
+    Las dos plantillas reciben el contexto más 'nombre' (el saludo). No lo envía: devuelve el correo.
     """
-    contexto = {'nombre': usuario.first_name or usuario.username, 'titulo': titulo, 'texto': texto,
-                'boton': boton, 'enlace': enlace, 'aviso': aviso}
-    correo = EmailMultiAlternatives(asunto, render_to_string('cuentas/correos/enlace.txt', contexto), None,
-                                    [usuario.email])
-    correo.attach_alternative(render_to_string('cuentas/correos/enlace.html', contexto), 'text/html')
+    contexto = {'nombre': saludo(usuario), **(contexto or {})}
+    correo = EmailMultiAlternatives(asunto, render_to_string(f'{plantilla}.txt', contexto), None, [usuario.email])
+    correo.attach_alternative(render_to_string(f'{plantilla}.html', contexto), 'text/html')
     adjuntar_logo(correo)
-    correo.send()
+    return correo
+
+
+def enviar_correo_con_enlace(usuario, asunto, titulo, texto, boton, enlace, aviso):
+    """Un correo con un botón (verificar el correo, crear una contraseña nueva...) con las plantillas de enlace."""
+    crear_correo(usuario, asunto, 'cuentas/correos/enlace', {
+        'titulo': titulo, 'texto': texto, 'boton': boton, 'enlace': enlace, 'aviso': aviso,
+    }).send()

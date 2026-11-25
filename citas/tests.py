@@ -1982,7 +1982,7 @@ class AvisosDeCitasTests(TestCase):
 
     def test_si_el_correo_falla_la_cita_y_el_aviso_quedan(self):
         with patch('django.core.mail.EmailMultiAlternatives.send', side_effect=OSError('SMTP caído')), \
-                self.assertLogs('citas.models.notificacion', level='ERROR'):
+                self.assertLogs('citas.services.notificaciones', level='ERROR'):
             cita = self.agendar()
         self.assertEqual(cita.estado, EstadoCita.CONFIRMADA)
         self.assertEqual(Notificacion.objects.count(), 2)

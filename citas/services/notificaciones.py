@@ -5,6 +5,7 @@ RF-23: al agendar, reprogramar o cancelar avisa al cliente y al veterinario.
 RF-24: el recordatorio de 24 horas lo manda el comando enviar_recordatorios.
 HU-37: el mismo comando avisa al dueño una semana antes de la próxima dosis de cada vacuna.
 """
+import logging
 import threading
 from datetime import timedelta
 
@@ -15,6 +16,7 @@ from django.utils import timezone
 from django.utils.formats import date_format
 
 from citas.models import Cita, EstadoCita, Notificacion, TipoNotificacion
+from cuentas.services.correo import crear_correo
 from historial.models import VacunaAplicada
 
 # El recordatorio sale para las citas que empiezan entre 23 y 25 horas desde ahora: si el comando corre
@@ -24,6 +26,8 @@ VENTANA_RECORDATORIO = (timedelta(hours=23), timedelta(hours=25))
 # El recordatorio de vacuna sale cuando faltan 7 días o menos para la próxima dosis (y todavía no pasó):
 # si una vacuna se registra con la próxima dosis a 3 días, o el comando no corrió un día, igual se avisa
 ANTICIPACION_VACUNA = timedelta(days=7)
+
+registro = logging.getLogger(__name__)
 
 
 def cuando(momento):
@@ -65,6 +69,27 @@ class NotificacionService:
         return notificacion
 
     @staticmethod
+    def enviar(notificacion):
+        """
+        Manda el aviso al correo del usuario. Devuelve True si salió.
+
+        Si el correo falla (SMTP caído, dirección mala) no se rompe la cita: el aviso sigue guardado
+        en la campana y el error queda en el registro del servidor. Con CORREO_AVISOS=False (Render)
+        no se intenta enviar.
+        """
+        if not getattr(settings, 'CORREO_AVISOS', True):
+            return False
+        correo = crear_correo(notificacion.usuario, f'Woof · {notificacion.get_tipo_display()}',
+                              'citas/correos/notificacion', {'notificacion': notificacion})
+        try:
+            correo.send()
+        except Exception:   # cualquier fallo del envío: se registra y la reserva sigue su curso
+            registro.exception('No se pudo enviar la notificación %s a %s', notificacion.pk,
+                               notificacion.usuario.email)
+            return False
+        return True
+
+    @staticmethod
     def enviar_sin_esperar(notificacion):
         """
         El correo sale en un hilo aparte: el SMTP puede tardar varios segundos por correo (EMAIL_TIMEOUT),
@@ -72,12 +97,12 @@ class NotificacionService:
         En las pruebas (AVISOS_EN_SEGUNDO_PLANO=False) se envía en el momento para poder revisar mail.outbox.
         """
         if not getattr(settings, 'AVISOS_EN_SEGUNDO_PLANO', True):
-            notificacion.enviar()
+            NotificacionService.enviar(notificacion)
             return
 
         def tarea():
             try:
-                notificacion.enviar()
+                NotificacionService.enviar(notificacion)
             finally:
                 connection.close()   # el hilo no deja conexiones abiertas a la base
 
@@ -149,7 +174,7 @@ class NotificacionService:
                 )
         except IntegrityError:
             return None   # otra ejecución del comando ya lo creó
-        notificacion.enviar()
+        NotificacionService.enviar(notificacion)
         return notificacion
 
     @staticmethod
@@ -178,7 +203,7 @@ class NotificacionService:
                 )
         except IntegrityError:
             return None   # otra ejecución del comando ya lo creó
-        notificacion.enviar()
+        NotificacionService.enviar(notificacion)
         return notificacion
 
     @staticmethod

@@ -2,10 +2,8 @@ import secrets
 import time
 
 from django.contrib.auth import get_user_model, login
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
 
-from .correo import adjuntar_logo
+from .correo import crear_correo
 from .verificacion import marcar_verificado
 
 MINUTOS_VALIDEZ = 5
@@ -24,18 +22,8 @@ def enviar_codigo(request, usuario):
     request.session['codigo_2fa'] = codigo
     request.session['codigo_2fa_vence'] = vence
 
-    contexto = {
-        'nombre': usuario.first_name or usuario.username,
-        'codigo': codigo,
-        'minutos': MINUTOS_VALIDEZ,
-    }
-    texto = render_to_string('cuentas/correos/codigo.txt', contexto)
-    html = render_to_string('cuentas/correos/codigo.html', contexto)
-
-    correo = EmailMultiAlternatives('Tu código de acceso a Woof', texto, None, [usuario.email])
-    correo.attach_alternative(html, 'text/html')
-    adjuntar_logo(correo)                      # el logo viaja dentro del correo, no como adjunto aparte
-    correo.send()
+    crear_correo(usuario, 'Tu código de acceso a Woof', 'cuentas/correos/codigo',
+                 {'codigo': codigo, 'minutos': MINUTOS_VALIDEZ}).send()
 
 
 def verificar_codigo(request, codigo_escrito):
