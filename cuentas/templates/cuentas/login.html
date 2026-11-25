@@ -36,7 +36,12 @@
       <form method="post" data-cargando="Cargando">
         {% csrf_token %}
 
-        {% if form.non_field_errors %}
+        {% if codigo_no_enviado %}
+          {# La contraseña estaba bien, pero el correo con el código no salió (LoginDosPasosView) #}
+          <p class="campo__error mb-3" role="alert">
+            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ codigo_no_enviado }}
+          </p>
+        {% elif form.non_field_errors %}
           <p class="campo__error mb-3" role="alert">
             <i class="bi bi-exclamation-circle" aria-hidden="true"></i>Usuario o contraseña incorrectos.
           </p>

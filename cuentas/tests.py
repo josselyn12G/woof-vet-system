@@ -2,6 +2,7 @@ import re
 import time
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core import mail
 from django.contrib.auth.models import AnonymousUser
@@ -19,6 +20,10 @@ from .models import Ciudad, Pais, PerfilVeterinario, Provincia, Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
 from .services import PoliticaDeCuentas, UbicacionService, completar_login, iniciar_login_pendiente
 from .services.correo import bytes_del_logo, crear_correo, saludo
+
+
+# Lo que se reemplaza para simular que Gmail se cae (inyección de falla)
+SMTP_SEND = 'django.core.mail.EmailMultiAlternatives.send'
 
 
 def ubicacion(provincia='Pichincha', ciudad='Quito'):
@@ -270,6 +275,27 @@ class CedulaTests(TestCase):
 class DobleFactorTests(TestCase):
     def setUp(self):
         self.usuario = crear_usuario()
+
+    def test_si_el_correo_del_codigo_falla_el_login_avisa_en_vez_de_caerse(self):
+        # Inyección de falla, como en el video: Gmail no responde al mandar el código
+        with patch(SMTP_SEND, side_effect=OSError('SMTP caído')), \
+                self.assertLogs('cuentas.services.doble_factor', level='ERROR'):
+            respuesta = self.client.post(reverse('cuentas:login'),
+                                         {'username': 'ana', 'password': 'Clave-segura-123'})
+        self.assertEqual(respuesta.status_code, 200)                 # vuelve al login, sin error 500
+        self.assertContains(respuesta, 'No pudimos enviarte el código')
+        self.assertNotIn('_auth_user_id', self.client.session)       # no entró sin el doble factor
+        for clave in ('pre_2fa_user', 'pre_2fa_next', 'codigo_2fa', 'codigo_2fa_vence'):
+            self.assertNotIn(clave, self.client.session)             # no queda un login a medias
+        self.assertRedirects(self.client.get(reverse('cuentas:verificar')), reverse('cuentas:login'))
+
+    def test_cuando_gmail_vuelve_el_login_funciona_normal(self):
+        with patch(SMTP_SEND, side_effect=OSError('SMTP caído')), \
+                self.assertLogs('cuentas.services.doble_factor', level='ERROR'):
+            self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'Clave-segura-123'})
+        respuesta = self.client.post(reverse('cuentas:login'), {'username': 'ana', 'password': 'Clave-segura-123'})
+        self.assertRedirects(respuesta, reverse('cuentas:verificar'))
+        self.assertEqual(len(mail.outbox), 1)
 
     def pasar_contrasena(self, siguiente=None):
         """Primer paso del login. Devuelve el código, leído del correo como lo haría la persona."""
