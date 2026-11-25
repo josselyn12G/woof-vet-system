@@ -15,7 +15,6 @@ from django.views.generic import TemplateView
 from cuentas.mixins import ClienteRequeridoMixin
 from mascotas.services import MascotaService
 
-from ..models import Prescripcion
 from ..services import HistorialService
 
 
@@ -106,7 +105,7 @@ class MarcarDiaView(ClienteRequeridoMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        receta = get_object_or_404(Prescripcion.objects.filter(consulta__mascota__dueno=request.user), pk=pk)
+        receta = get_object_or_404(HistorialService.recetas_del_dueno(request.user), pk=pk)
         try:
             dia = date.fromisoformat(request.POST.get('dia', ''))
         except ValueError:
@@ -135,17 +134,18 @@ class GuardarDiasView(ClienteRequeridoMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        receta = get_object_or_404(Prescripcion.objects.filter(consulta__mascota__dueno=request.user), pk=pk)
+        receta = get_object_or_404(HistorialService.recetas_del_dueno(request.user), pk=pk)
+        con_fetch = request.headers.get('X-Requested-With') == 'fetch'   # el pop-up guarda con fetch
         try:
             dias = [date.fromisoformat(valor) for valor in request.POST.getlist('dia')]
             marcados = HistorialService.guardar_dias(receta, dias)
         except (ValueError, ValidationError) as error:
             texto = error.messages[0] if isinstance(error, ValidationError) else 'Ese día no es válido.'
-            if request.headers.get('X-Requested-With') == 'fetch':
+            if con_fetch:
                 return JsonResponse({'error': texto}, status=400)
             messages.error(request, texto)
             marcados = None
-        if request.headers.get('X-Requested-With') == 'fetch':
+        if con_fetch:
             return JsonResponse({'marcados': marcados, 'dias': receta.duracion_dias})
         if marcados is not None:
             messages.success(request, f'Listo: guardamos {marcados} día{"s" if marcados != 1 else ""} de {receta.medicamento}.')

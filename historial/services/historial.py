@@ -465,6 +465,18 @@ class HistorialService:
         return Vacuna.objects.filter(Q(especie__isnull=True) | Q(especie=mascota.especie_id), activa=True)
 
     @staticmethod
+    def vacunas_para_elegir(mascota, actual_pk=None):
+        """Las del desplegable al registrar una vacuna: las que se le pueden aplicar y, al editar, la que ya tiene."""
+        return Vacuna.objects.filter(
+            Q(pk__in=HistorialService.vacunas_para(mascota)) | Q(pk=actual_pk)
+        ).select_related('especie')
+
+    @staticmethod
+    def recetas_del_dueno(dueno):
+        """Las recetas de las mascotas de esa persona: la de otro cliente no está en la consulta (404)."""
+        return Prescripcion.objects.filter(consulta__mascota__dueno=dueno)
+
+    @staticmethod
     def puede_registrar_consulta(cita):
         """Solo una cita atendida que todavía no tiene consulta (RF-20)."""
         return cita.estado == EstadoCita.ATENDIDA and not Consulta.objects.filter(cita=cita).exists()
