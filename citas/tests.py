@@ -17,6 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from cuentas.models import PerfilVeterinario, Roles
+from historial.models import Vacuna, VacunaAplicada
 from mascotas.tests import crear_mascota, crear_usuario
 
 from .models import Calificacion, Cita, EstadoCita, HorarioVeterinario, Notificacion, Servicio, TipoNotificacion
@@ -2044,6 +2045,80 @@ class RecordatoriosTests(TestCase):
         with self.assertRaises(IntegrityError):
             Notificacion.objects.create(usuario=self.cliente, cita=cita, tipo=TipoNotificacion.RECORDATORIO,
                                         mensaje='otra vez')
+
+
+class RecordatoriosDeVacunasTests(TestCase):
+    """enviar_recordatorios también avisa al dueño una semana antes de la próxima dosis de una vacuna (HU-37)."""
+
+    def setUp(self):
+        self.hoy = timezone.localdate()
+        self.veterinario = crear_veterinario(email='sofia@woof.ec')
+        self.cliente = crear_usuario('ana', email='ana@correo.ec')
+        self.milo = crear_mascota(self.cliente, nombre='Milo')
+        self.rabia = Vacuna.objects.get(nombre='Rabia', especie__codigo='perro')
+
+    def dosis(self, proxima_en_dias, aplicada_hace_dias=300):
+        return VacunaAplicada.objects.create(
+            mascota=self.milo, vacuna=self.rabia, veterinario=self.veterinario,
+            fecha_aplicacion=self.hoy - timedelta(days=aplicada_hace_dias),
+            proxima_dosis=self.hoy + timedelta(days=proxima_en_dias),
+        )
+
+    def ejecutar(self):
+        salida = StringIO()
+        call_command('enviar_recordatorios', stdout=salida)
+        return salida.getvalue()
+
+    def test_avisa_al_dueno_una_semana_antes(self):
+        aplicada = self.dosis(7)
+        self.assertIn('Se enviaron 1 recordatorio de vacuna.', self.ejecutar())
+        self.assertEqual([correo.to for correo in mail.outbox], [['ana@correo.ec']])
+        self.assertEqual(mail.outbox[0].subject, 'Woof · Recordatorio de vacuna')
+        aviso = Notificacion.objects.get(vacuna_aplicada=aplicada, tipo=TipoNotificacion.VACUNA)
+        self.assertEqual(aviso.usuario, self.cliente)
+        self.assertIn('Milo', aviso.mensaje)
+        self.assertIn('Rabia', aviso.mensaje)
+        self.assertIn('en 7 días', aviso.mensaje)
+        self.assertIn('carnet de vacunación', mail.outbox[0].body)
+
+    def test_si_faltan_menos_de_7_dias_tambien_avisa(self):
+        self.dosis(1)
+        self.ejecutar()
+        self.assertIn('mañana', Notificacion.objects.get(tipo=TipoNotificacion.VACUNA).mensaje)
+
+    def test_no_avisa_dos_veces_la_misma_dosis(self):
+        self.dosis(5)
+        self.ejecutar()
+        self.assertIn('Se enviaron 0 recordatorios de vacunas.', self.ejecutar())
+        self.assertEqual(Notificacion.objects.filter(tipo=TipoNotificacion.VACUNA).count(), 1)
+
+    def test_fuera_de_la_semana_o_ya_vencida_no_avisa(self):
+        self.dosis(8)
+        self.dosis(-1, aplicada_hace_dias=400)
+        self.ejecutar()
+        self.assertFalse(Notificacion.objects.filter(tipo=TipoNotificacion.VACUNA).exists())
+
+    def test_si_ya_recibio_otra_dosis_no_avisa(self):
+        self.dosis(3)
+        self.dosis(360, aplicada_hace_dias=5)   # ya se vacunó otra vez
+        self.ejecutar()
+        self.assertFalse(Notificacion.objects.filter(tipo=TipoNotificacion.VACUNA).exists())
+
+    def test_la_base_no_acepta_dos_recordatorios_de_la_misma_dosis(self):
+        aplicada = self.dosis(4)
+        NotificacionService.recordatorio_vacuna(aplicada)
+        self.assertIsNone(NotificacionService.recordatorio_vacuna(aplicada))
+        with self.assertRaises(IntegrityError):
+            Notificacion.objects.create(usuario=self.cliente, vacuna_aplicada=aplicada,
+                                        tipo=TipoNotificacion.VACUNA, mensaje='otra vez')
+
+    def test_la_campana_muestra_el_recordatorio_de_vacuna(self):
+        self.dosis(6)
+        self.ejecutar()
+        self.client.force_login(self.cliente)
+        respuesta = self.client.get(reverse('citas:notificaciones'))
+        self.assertContains(respuesta, 'Recordatorio de vacuna')
+        self.assertContains(respuesta, 'bi-shield-plus')
 
 
 class CampanaTests(TestCase):
