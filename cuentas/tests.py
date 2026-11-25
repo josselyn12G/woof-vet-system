@@ -972,6 +972,15 @@ class RecuperarContrasenaTests(TestCase):
         self.assertRedirects(self.pedir_enlace('nadie@woof.ec'), reverse('cuentas:recuperar_enviado'))
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_si_el_correo_falla_no_se_cae_y_queda_en_el_registro(self):
+        from unittest.mock import patch   # aquí y no arriba: este PR no toca los imports del archivo
+        # Inyección de falla, como en el video: Gmail no responde al mandar el enlace
+        with patch('django.core.mail.EmailMultiAlternatives.send', side_effect=OSError('SMTP caído')), \
+                self.assertLogs('cuentas.forms.acceso', level='ERROR'):
+            respuesta = self.pedir_enlace()
+        # La misma página que si hubiera salido (ni error 500 ni pistas de qué correos tienen cuenta)
+        self.assertRedirects(respuesta, reverse('cuentas:recuperar_enviado'))
+
     def test_con_el_enlace_se_crea_la_contrasena_nueva_y_sirve_una_sola_vez(self):
         self.pedir_enlace()
         ruta = enlace_del_correo(mail.outbox[-1])
