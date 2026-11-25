@@ -59,8 +59,12 @@ class Usuario(AbstractUser):
             ),
         ]
 
-    # Funcion que devuelve el nombre completo o su nombre de usuario
     def __str__(self):
+        return self.nombre_completo
+
+    @property
+    def nombre_completo(self):
+        """Nombre y apellido, o el usuario si no los registró: como se muestra a la persona en todo Woof."""
         return self.get_full_name() or self.get_username()
 
     @property

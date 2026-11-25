@@ -64,10 +64,6 @@ def fecha(valor, formato='j \\d\\e F \\d\\e Y'):
     return date_format(timezone.localtime(valor) if hasattr(valor, 'tzinfo') and valor.tzinfo else valor, formato)
 
 
-def nombre_de(persona):
-    return persona.get_full_name() or persona.username
-
-
 class PaginaNumerada(canvas.Canvas):
     """Dibuja la cabecera y el pie en cada página al final, cuando ya se sabe cuántas páginas hay ("1 de 3")."""
 
@@ -148,7 +144,7 @@ def generar_pdf(mascota):
         ('Sexo', mascota.get_sexo_display() or 'Sin registrar'),
         ('Edad', mascota.edad or 'Sin registrar'),
         ('Peso', f'{mascota.peso_kg} kg' if mascota.peso_kg else 'Sin registrar'),
-        ('Dueño', nombre_de(dueno)),
+        ('Dueño', dueno.nombre_completo),
         ('Contacto', f'{dueno.telefono} · {dueno.email}'),
     ]
     celdas = [[[texto(etiqueta.upper(), 'etiqueta'), texto(valor, 'dato')] for etiqueta, valor in ficha[i:i + 3]]
@@ -182,7 +178,7 @@ def generar_pdf(mascota):
                 texto(linea.vacuna.nombre, 'celda_negrita'), texto(linea.fecha_aplicacion.strftime('%d/%m/%Y'), 'celda'),
                 texto(linea.lote or '—', 'celda'),
                 texto(linea.proxima_dosis.strftime('%d/%m/%Y') if linea.proxima_dosis else 'Sin refuerzo', 'celda'),
-                texto(nombre_de(linea.veterinario), 'celda'),
+                texto(linea.veterinario.nombre_completo, 'celda'),
                 Paragraph(f'<font color="{color.hexval()}"><b>{escape(linea.estado_texto)}</b></font>', ESTILOS['celda']),
             ])
             estilos.append(('BACKGROUND', (5, i), (5, i), fondo))
@@ -199,7 +195,7 @@ def generar_pdf(mascota):
         servicio = consulta.cita.servicio if consulta.cita_id else 'Sin cita'
         partes = [
             Table([[texto(f'{fecha(consulta.fecha)} · {fecha(consulta.fecha, "H:i")}', 'consulta'),
-                    texto(f'{nombre_de(consulta.veterinario)} · {servicio}'
+                    texto(f'{consulta.veterinario.nombre_completo} · {servicio}'
                           + (f' · {consulta.peso_kg} kg' if consulta.peso_kg else ''), 'derecha')]],
                   colWidths=[ancho_util * 0.45, ancho_util * 0.55],
                   style=TableStyle([('LINEBELOW', (0, 0), (-1, -1), 1.2, NARANJA), ('LEFTPADDING', (0, 0), (-1, -1), 0),

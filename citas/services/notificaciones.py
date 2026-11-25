@@ -31,10 +31,6 @@ def cuando(momento):
     return date_format(timezone.localtime(momento), r'l j \d\e F \a \l\a\s H:i')
 
 
-def nombre(persona):
-    return persona.get_full_name() or persona.username
-
-
 def que_dia(fecha):
     """"martes 1 de diciembre" (solo el día, para la próxima dosis de una vacuna)."""
     return date_format(fecha, r'l j \d\e F')
@@ -104,9 +100,10 @@ class NotificacionService:
     def cita_agendada(cita):
         return NotificacionService.avisar_a_los_dos(
             cita, TipoNotificacion.AGENDADA,
-            f'Tu cita de {de_la_cita(cita)} con {nombre(cita.veterinario)} quedó confirmada para el '
+            f'Tu cita de {de_la_cita(cita)} con {cita.veterinario.nombre_completo} quedó confirmada para el '
             f'{cuando(cita.inicio)}. Precio: ${cita.precio}.',
-            f'Tienes una cita nueva: {de_la_cita(cita)} (de {nombre(cita.mascota.dueno)}) el {cuando(cita.inicio)}.'
+            f'Tienes una cita nueva: {de_la_cita(cita)} (de {cita.mascota.dueno.nombre_completo}) '
+            f'el {cuando(cita.inicio)}.'
             + (f' Motivo: {cita.motivo}.' if cita.motivo else ''),
         )
 
@@ -115,9 +112,9 @@ class NotificacionService:
         cambio = f'pasó del {cuando(inicio_anterior)} al {cuando(cita.inicio)}'
         return NotificacionService.avisar_a_los_dos(
             cita, TipoNotificacion.REPROGRAMADA,
-            f'Tu cita de {de_la_cita(cita)} con {nombre(cita.veterinario)} {cambio}. '
+            f'Tu cita de {de_la_cita(cita)} con {cita.veterinario.nombre_completo} {cambio}. '
             f'La hora anterior quedó libre.',
-            f'{nombre(cita.mascota.dueno)} reprogramó la cita de {de_la_cita(cita)}: {cambio}.',
+            f'{cita.mascota.dueno.nombre_completo} reprogramó la cita de {de_la_cita(cita)}: {cambio}.',
         )
 
     @staticmethod
@@ -126,13 +123,13 @@ class NotificacionService:
         cliente = cita.mascota.dueno
         detalle = f'{de_la_cita(cita)} del {cuando(cita.inicio)}'
         if cancelada_por.pk == cliente.pk:
-            para_el_cliente = f'Cancelaste la cita de {detalle} con {nombre(cita.veterinario)}.'
-            para_el_veterinario = f'{nombre(cliente)} canceló la cita de {detalle}. El horario quedó libre.'
+            para_el_cliente = f'Cancelaste la cita de {detalle} con {cita.veterinario.nombre_completo}.'
+            para_el_veterinario = f'{cliente.nombre_completo} canceló la cita de {detalle}. El horario quedó libre.'
         else:
             motivo = motivo.strip()
             con_motivo = f' Motivo: {motivo}.' if motivo else ''
-            para_el_cliente = (f'La clínica canceló tu cita de {detalle} con {nombre(cita.veterinario)}.{con_motivo} '
-                               f'Puedes agendar otra cuando quieras.')
+            para_el_cliente = (f'La clínica canceló tu cita de {detalle} con {cita.veterinario.nombre_completo}.'
+                               f'{con_motivo} Puedes agendar otra cuando quieras.')
             para_el_veterinario = f'La clínica canceló la cita de {detalle}.{con_motivo} El horario quedó libre.'
         return NotificacionService.avisar_a_los_dos(cita, TipoNotificacion.CANCELADA, para_el_cliente,
                                                     para_el_veterinario)
@@ -144,7 +141,7 @@ class NotificacionService:
             with transaction.atomic():
                 notificacion = Notificacion.objects.create(
                     usuario=cita.mascota.dueno, cita=cita, tipo=TipoNotificacion.RECORDATORIO,
-                    mensaje=f'Te recordamos la cita de {de_la_cita(cita)} con {nombre(cita.veterinario)} '
+                    mensaje=f'Te recordamos la cita de {de_la_cita(cita)} con {cita.veterinario.nombre_completo} '
                             f'mañana, {cuando(cita.inicio)}. Si no puedes ir, cancélala o reprográmala en Woof.',
                 )
         except IntegrityError:

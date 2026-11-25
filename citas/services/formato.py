@@ -29,6 +29,6 @@ def datos_de_confirmacion(cita):
     inicio = timezone.localtime(cita.inicio)
     return {
         'titulo': f'{cita.mascota} tiene cita.',
-        'detalle': f'{cita.servicio} con {cita.veterinario.get_full_name() or cita.veterinario.username}',
+        'detalle': f'{cita.servicio} con {cita.veterinario.nombre_completo}',
         'cuando': date_format(inicio, r'l j \d\e F, H:i'),
     }
