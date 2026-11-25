@@ -1,4 +1,6 @@
 """Entrar a Woof: el registro, el código de 6 dígitos del login en dos pasos y recuperar la contraseña."""
+import logging
+
 from django import forms
 from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.core.validators import RegexValidator
@@ -10,6 +12,8 @@ from ..services.correo import enviar_correo_con_enlace
 from ..services.ubicacion import UbicacionService
 from .comunes import ETIQUETAS
 from .ubicacion import UbicacionMixin
+
+registro = logging.getLogger(__name__)
 
 
 class RegistroForm(UbicacionMixin, UserCreationForm):
@@ -49,23 +53,32 @@ class RegistroForm(UbicacionMixin, UserCreationForm):
 
 
 class RecuperarContrasenaForm(PasswordResetForm):
-    """HU-14: el correo con el enlace para crear una contraseña nueva, con el mismo diseño que los demás de Woof."""
+    """
+    HU-14: el correo con el enlace para crear una contraseña nueva, con el mismo diseño que los demás de Woof.
+
+    Si Gmail falla, hace lo mismo que el send_mail() original de Django: registra el error y sigue. La página
+    "Revisa tu correo" sale igual, así no se cae con un error 500 ni deja ver qué correos tienen cuenta;
+    la persona puede volver a pedirlo.
+    """
 
     def send_mail(self, subject_template_name, email_template_name, context, from_email, to_email,
                   html_email_template_name=None):
         enlace = f"{context['protocol']}://{context['domain']}" + reverse(
             'cuentas:contrasena_nueva', args=[context['uid'], context['token']],
         )
-        enviar_correo_con_enlace(
-            context['user'],
-            asunto='Crea una contraseña nueva en Woof',
-            titulo='Crea una contraseña nueva',
-            texto='Pediste crear una contraseña nueva para tu cuenta de Woof. Toca el botón para elegirla.',
-            boton='Crear contraseña nueva',
-            enlace=enlace,
-            aviso='El enlace sirve una sola vez y vence en 3 días. Si no lo pediste, ignora este correo: '
-                  'tu contraseña sigue igual.',
-        )
+        try:
+            enviar_correo_con_enlace(
+                context['user'],
+                asunto='Crea una contraseña nueva en Woof',
+                titulo='Crea una contraseña nueva',
+                texto='Pediste crear una contraseña nueva para tu cuenta de Woof. Toca el botón para elegirla.',
+                boton='Crear contraseña nueva',
+                enlace=enlace,
+                aviso='El enlace sirve una sola vez y vence en 3 días. Si no lo pediste, ignora este correo: '
+                      'tu contraseña sigue igual.',
+            )
+        except Exception:   # noqa: BLE001 (cualquier falla del SMTP)
+            registro.exception('No se pudo enviar el enlace para crear una contraseña nueva a %s', to_email)
 
 
 class VerificarCodigoForm(forms.Form):
