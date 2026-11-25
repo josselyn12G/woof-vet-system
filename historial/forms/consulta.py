@@ -1,8 +1,7 @@
 """Registrar consulta (RF-20): los datos de la consulta, las líneas de la receta y las vacunas aplicadas."""
 from django import forms
-from django.db.models import Q
 
-from ..models import Consulta, Prescripcion, Vacuna, VacunaAplicada
+from ..models import Consulta, Prescripcion, VacunaAplicada
 from ..services import HistorialService
 
 
@@ -71,10 +70,7 @@ class VacunaAplicadaForm(forms.ModelForm):
         self.instance.veterinario = veterinario
         if not self.instance.pk:
             self.instance.fecha_aplicacion = fecha
-        disponibles = HistorialService.vacunas_para(mascota)
-        self.fields['vacuna'].queryset = Vacuna.objects.filter(
-            Q(pk__in=disponibles) | Q(pk=self.instance.vacuna_id)
-        ).select_related('especie')
+        self.fields['vacuna'].queryset = HistorialService.vacunas_para_elegir(mascota, self.instance.vacuna_id)
         self.fields['vacuna'].empty_label = 'Elige una vacuna'
 
 

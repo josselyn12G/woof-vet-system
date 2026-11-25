@@ -906,3 +906,22 @@ class PaginasDelVeterinarioTests(HistorialBaseTests):
         for nombre in ('historial:consultas_veterinario', 'historial:vacunacion_veterinario'):
             with self.subTest(nombre=nombre):
                 self.assertEqual(self.client.get(reverse(nombre)).status_code, 403)
+
+
+class ConsultasDelServiceTests(HistorialBaseTests):
+    """Las vistas y los formularios piden estas listas a HistorialService (no consultan la base por su cuenta)."""
+
+    def test_recetas_del_dueno_solo_trae_las_de_sus_mascotas(self):
+        consulta = self.consulta()
+        consulta.save()
+        receta = Prescripcion.objects.create(consulta=consulta, medicamento='Amoxicilina', dosis='1 tableta',
+                                             frecuencia_horas=12, duracion_dias=7)
+        self.assertEqual(list(HistorialService.recetas_del_dueno(self.cliente)), [receta])
+        self.assertFalse(HistorialService.recetas_del_dueno(crear_usuario('luis')).exists())
+
+    def test_vacunas_para_elegir_incluye_la_que_ya_tiene_aunque_este_desactivada(self):
+        rabia = self.rabia_perro()
+        rabia.activa = False
+        rabia.save(update_fields=['activa'])
+        self.assertNotIn(rabia, HistorialService.vacunas_para_elegir(self.milo))
+        self.assertIn(rabia, HistorialService.vacunas_para_elegir(self.milo, actual_pk=rabia.pk))
