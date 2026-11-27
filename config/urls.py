@@ -8,4 +8,5 @@ urlpatterns = [
     path('mascotas/', include('mascotas.urls')),
     path('citas/', include('citas.urls')),
     path('historial/', include('historial.urls')),
+    path('notificaciones/', include('notificaciones.urls')),
 ]

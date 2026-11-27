@@ -207,15 +207,17 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-565 pruebas:
+618 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 107 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada, verificar el correo, recuperar y cambiar la contraseña, Mi cuenta y términos |
-| `mascotas` | 92 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
-| `citas` | 249 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, avisos (el correo sale sin hacer esperar a la reserva) y recordatorios, panel de la campana, filtro por mascota, agenda, pacientes, gestión, indicadores y acceso por rol |
-| `historial` | 102 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol (tablero, línea de tiempo, peso, filtro por mes, PDF), el tratamiento en curso en el Resumen, Mis recetas por consulta, el tratamiento con su check por día (guardado al cerrar el pop-up), Consultas médicas y Vacunación del veterinario y el catálogo de vacunas |
+| `cuentas` | 116 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada, verificar el correo, recuperar y cambiar la contraseña, Mi cuenta y términos |
+| `mascotas` | 96 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
+| `citas` | 244 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, filtro por mascota, agenda, pacientes, gestión, indicadores, caché de los servicios y acceso por rol |
+| `historial` | 104 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol (tablero, línea de tiempo, peso, filtro por mes, PDF), el tratamiento en curso en el Resumen, Mis recetas por consulta, el tratamiento con su check por día (guardado al cerrar el pop-up), Consultas médicas y Vacunación del veterinario y el catálogo de vacunas |
 | `panel` | 15 | Portada de cada rol, períodos de las estadísticas y los comandos `cargar_demo` y `preparar_demo_atencion` |
+| `notificaciones` | 40 | Avisos de citas por eventos (el correo sale sin hacer esperar a la reserva), reintento de correos que fallaron, recordatorios de citas y vacunas, la campana y que `citas` no dependa de `notificaciones` ni de `historial` |
+| `compartido` | 3 | El caché de los catálogos: acierto, fallo y borrado al confirmar la transacción |
 
 En GitHub Actions la suite corre dos veces en cada Pull Request: con SQLite y con **PostgreSQL 16** (como Neon). Las pruebas de dos reservas simultáneas solo corren en PostgreSQL, porque SQLite no bloquea filas. Cada caso del plan de pruebas del Documento de Análisis (§3.5) y la prueba que lo cubre están en [PLAN_DE_PRUEBAS.md](docs/PLAN_DE_PRUEBAS.md).
 
@@ -254,12 +256,19 @@ woof-vet-system/
 │   ├── views/           catalogo, horarios, agendar (cliente), agenda (veterinario) y gestion
 │   ├── forms/           los mismos temas que las vistas, más los campos que comparten
 │   ├── mixins.py        el horario del veterinario (y su versión para el superadministrador)
-│   └── services/        AgendaService (turnos, agendar, cancelar, reprogramar, calificar), catálogo, horarios, consultas de citas y estadísticas
+│   ├── services/        AgendaService (turnos, agendar, cancelar, reprogramar), calificaciones, catálogo, horarios, consultas de citas y estadísticas
+│   ├── eventos.py       cita agendada, reprogramada y cancelada: los anuncia sin saber quién escucha (Observer)
+│   └── signals.py       borra del caché los servicios agendables cuando cambian
 ├── historial/           historia clínica: consultas, recetas y vacunas (nace de una cita atendida)
 │   ├── models/          consulta (y su receta) y vacuna (catálogo y vacunas aplicadas)
 │   ├── views/           registrar consulta (veterinario), la historia por rol y el catálogo de vacunas
 │   ├── forms/           la consulta, los formsets de la receta y las vacunas, y una vacuna del catálogo
 │   └── services/        HistorialService (historia, carnet y guardar la consulta) y el catálogo de vacunas
+├── notificaciones/      los avisos (campana y correo): escucha los eventos de citas y avisa de vacunas; ninguna app depende de ella
+│   ├── services.py      NotificacionService: guardar, enviar con reintento limitado, recordatorios y la campana
+│   ├── receptores.py    los oyentes de los eventos de citas
+│   └── management/      comando enviar_recordatorios (Cron Job cada hora)
+├── compartido/          caché de los catálogos que casi no cambian (no es una app de Django)
 ├── panel/               la portada de cada rol después del login (depende de las otras apps; ninguna depende de ella)
 │   ├── services/        cifras de cada portada, períodos de las estadísticas y datos de demostración
 │   └── management/      comando cargar_demo

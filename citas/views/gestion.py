@@ -13,9 +13,8 @@ from panel.graficos import columnas, dona
 from panel.services.estadisticas import grafico_de_linea
 
 from ..forms import FiltroCitasForm, IndicadoresForm
-from ..services import (
-    VISTAS_GESTION, AgendaService, CitaService, EstadisticasService, HorarioService, NotificacionService,
-)
+from ..eventos import anunciar_al_confirmar, cita_cancelada
+from ..services import VISTAS_GESTION, AgendaService, CitaService, EstadisticasService, HorarioService
 from ..services.horarios import semana_pedida
 
 
@@ -77,8 +76,7 @@ class GestionCancelarCitaView(AdministradorRequeridoMixin, View):
             messages.error(request, error.messages[0])
         else:
             motivo = request.POST.get('motivo', '')[:200]
-            NotificacionService.al_confirmar(NotificacionService.cita_cancelada, cita, cancelada_por=request.user,
-                                             motivo=motivo)
+            anunciar_al_confirmar(cita_cancelada, cita, cancelada_por=request.user, motivo=motivo)
             messages.success(request, f'Se canceló la cita de {cita.mascota}. El horario quedó libre.')
         destino = request.POST.get('volver', '')
         # Solo se vuelve a la propia gestión de citas (nunca a una URL de afuera)

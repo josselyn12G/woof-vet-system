@@ -118,9 +118,9 @@
           <a class="nav-arriba__opcion{% if ruta == 'citas:mis_calificaciones' %} es-activo{% endif %}" href="{% url 'citas:mis_calificaciones' %}"{% if ruta == 'citas:mis_calificaciones' %} aria-current="page"{% endif %}>Calificaciones</a>
         </nav>
         <div class="nav-arriba__lado">
-          <div class="campana" data-campana data-panel-url="{% url 'citas:panel_notificaciones' %}">
+          <div class="campana" data-campana data-panel-url="{% url 'notificaciones:panel' %}">
             {# Sin JS es un enlace a la página de avisos; con JS abre el panel debajo de la campana (campana.js) #}
-            <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-haspopup="dialog" aria-expanded="false" data-campana-abrir aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
+            <a class="panel-barra__boton panel-campana" href="{% url 'notificaciones:lista' %}" title="Notificaciones" aria-haspopup="dialog" aria-expanded="false" data-campana-abrir aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
             <div class="campana-panel" role="dialog" aria-labelledby="campana-titulo" data-campana-panel hidden></div>
           </div>
           {# Menú de la cuenta (popover del navegador, sin JavaScript): Mi horario, Mi cuenta y cerrar sesión #}
@@ -155,9 +155,9 @@
           </form>
         {% endif %}
 
-        <div class="campana" data-campana data-panel-url="{% url 'citas:panel_notificaciones' %}">
+        <div class="campana" data-campana data-panel-url="{% url 'notificaciones:panel' %}">
             {# Sin JS es un enlace a la página de avisos; con JS abre el panel debajo de la campana (campana.js) #}
-            <a class="panel-barra__boton panel-campana" href="{% url 'citas:notificaciones' %}" title="Notificaciones" aria-haspopup="dialog" aria-expanded="false" data-campana-abrir aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
+            <a class="panel-barra__boton panel-campana" href="{% url 'notificaciones:lista' %}" title="Notificaciones" aria-haspopup="dialog" aria-expanded="false" data-campana-abrir aria-label="Notificaciones{% if notificaciones_sin_leer %}: {{ notificaciones_sin_leer }} sin leer{% endif %}"><i class="bi bi-bell" aria-hidden="true"></i>{% if notificaciones_sin_leer %}<span class="panel-campana__numero" aria-hidden="true">{% if notificaciones_sin_leer > 9 %}9+{% else %}{{ notificaciones_sin_leer }}{% endif %}</span>{% endif %}</a>
             <div class="campana-panel" role="dialog" aria-labelledby="campana-titulo" data-campana-panel hidden></div>
           </div>
         <span class="panel-menu__avatar panel-barra__avatar" title="{{ user.get_full_name|default:user.username }}" aria-hidden="true">{{ user.first_name|default:user.username|slice:':1'|upper }}{{ user.last_name|slice:':1'|upper }}</span>
