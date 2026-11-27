@@ -265,7 +265,8 @@ woof-vet-system/
 │   ├── forms/           la consulta, los formsets de la receta y las vacunas, y una vacuna del catálogo
 │   └── services/        HistorialService (historia, carnet y guardar la consulta) y el catálogo de vacunas
 ├── notificaciones/      los avisos (campana y correo): escucha los eventos de citas y avisa de vacunas; ninguna app depende de ella
-│   ├── services.py      NotificacionService: guardar, enviar con reintento limitado, recordatorios y la campana
+│   ├── services.py      NotificacionService: guardar, enviar con reintento limitado y recordatorios
+│   ├── campana.py       CampanaService: los avisos sin leer, agrupados por fecha, y marcarlos leídos
 │   ├── receptores.py    los oyentes de los eventos de citas
 │   └── management/      comando enviar_recordatorios (Cron Job cada hora)
 ├── compartido/          caché de los catálogos que casi no cambian (no es una app de Django)

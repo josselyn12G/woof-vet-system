@@ -24,6 +24,7 @@ from cuentas.models import Roles
 from historial.models import Vacuna, VacunaAplicada
 from mascotas.tests import crear_mascota, crear_usuario
 
+from .campana import CampanaService
 from .models import Notificacion, TipoNotificacion
 from .services import MAX_INTENTOS_CORREO, NotificacionService
 
@@ -227,7 +228,7 @@ class ReintentoDeCorreosTests(TestCase):
         aviso.refresh_from_db()
         self.assertEqual(aviso.intentos_correo, MAX_INTENTOS_CORREO)
         self.assertFalse(aviso.correo_enviado)
-        self.assertEqual(NotificacionService.no_leidas(self.cliente), 1)   # el plan B sigue ahí
+        self.assertEqual(CampanaService.no_leidas(self.cliente), 1)   # el plan B sigue ahí
 
     @override_settings(CORREO_AVISOS=False)
     def test_con_el_correo_apagado_no_reintenta_nada(self):
@@ -384,7 +385,7 @@ class CampanaTests(TestCase):
         self.assertContains(respuesta, 'Primero')
         self.assertNotContains(respuesta, 'Ajeno')     # solo los suyos
         self.assertContains(respuesta, 'Nuevo', count=2)
-        self.assertEqual(NotificacionService.no_leidas(self.cliente), 0)
+        self.assertEqual(CampanaService.no_leidas(self.cliente), 0)
         self.assertNotContains(self.client.get(reverse('notificaciones:lista')), 'Nuevo')
 
     def test_pide_iniciar_sesion(self):
