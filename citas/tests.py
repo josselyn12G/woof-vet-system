@@ -1056,6 +1056,13 @@ class EstadisticasServiceTests(TestCase):
         self.assertEqual(cifras['actual']['ganancias'], Decimal('25.00'))
         self.assertEqual(cifras['anterior']['atendidas'], 1)   # la de hace 10 días es del período anterior
 
+    def test_las_cifras_salen_en_cuatro_consultas(self):
+        # Las citas del período, el horario y una agregación por período (COUNT ... FILTER), no un COUNT por cifra
+        veterinario = crear_veterinario()
+        hoy = timezone.localdate()
+        with self.assertNumQueries(4):
+            EstadisticasService.del_veterinario(veterinario, hoy - timedelta(days=6), hoy)
+
 # ---------------------------------------------------------------------------
 # Mi horario en columnas y gestión de la clínica (administrador y superadministrador)
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from citas.models import Cita, EstadoCita, HorarioVeterinario
@@ -98,15 +98,16 @@ class EstadisticasService:
         del_periodo = mis_citas.filter(inicio__date__range=(desde, hasta))
         del_anterior = mis_citas.filter(inicio__date__range=(desde_anterior, desde - timedelta(days=1)))
 
-        # Citas por día para el gráfico
+        # Una sola lectura de las citas del período sirve para el gráfico (por día) y para la ocupación (minutos)
         fechas = [desde + timedelta(days=i) for i in range(dias)]
         por_dia = {fecha: 0 for fecha in fechas}
-        for inicio in del_periodo.values_list('inicio', flat=True):
+        minutos_citas = 0
+        for inicio, fin in del_periodo.values_list('inicio', 'fin'):
             por_dia[timezone.localtime(inicio).date()] += 1
+            minutos_citas += (fin - inicio).total_seconds() / 60
         citas_por_dia = [por_dia[fecha] for fecha in fechas]
 
         # Ocupación: minutos con cita sobre los minutos de horario publicado en el período
-        minutos_citas = sum((fin - inicio).total_seconds() / 60 for inicio, fin in del_periodo.values_list('inicio', 'fin'))
         minutos_horario = sum(
             (datetime.combine(hasta, fin) - datetime.combine(hasta, inicio)).total_seconds() / 60
             for inicio, fin in HorarioVeterinario.objects
@@ -114,23 +115,26 @@ class EstadisticasService:
             .values_list('hora_inicio', 'hora_fin')
         )
 
-        def contar(consulta, estado=None):
-            return consulta.filter(estado=estado).count() if estado else consulta.count()
+        # Cada período se cuenta en una sola consulta: la base cuenta cada estado con un filtro (COUNT ... FILTER)
+        atendida, no_asistio = Q(estado=EstadoCita.ATENDIDA), Q(estado=EstadoCita.NO_ASISTIO)
+        actual = del_periodo.aggregate(
+            atendidas=Count('pk', filter=atendida),
+            no_asistio=Count('pk', filter=no_asistio),
+            ganancias=Sum('precio', filter=atendida),   # suma del precio copiado en las citas atendidas
+        )
+        anterior = del_anterior.aggregate(
+            citas=Count('pk'), atendidas=Count('pk', filter=atendida), no_asistio=Count('pk', filter=no_asistio),
+        )
 
         return {
             'fechas': fechas,
             'citas_por_dia': citas_por_dia,
             'actual': {
                 'citas': sum(citas_por_dia),
-                'atendidas': contar(del_periodo, EstadoCita.ATENDIDA),
+                'atendidas': actual['atendidas'],
                 'ocupacion': round(minutos_citas * 100 / minutos_horario) if minutos_horario else 0,
-                'no_asistio': contar(del_periodo, EstadoCita.NO_ASISTIO),
-                # suma del precio copiado en las citas atendidas del período
-                'ganancias': del_periodo.filter(estado=EstadoCita.ATENDIDA).aggregate(total=Sum('precio'))['total'] or 0,
+                'no_asistio': actual['no_asistio'],
+                'ganancias': actual['ganancias'] or 0,
             },
-            'anterior': {
-                'citas': contar(del_anterior),
-                'atendidas': contar(del_anterior, EstadoCita.ATENDIDA),
-                'no_asistio': contar(del_anterior, EstadoCita.NO_ASISTIO),
-            },
+            'anterior': anterior,
         }
