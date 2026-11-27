@@ -16,6 +16,7 @@ from historial.models import Consulta, Prescripcion, VacunaAplicada
 
 from .services import variacion
 from .services.demo import CLAVE_DEMO, proximo_dia_habil
+from .views import PORTADA_POR_ROL
 
 
 class PanelTests(TestCase):
@@ -173,3 +174,13 @@ class GraficosTests(TestCase):
         indicadores = self.client.get(reverse('citas:indicadores'))
         for titulo in ('Citas por día', 'Citas por estado', 'Por servicio', 'Ingresos por veterinario'):
             self.assertContains(indicadores, titulo)
+
+
+class PortadaPorRolTests(TestCase):
+    """PORTADA_POR_ROL reemplaza la cadena de if: cada rol que exista tiene que tener su portada."""
+
+    def test_cada_rol_tiene_su_portada(self):
+        for rol in Roles.values:
+            with self.subTest(rol=rol):
+                self.assertIn(rol, PORTADA_POR_ROL)   # un rol nuevo sin portada hace fallar esta prueba
+                reverse(PORTADA_POR_ROL[rol])          # y la portada tiene que existir

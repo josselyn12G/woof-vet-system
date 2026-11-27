@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from cuentas.models import Roles
+from cuentas.models import ROLES_DE_GESTION, Roles
 from mascotas.models import Especie, Mascota
 
 
@@ -35,13 +35,8 @@ class MascotaService:
         el cliente, solo las suyas; el veterinario, las de los clientes (las mismas de Pacientes);
         el administrador y el superadministrador, todas. Otro rol no ve ninguna (404).
         """
-        if usuario.es_cliente:
-            return MascotaService.del_dueno(usuario).select_related('dueno')
-        if usuario.es_veterinario:
-            return Mascota.objects.filter(dueno__rol=Roles.CLIENTE).select_related('dueno').con_foto()
-        if usuario.gestiona_clinica:
-            return MascotaService.fichas()
-        return Mascota.objects.none()
+        consulta = MASCOTAS_VISIBLES_POR_ROL.get(usuario.rol)
+        return consulta(usuario) if consulta else Mascota.objects.none()
 
     @staticmethod
     def nombre_repetido(dueno, nombre, excluir_pk=None):
@@ -135,3 +130,11 @@ class MascotaService:
     def citas_de(mascota):
         """El historial de citas de la mascota, de la más reciente a la más antigua."""
         return mascota.citas.select_related('servicio', 'veterinario').order_by('-inicio')
+
+
+# Qué mascotas ve cada rol (principio abierto/cerrado): un rol nuevo se agrega aquí, sin tocar visibles_para()
+MASCOTAS_VISIBLES_POR_ROL = {
+    Roles.CLIENTE: lambda usuario: MascotaService.del_dueno(usuario).select_related('dueno'),
+    Roles.VETERINARIO: lambda usuario: Mascota.objects.filter(dueno__rol=Roles.CLIENTE).select_related('dueno').con_foto(),
+    **{rol: lambda usuario: MascotaService.fichas() for rol in ROLES_DE_GESTION},
+}
