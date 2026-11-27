@@ -147,10 +147,10 @@ class DemoDeAtencionTests(TestCase):
 
 
 class GraficosTests(TestCase):
-    """Los datos de las donas y las columnas (panel/graficos.py) y que Inicio e Indicadores los dibujen."""
+    """Los datos de las donas y las columnas (compartido/graficos.py) y que Inicio e Indicadores los dibujen."""
 
     def test_la_dona_reparte_el_anillo_en_porcentajes(self):
-        from panel.graficos import dona
+        from compartido.graficos import dona
         datos = dona([('Atendidas', 3), ('Canceladas', 1)])
         self.assertEqual(datos['total'], 4)
         primera, segunda = datos['segmentos']
@@ -160,7 +160,7 @@ class GraficosTests(TestCase):
         self.assertEqual(dona([])['segmentos'], [])
 
     def test_las_columnas_van_de_mayor_a_menor_y_la_mas_alta_llega_a_100(self):
-        from panel.graficos import columnas
+        from compartido.graficos import columnas
         datos = columnas([('Gato', 1), ('Perro', 4), ('Otro', 0)])
         self.assertEqual([c['etiqueta'] for c in datos], ['Perro', 'Gato', 'Otro'])
         self.assertEqual([c['alto'] for c in datos], [100, 25, 0])

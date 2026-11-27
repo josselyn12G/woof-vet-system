@@ -9,7 +9,7 @@ from citas.models import Cita, EstadoCita, HorarioVeterinario, Servicio
 from citas.services import CitaService, EstadisticasService, HorarioService, ServicioService
 from cuentas.models import ROLES_DEL_PERSONAL, Roles
 from mascotas.models import Mascota
-from panel.graficos import columnas, dona
+from compartido.graficos import columnas, dona, grafico_de_linea
 
 def variacion(actual, anterior):
     """Cambio frente al período anterior. Sin datos para comparar no se inventa un porcentaje."""
@@ -17,29 +17,6 @@ def variacion(actual, anterior):
         return {'texto': f'+{actual} nuevas' if actual else '—', 'tipo': 'nuevo' if actual else 'neutro'}
     cambio = (actual - anterior) * 100 / anterior
     return {'texto': f'{abs(cambio):.1f}%'.replace('.', ','), 'tipo': 'sube' if cambio > 0 else 'baja' if cambio < 0 else 'neutro'}
-
-
-def grafico_de_linea(fechas, valores, ancho=1000, alto=210):
-    """Arma en el servidor el SVG del gráfico de citas por día: la línea, el área, las guías y las etiquetas."""
-    izquierda, derecha, arriba, abajo = 44, 16, 16, 34
-    maximo = max(4, max(valores))                       # con 0 citas, el eje igual llega a 4 (se ve la línea en 0)
-    paso_x = (ancho - izquierda - derecha) / max(len(valores) - 1, 1)
-    alto_util = alto - arriba - abajo
-
-    def punto(i, valor):
-        return izquierda + i * paso_x, arriba + alto_util * (1 - valor / maximo)
-
-    puntos = [punto(i, valor) for i, valor in enumerate(valores)]
-    linea = 'M ' + ' L '.join(f'{x:.1f} {y:.1f}' for x, y in puntos)
-    area = f'{linea} L {puntos[-1][0]:.1f} {arriba + alto_util:.1f} L {puntos[0][0]:.1f} {arriba + alto_util:.1f} Z'
-    guias = [{'y': round(arriba + alto_util * (1 - n / 4), 1), 'texto': round(maximo * n / 4)} for n in range(5)]
-    cada = max(1, round(len(fechas) / 6))              # unas 6 o 7 fechas en el eje, sin amontonarlas
-    etiquetas = [
-        {'x': round(punto(i, 0)[0], 1), 'fecha': fecha}
-        for i, fecha in enumerate(fechas) if i % cada == 0 or i == len(fechas) - 1
-    ]
-    return {'ancho': ancho, 'alto': alto, 'linea': linea, 'area': area, 'guias': guias, 'etiquetas': etiquetas,
-            'base': arriba + alto_util, 'izquierda': izquierda, 'derecha': ancho - derecha}
 
 
 def saludo(hora):

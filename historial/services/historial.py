@@ -11,6 +11,7 @@ from django.db.models import Prefetch
 from django.utils import timezone
 
 from citas.models import EstadoCita
+from compartido.graficos import grafico_de_peso
 from historial.models import Consulta, VacunaAplicada
 from mascotas.models import Mascota
 
@@ -88,7 +89,7 @@ class HistorialService:
             ],
             'al_dia': cuenta[AL_DIA[0]],
             'barras_peso': barras,
-            'grafico_peso': HistorialService.grafico_de_peso(barras),
+            'grafico_peso': grafico_de_peso(barras),
             'vacunas_al_dia': round(cuenta[AL_DIA[0]] * 100 / len(vigentes)) if vigentes else 0,
             'cuenta_carnet': cuenta,
             'proxima_vacuna': proxima,
@@ -144,34 +145,6 @@ class HistorialService:
             por_mes.setdefault(mes, []).append(registro)
         return list(por_mes.items())
 
-    @staticmethod
-    def grafico_de_peso(barras, ancho=600, alto=180, margen=14):
-        """
-        Los puntos del gráfico de peso (SVG): x repartido a lo ancho y y entre el peso más bajo y el más alto.
-        Con un solo registro, la línea queda plana de un borde al otro y el punto al final.
-        Devuelve los puntos, la línea y el área de abajo (la plantilla los pinta con localize off: sin comas decimales).
-        """
-        if not barras:
-            return None
-        if len(barras) == 1:
-            y = alto / 2
-            punto = {'x': ancho - margen, 'y': y, 'peso': barras[0]['peso'], 'fecha': barras[0]['fecha']}
-            return {
-                'puntos': [punto], 'linea': f'{margen},{y} {ancho - margen},{y}',
-                'area': f'M{margen},{alto} L{margen},{y} L{ancho - margen},{y} L{ancho - margen},{alto} Z',
-                'ancho': ancho, 'alto': alto, 'ultimo': punto,
-            }
-        pesos = [float(barra['peso']) for barra in barras]
-        minimo, maximo = min(pesos), max(pesos)
-        rango = (maximo - minimo) or 1
-        puntos = []
-        for i, barra in enumerate(barras):
-            x = ancho / 2 if len(barras) == 1 else margen + i * (ancho - 2 * margen) / (len(barras) - 1)
-            y = alto / 2 if maximo == minimo else margen + (maximo - float(barra['peso'])) * (alto - 2 * margen) / rango
-            puntos.append({'x': round(x, 1), 'y': round(y, 1), 'peso': barra['peso'], 'fecha': barra['fecha']})
-        linea = ' '.join(f"{p['x']},{p['y']}" for p in puntos)
-        area = f"M{puntos[0]['x']},{alto} L" + ' L'.join(f"{p['x']},{p['y']}" for p in puntos) + f" L{puntos[-1]['x']},{alto} Z"
-        return {'puntos': puntos, 'linea': linea, 'area': area, 'ancho': ancho, 'alto': alto, 'ultimo': puntos[-1]}
 
     @staticmethod
     def mascota_elegida(mascotas, pedida):

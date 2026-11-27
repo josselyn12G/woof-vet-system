@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from citas.models import EstadoCita
 from citas.tests import crear_cita_pasada, crear_servicio, crear_veterinario
+from compartido.graficos import grafico_de_peso
 from cuentas.models import Roles
 from mascotas.models import Especie
 from mascotas.tests import crear_mascota, crear_usuario
@@ -778,11 +779,11 @@ class HistoriaTableroTests(ClienteConRecetasBase):
 
     def test_el_grafico_de_peso_con_uno_y_varios_registros(self):
         hoy = timezone.now()
-        self.assertIsNone(HistorialService.grafico_de_peso([]))
-        uno = HistorialService.grafico_de_peso([{'fecha': hoy, 'peso': Decimal('12.5')}])
+        self.assertIsNone(grafico_de_peso([]))
+        uno = grafico_de_peso([{'fecha': hoy, 'peso': Decimal('12.5')}])
         self.assertEqual(len(uno['puntos']), 1)
         self.assertEqual(uno['ultimo']['x'], uno['ancho'] - 14)   # línea plana de borde a borde
-        varios = HistorialService.grafico_de_peso([{'fecha': hoy, 'peso': Decimal('10')},
+        varios = grafico_de_peso([{'fecha': hoy, 'peso': Decimal('10')},
                                                    {'fecha': hoy, 'peso': Decimal('12')}])
         primero, ultimo = varios['puntos']
         self.assertGreater(primero['y'], ultimo['y'])   # pesa más: el punto sube

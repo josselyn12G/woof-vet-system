@@ -9,8 +9,7 @@ from django.views import View
 from django.views.generic import ListView, TemplateView
 
 from cuentas.mixins import AdministradorRequeridoMixin
-from panel.graficos import columnas, dona
-from panel.services.estadisticas import grafico_de_linea
+from compartido.graficos import columnas, dona, grafico_de_linea
 
 from ..forms import FiltroCitasForm, IndicadoresForm
 from ..eventos import anunciar_al_confirmar, cita_cancelada
