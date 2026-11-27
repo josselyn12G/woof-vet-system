@@ -34,8 +34,19 @@ jobs:
       - name: Revisar configuración de Django
         run: python manage.py check
 
-      - name: Tests (todas las apps)
-        run: python manage.py test -v 2
+      # La configuración de producción (como en Render): sin avisos de seguridad de check --deploy
+      - name: Revisar configuración de producción
+        env:
+          RENDER: 'true'
+          DJANGO_SECRET_KEY: clave-solo-para-el-ci-${{ github.run_id }}-0123456789-abcdefghijklmnopqrstuvwxyz
+          DJANGO_ALLOWED_HOSTS: woof.example
+        run: python manage.py check --deploy --fail-level WARNING
+
+      - name: Tests (todas las apps) con cobertura
+        run: |
+          pip install coverage
+          coverage run manage.py test -v 2
+          coverage report
 
   # Las mismas pruebas sobre PostgreSQL (como Neon en producción). Aquí corren además las que SQLite
   # no puede hacer, como las reservas simultáneas con select_for_update (plan de pruebas §3.5)

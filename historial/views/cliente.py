@@ -15,7 +15,7 @@ from django.views.generic import TemplateView
 from cuentas.mixins import ClienteRequeridoMixin
 from mascotas.services import MascotaService
 
-from ..services import HistorialService
+from ..services import HistorialService, TratamientoService
 
 
 class MascotasDelClienteMixin(ClienteRequeridoMixin):
@@ -66,7 +66,7 @@ class MisRecetasView(MascotasDelClienteMixin, TemplateView):
         contexto = super().get_context_data(**kwargs)
         mascotas = self.mascotas()
         elegida = self.elegida(mascotas)
-        contexto.update(HistorialService.tratamientos_del_cliente(self.request.user, elegida))
+        contexto.update(TratamientoService.tratamientos_del_cliente(self.request.user, elegida))
         contexto.update({'mascotas': mascotas, 'mascota_elegida': elegida})
         return contexto
 
@@ -80,7 +80,7 @@ class TratamientoView(ClienteRequeridoMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        datos = HistorialService.tratamientos_del_cliente(self.request.user, consulta=self.kwargs['pk'])
+        datos = TratamientoService.tratamientos_del_cliente(self.request.user, consulta=self.kwargs['pk'])
         if not datos['tratamientos']:
             raise Http404('Ese tratamiento no existe o no es de tus mascotas.')
         tratamiento = datos['tratamientos'][0]
@@ -105,7 +105,7 @@ class MarcarDiaView(ClienteRequeridoMixin, View):
     http_method_names = ['post']
 
     def post(self, request, pk):
-        receta = get_object_or_404(HistorialService.recetas_del_dueno(request.user), pk=pk)
+        receta = get_object_or_404(TratamientoService.recetas_del_dueno(request.user), pk=pk)
         try:
             dia = date.fromisoformat(request.POST.get('dia', ''))
         except ValueError:
@@ -114,7 +114,7 @@ class MarcarDiaView(ClienteRequeridoMixin, View):
             messages.error(request, 'Ese día no es válido.')
         else:
             try:
-                marcado = HistorialService.marcar_dia(receta, dia)
+                marcado = TratamientoService.marcar_dia(receta, dia)
             except ValidationError as error:
                 messages.error(request, error.messages[0])
             else:
@@ -129,16 +129,16 @@ class MarcarDiaView(ClienteRequeridoMixin, View):
 class GuardarDiasView(ClienteRequeridoMixin, View):
     """
     POST al cerrar el pop-up de un medicamento: los días que quedaron marcados (dia=AAAA-MM-DD, varias veces).
-    Guarda todo de una vez (HistorialService.guardar_dias). Con fetch responde JSON; si no, vuelve al tratamiento.
+    Guarda todo de una vez (TratamientoService.guardar_dias). Con fetch responde JSON; si no, vuelve al tratamiento.
     """
     http_method_names = ['post']
 
     def post(self, request, pk):
-        receta = get_object_or_404(HistorialService.recetas_del_dueno(request.user), pk=pk)
+        receta = get_object_or_404(TratamientoService.recetas_del_dueno(request.user), pk=pk)
         con_fetch = request.headers.get('X-Requested-With') == 'fetch'   # el pop-up guarda con fetch
         try:
             dias = [date.fromisoformat(valor) for valor in request.POST.getlist('dia')]
-            marcados = HistorialService.guardar_dias(receta, dias)
+            marcados = TratamientoService.guardar_dias(receta, dias)
         except (ValueError, ValidationError) as error:
             texto = error.messages[0] if isinstance(error, ValidationError) else 'Ese día no es válido.'
             if con_fetch:

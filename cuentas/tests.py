@@ -21,6 +21,7 @@ from .models import Ciudad, Pais, PerfilVeterinario, Provincia, Roles, Usuario
 from .validators import CEDULA_NO_VALIDA, validar_cedula
 from .services import PoliticaDeCuentas, UbicacionService, completar_login, iniciar_login_pendiente
 from .services.correo import bytes_del_logo, crear_correo, saludo
+from .services.doble_factor import MAX_INTENTOS_CODIGO
 
 
 # Lo que se reemplaza para simular que Gmail se cae (inyección de falla)
@@ -334,6 +335,27 @@ class DobleFactorTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, 'El código es incorrecto o ya venció.')
         self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_despues_de_cinco_intentos_hay_que_volver_a_poner_la_contrasena(self):
+        codigo = self.pasar_contrasena()
+        incorrecto = '000000' if codigo != '000000' else '111111'
+        for _ in range(MAX_INTENTOS_CODIGO):
+            respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': incorrecto})
+            self.assertContains(respuesta, 'El código es incorrecto o ya venció.')
+        # El sexto intento, aunque sea el código correcto, ya no sirve
+        respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': codigo}, follow=True)
+        self.assertRedirects(respuesta, reverse('cuentas:login'))
+        self.assertContains(respuesta, 'Escribiste mal el código demasiadas veces')
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertNotIn('pre_2fa_user', self.client.session)
+
+    def test_un_codigo_nuevo_reinicia_los_intentos(self):
+        self.pasar_contrasena()
+        for _ in range(MAX_INTENTOS_CODIGO):
+            self.client.post(reverse('cuentas:verificar'), {'codigo': '999999'})
+        codigo = self.pasar_contrasena()   # vuelve a poner la contraseña: código nuevo, intentos en cero
+        respuesta = self.client.post(reverse('cuentas:verificar'), {'codigo': codigo})
+        self.assertRedirects(respuesta, reverse('panel:panel'), target_status_code=302)
 
     def test_codigo_vencido_vuelve_al_login(self):
         codigo = self.pasar_contrasena()

@@ -7,6 +7,7 @@ from citas.services.horarios import semana_pedida
 from cuentas.mixins import (
     AdministradorRequeridoMixin, ClienteRequeridoMixin, SuperadminRequeridoMixin, VeterinarioRequeridoMixin,
 )
+from cuentas.models import Roles
 
 from .mixins import PeriodoMixin
 from .services import (
@@ -15,17 +16,20 @@ from .services import (
 )
 
 
+# La portada de cada rol (principio abierto/cerrado): un rol nuevo es una línea aquí, sin tocar PanelView
+PORTADA_POR_ROL = {
+    Roles.CLIENTE: 'panel:inicio_cliente',
+    Roles.VETERINARIO: 'panel:inicio_veterinario',
+    Roles.ADMINISTRADOR: 'panel:inicio_administrador',
+    Roles.SUPERADMIN: 'panel:inicio_superadmin',
+}
+
+
 class PanelView(LoginRequiredMixin, View):
     """Después del login, manda a cada usuario a la portada de su rol. No dibuja nada: solo redirige."""
 
     def get(self, request):
-        if request.user.es_veterinario:
-            return redirect('panel:inicio_veterinario')
-        if request.user.es_superadmin:
-            return redirect('panel:inicio_superadmin')
-        if request.user.es_administrador:
-            return redirect('panel:inicio_administrador')
-        return redirect('panel:inicio_cliente')  # el cliente es el rol por defecto
+        return redirect(PORTADA_POR_ROL.get(request.user.rol, 'panel:inicio_cliente'))  # el cliente, por defecto
 
 
 class InicioClienteView(ClienteRequeridoMixin, TemplateView):

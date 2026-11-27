@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from ..models import Usuario
-from ..services.correo import enviar_correo_con_enlace
+from ..services.correo import FALLAS_DEL_CORREO, enviar_correo_con_enlace
 from ..services.ubicacion import UbicacionService
 from .comunes import ETIQUETAS
 from .ubicacion import UbicacionMixin
@@ -77,7 +77,7 @@ class RecuperarContrasenaForm(PasswordResetForm):
                 aviso='El enlace sirve una sola vez y vence en 3 días. Si no lo pediste, ignora este correo: '
                       'tu contraseña sigue igual.',
             )
-        except Exception:   # noqa: BLE001 (cualquier falla del SMTP)
+        except FALLAS_DEL_CORREO:   # SMTP caído, rechazo o tiempo agotado: se registra y se sigue
             registro.exception('No se pudo enviar el enlace para crear una contraseña nueva a %s', to_email)
 
 

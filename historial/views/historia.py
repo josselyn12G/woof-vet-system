@@ -3,10 +3,22 @@ from django.http import HttpResponse
 from django.urls import reverse
 from django.views.generic import DetailView
 
+from cuentas.models import Roles
 from mascotas.mixins import MascotaVisiblePorRolMixin
 
 from ..services import HistorialService
 from ..services.pdf import generar_pdf, nombre_del_archivo
+
+
+# A dónde vuelve la flecha de la historia según el rol; el administrador y el superadministrador, a la gestión
+VOLVER_POR_ROL = {
+    Roles.CLIENTE: lambda mascota: reverse('mascotas:detalle', kwargs={'pk': mascota.pk}),
+    Roles.VETERINARIO: lambda mascota: reverse('citas:pacientes'),
+}
+
+
+def volver_a_la_gestion(mascota):
+    return reverse('mascotas:gestion_detalle', kwargs={'pk': mascota.pk})
 
 
 class HistoriaClinicaView(MascotaVisiblePorRolMixin, DetailView):
@@ -28,12 +40,7 @@ class HistoriaClinicaView(MascotaVisiblePorRolMixin, DetailView):
 
     def url_volver(self):
         """La flecha de volver lleva a la pantalla desde la que entra cada rol."""
-        usuario = self.request.user
-        if usuario.es_cliente:
-            return reverse('mascotas:detalle', kwargs={'pk': self.object.pk})
-        if usuario.es_veterinario:
-            return reverse('citas:pacientes')
-        return reverse('mascotas:gestion_detalle', kwargs={'pk': self.object.pk})
+        return VOLVER_POR_ROL.get(self.request.user.rol, volver_a_la_gestion)(self.object)
 
 
 class HistoriaPdfView(MascotaVisiblePorRolMixin, DetailView):

@@ -123,21 +123,39 @@ def tabla(filas, anchos, cabecera=True, estilos_extra=()):
 
 
 def generar_pdf(mascota):
-    """Devuelve los bytes del PDF con la historia clínica completa de la mascota."""
+    """
+    Devuelve los bytes del PDF con la historia clínica completa de la mascota.
+
+    Solo ordena las secciones; cada una se arma en su propia función (técnica Extract Method).
+    """
     datos = HistorialService.de_la_mascota(mascota)
     consultas = datos['consultas']
     tablero = HistorialService.tablero(mascota, consultas)
     ancho_util = A4[0] - 2 * MARGEN
-    bloques = []
 
-    # ---------- Título y ficha del paciente ----------
-    bloques += [
-        Paragraph(f'Historia clínica de {escape(mascota.nombre)}', ESTILOS['titulo']),
-        Spacer(1, 2),
-        texto('Consultas, recetas y vacunas registradas por los veterinarios de la clínica, de la más reciente '
-              'a la más antigua.', 'bajada'),
-        Spacer(1, 10),
+    bloques = [
+        *titulo_y_ficha(mascota, ancho_util),
+        *resumen_en_cifras(consultas, tablero, ancho_util),
+        *carnet_de_vacunacion(mascota, tablero, ancho_util),
+        texto('Consultas', 'seccion'),
     ]
+    if not consultas:
+        bloques.append(texto('Aún no hay consultas registradas.'))
+    for consulta in consultas:
+        bloques += una_consulta(consulta, ancho_util)
+
+    salida = BytesIO()
+    documento = SimpleDocTemplate(
+        salida, pagesize=A4, leftMargin=MARGEN, rightMargin=MARGEN,
+        topMargin=ALTO_CABECERA + 10 * mm, bottomMargin=ALTO_PIE + 8 * mm,
+        title=f'Historia clínica de {mascota.nombre}', author='Woof · Sistema veterinario',
+    )
+    documento.build(bloques, canvasmaker=lambda *a, **k: PaginaNumerada(*a, mascota=mascota.nombre, **k))
+    return salida.getvalue()
+
+
+def titulo_y_ficha(mascota, ancho_util):
+    """El título y la ficha del paciente: especie, sexo, edad, peso, dueño y contacto en dos filas de tres."""
     dueno = mascota.dueno
     ficha = [
         ('Especie y raza', f'{mascota.especie}' + (f' · {mascota.raza}' if mascota.raza else '')),
@@ -149,86 +167,85 @@ def generar_pdf(mascota):
     ]
     celdas = [[[texto(etiqueta.upper(), 'etiqueta'), texto(valor, 'dato')] for etiqueta, valor in ficha[i:i + 3]]
               for i in (0, 3)]
-    bloques.append(Table(celdas, colWidths=[ancho_util / 3] * 3, style=TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fbf6f1')),
-        ('BOX', (0, 0), (-1, -1), 0.6, LINEA),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 7), ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
-        ('LEFTPADDING', (0, 0), (-1, -1), 9),
-    ])))
+    return [
+        Paragraph(f'Historia clínica de {escape(mascota.nombre)}', ESTILOS['titulo']),
+        Spacer(1, 2),
+        texto('Consultas, recetas y vacunas registradas por los veterinarios de la clínica, de la más reciente '
+              'a la más antigua.', 'bajada'),
+        Spacer(1, 10),
+        Table(celdas, colWidths=[ancho_util / 3] * 3, style=TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fbf6f1')),
+            ('BOX', (0, 0), (-1, -1), 0.6, LINEA),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 7), ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('LEFTPADDING', (0, 0), (-1, -1), 9),
+        ])),
+    ]
 
-    # ---------- Resumen en cifras ----------
+
+def resumen_en_cifras(consultas, tablero, ancho_util):
+    """Cuatro cifras en una fila: consultas, recetas, vacunas aplicadas y vacunas al día."""
     cifras = [('Consultas', len(consultas)), ('Recetas', tablero['total_recetas']),
               ('Vacunas aplicadas', len(tablero['carnet'])), ('Vacunas al día', f"{tablero['al_dia']}/{len(tablero['vigentes'])}")]
-    bloques += [Spacer(1, 10), Table(
+    return [Spacer(1, 10), Table(
         [[[texto(str(valor), 'cifra'), texto(etiqueta.upper(), 'etiqueta')] for etiqueta, valor in cifras]],
         colWidths=[ancho_util / 4] * 4,
         style=TableStyle([('LINEBEFORE', (1, 0), (-1, -1), 0.6, LINEA), ('LEFTPADDING', (0, 0), (-1, -1), 9),
                           ('VALIGN', (0, 0), (-1, -1), 'TOP')]),
     )]
 
-    # ---------- Carnet de vacunación ----------
-    bloques.append(texto('Carnet de vacunación', 'seccion'))
-    if tablero['carnet']:
-        filas = [[texto(c, 'celda_negrita') for c in ('Vacuna', 'Aplicada', 'Lote', 'Próxima dosis', 'Veterinario', 'Estado')]]
-        estilos = []
-        for i, linea in enumerate(tablero['carnet'], start=1):
-            fondo, color = ESTADOS.get(linea.estado, ESTADOS['reforzada'])
-            filas.append([
-                texto(linea.vacuna.nombre, 'celda_negrita'), texto(linea.fecha_aplicacion.strftime('%d/%m/%Y'), 'celda'),
-                texto(linea.lote or '—', 'celda'),
-                texto(linea.proxima_dosis.strftime('%d/%m/%Y') if linea.proxima_dosis else 'Sin refuerzo', 'celda'),
-                texto(linea.veterinario.nombre_completo, 'celda'),
-                Paragraph(f'<font color="{color.hexval()}"><b>{escape(linea.estado_texto)}</b></font>', ESTILOS['celda']),
-            ])
-            estilos.append(('BACKGROUND', (5, i), (5, i), fondo))
-        bloques.append(tabla(filas, [ancho_util * f for f in (0.27, 0.13, 0.14, 0.15, 0.18, 0.13)],
-                             estilos_extra=estilos))
-    else:
-        bloques.append(texto(f'{mascota.nombre} no tiene vacunas registradas.'))
 
-    # ---------- Consultas ----------
-    bloques.append(texto('Consultas', 'seccion'))
-    if not consultas:
-        bloques.append(texto('Aún no hay consultas registradas.'))
-    for consulta in consultas:
-        servicio = consulta.cita.servicio if consulta.cita_id else 'Sin cita'
-        partes = [
-            Table([[texto(f'{fecha(consulta.fecha)} · {fecha(consulta.fecha, "H:i")}', 'consulta'),
-                    texto(f'{consulta.veterinario.nombre_completo} · {servicio}'
-                          + (f' · {consulta.peso_kg} kg' if consulta.peso_kg else ''), 'derecha')]],
-                  colWidths=[ancho_util * 0.45, ancho_util * 0.55],
-                  style=TableStyle([('LINEBELOW', (0, 0), (-1, -1), 1.2, NARANJA), ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0), ('VALIGN', (0, 0), (-1, -1), 'BOTTOM')])),
-            Spacer(1, 5),
-        ]
-        for etiqueta, valor in (('Motivo', consulta.motivo or 'Sin motivo registrado'), ('Diagnóstico', consulta.diagnostico),
-                                ('Indicaciones para el dueño', consulta.indicaciones)):
-            if valor:
-                partes += [texto(etiqueta.upper(), 'etiqueta'), texto(valor), Spacer(1, 4)]
-        recetas = list(consulta.prescripciones.all())
-        if recetas:
-            filas = [[texto(c, 'celda_negrita') for c in ('Medicamento', 'Dosis', 'Frecuencia', 'Duración', 'Indicaciones')]]
-            filas += [[texto(r.medicamento, 'celda_negrita'), texto(r.dosis, 'celda'),
-                       texto(f'Cada {r.frecuencia_horas} h', 'celda'),
-                       texto(f'{r.duracion_dias} día{"s" if r.duracion_dias != 1 else ""} · {r.tomas} tomas', 'celda'),
-                       texto(r.indicaciones or '—', 'celda')] for r in recetas]
-            partes += [texto('RECETA', 'etiqueta'), Spacer(1, 2),
-                       tabla(filas, [ancho_util * f for f in (0.28, 0.2, 0.14, 0.16, 0.22)])]
-        aplicadas = list(consulta.vacunas_aplicadas.all())
-        if aplicadas:
-            partes += [Spacer(1, 4), texto('VACUNAS APLICADAS EN ESTA CONSULTA', 'etiqueta'),
-                       texto(', '.join(a.vacuna.nombre for a in aplicadas))]
-        bloques += [KeepTogether(partes[:4]), *partes[4:], Spacer(1, 12)]
+def carnet_de_vacunacion(mascota, tablero, ancho_util):
+    """La tabla del carnet, con el estado de cada vacuna en su color; o un aviso si no tiene vacunas."""
+    bloques = [texto('Carnet de vacunación', 'seccion')]
+    if not tablero['carnet']:
+        return bloques + [texto(f'{mascota.nombre} no tiene vacunas registradas.')]
+    filas = [[texto(c, 'celda_negrita') for c in ('Vacuna', 'Aplicada', 'Lote', 'Próxima dosis', 'Veterinario', 'Estado')]]
+    estilos = []
+    for i, linea in enumerate(tablero['carnet'], start=1):
+        fondo, color = ESTADOS.get(linea.estado, ESTADOS['reforzada'])
+        filas.append([
+            texto(linea.vacuna.nombre, 'celda_negrita'), texto(linea.fecha_aplicacion.strftime('%d/%m/%Y'), 'celda'),
+            texto(linea.lote or '—', 'celda'),
+            texto(linea.proxima_dosis.strftime('%d/%m/%Y') if linea.proxima_dosis else 'Sin refuerzo', 'celda'),
+            texto(linea.veterinario.nombre_completo, 'celda'),
+            Paragraph(f'<font color="{color.hexval()}"><b>{escape(linea.estado_texto)}</b></font>', ESTILOS['celda']),
+        ])
+        estilos.append(('BACKGROUND', (5, i), (5, i), fondo))
+    return bloques + [tabla(filas, [ancho_util * f for f in (0.27, 0.13, 0.14, 0.15, 0.18, 0.13)],
+                            estilos_extra=estilos)]
 
-    salida = BytesIO()
-    documento = SimpleDocTemplate(
-        salida, pagesize=A4, leftMargin=MARGEN, rightMargin=MARGEN,
-        topMargin=ALTO_CABECERA + 10 * mm, bottomMargin=ALTO_PIE + 8 * mm,
-        title=f'Historia clínica de {mascota.nombre}', author='Woof · Sistema veterinario',
-    )
-    documento.build(bloques, canvasmaker=lambda *a, **k: PaginaNumerada(*a, mascota=mascota.nombre, **k))
-    return salida.getvalue()
+
+def una_consulta(consulta, ancho_util):
+    """Una consulta: su encabezado, motivo, diagnóstico, indicaciones, la receta y las vacunas aplicadas."""
+    servicio = consulta.cita.servicio if consulta.cita_id else 'Sin cita'
+    partes = [
+        Table([[texto(f'{fecha(consulta.fecha)} · {fecha(consulta.fecha, "H:i")}', 'consulta'),
+                texto(f'{consulta.veterinario.nombre_completo} · {servicio}'
+                      + (f' · {consulta.peso_kg} kg' if consulta.peso_kg else ''), 'derecha')]],
+              colWidths=[ancho_util * 0.45, ancho_util * 0.55],
+              style=TableStyle([('LINEBELOW', (0, 0), (-1, -1), 1.2, NARANJA), ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 0), ('VALIGN', (0, 0), (-1, -1), 'BOTTOM')])),
+        Spacer(1, 5),
+    ]
+    for etiqueta, valor in (('Motivo', consulta.motivo or 'Sin motivo registrado'), ('Diagnóstico', consulta.diagnostico),
+                            ('Indicaciones para el dueño', consulta.indicaciones)):
+        if valor:
+            partes += [texto(etiqueta.upper(), 'etiqueta'), texto(valor), Spacer(1, 4)]
+    recetas = list(consulta.prescripciones.all())
+    if recetas:
+        filas = [[texto(c, 'celda_negrita') for c in ('Medicamento', 'Dosis', 'Frecuencia', 'Duración', 'Indicaciones')]]
+        filas += [[texto(r.medicamento, 'celda_negrita'), texto(r.dosis, 'celda'),
+                   texto(f'Cada {r.frecuencia_horas} h', 'celda'),
+                   texto(f'{r.duracion_dias} día{"s" if r.duracion_dias != 1 else ""} · {r.tomas} tomas', 'celda'),
+                   texto(r.indicaciones or '—', 'celda')] for r in recetas]
+        partes += [texto('RECETA', 'etiqueta'), Spacer(1, 2),
+                   tabla(filas, [ancho_util * f for f in (0.28, 0.2, 0.14, 0.16, 0.22)])]
+    aplicadas = list(consulta.vacunas_aplicadas.all())
+    if aplicadas:
+        partes += [Spacer(1, 4), texto('VACUNAS APLICADAS EN ESTA CONSULTA', 'etiqueta'),
+                   texto(', '.join(a.vacuna.nombre for a in aplicadas))]
+    return [KeepTogether(partes[:4]), *partes[4:], Spacer(1, 12)]
 
 
 def nombre_del_archivo(mascota):

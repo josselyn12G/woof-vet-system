@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from historial.services import HistorialService
+from historial.services import CarnetService
 
 from ..forms import MascotaForm
 from ..mixins import FormularioMascotaMixin, MascotasDelUsuarioMixin
@@ -32,9 +32,9 @@ class MascotaCarnetView(MascotasDelUsuarioMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        vacunas = HistorialService.carnet(self.object)
+        vacunas = CarnetService.carnet(self.object)
         contexto['vacunas'] = vacunas
-        contexto['vacunas_datos'] = HistorialService.carnet_en_datos(vacunas)   # para el librito 3D
+        contexto['vacunas_datos'] = CarnetService.carnet_en_datos(vacunas)   # para el librito 3D
         contexto['id_vacunas_datos'] = f'carnet-datos-{self.object.pk}'
         return contexto
 
