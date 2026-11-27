@@ -25,6 +25,7 @@ from .services import (
     ANTICIPACION_MINIMA, SIN_ANTICIPACION, TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService,
     HorarioService, NotificacionService, ServicioService,
 )
+from .services.notificaciones import MAX_INTENTOS_CORREO
 
 
 def crear_veterinario(username='sofia', verificado=True, **datos):
@@ -1992,6 +1993,106 @@ class AvisosDeCitasTests(TestCase):
         self.agendar()
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(Notificacion.objects.count(), 2)
+
+
+class ReintentoDeCorreosTests(TestCase):
+    """
+    El fallback de los avisos: si el correo no sale, el aviso queda en la campana y enviar_recordatorios
+    lo reintenta más tarde, pocas veces (MAX_INTENTOS_CORREO) y nunca al instante.
+    """
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.cliente = crear_usuario('ana', email='ana@correo.ec')
+        self.mascota = crear_mascota(self.cliente)
+        inicio = timezone.now() + timedelta(days=3)
+        self.cita = Cita.objects.create(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                        inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'))
+
+    def aviso(self, hace=timedelta(hours=1), cita=None, **campos):
+        """Un aviso cuyo correo no salió, creado hace un rato (creado es auto_now_add: se corrige con update)."""
+        aviso = Notificacion.objects.create(usuario=self.cliente, cita=cita or self.cita,
+                                            tipo=TipoNotificacion.AGENDADA, mensaje='Tu cita quedó confirmada.',
+                                            **campos)
+        Notificacion.objects.filter(pk=aviso.pk).update(creado=timezone.now() - hace)
+        return Notificacion.objects.get(pk=aviso.pk)
+
+    def smtp_caido(self):
+        return patch('django.core.mail.EmailMultiAlternatives.send', side_effect=OSError('SMTP caído'))
+
+    def test_el_envio_registra_si_salio_y_cuantas_veces_se_intento(self):
+        aviso = self.aviso()
+        self.assertTrue(NotificacionService.enviar(aviso))
+        aviso.refresh_from_db()
+        self.assertTrue(aviso.correo_enviado)
+        self.assertEqual(aviso.intentos_correo, 1)
+
+    def test_si_el_correo_falla_cuenta_el_intento_y_queda_pendiente(self):
+        aviso = self.aviso()
+        with self.smtp_caido(), self.assertLogs('citas.services.notificaciones', level='ERROR'):
+            self.assertFalse(NotificacionService.enviar(aviso))
+        aviso.refresh_from_db()
+        self.assertFalse(aviso.correo_enviado)
+        self.assertEqual(aviso.intentos_correo, 1)
+
+    def test_un_aviso_que_ya_salio_no_se_vuelve_a_enviar(self):
+        aviso = self.aviso()
+        NotificacionService.enviar(aviso)
+        self.assertFalse(NotificacionService.enviar(aviso))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_si_otro_proceso_ya_conto_el_intento_no_se_envia_dos_veces(self):
+        aviso = self.aviso()
+        # Otro proceso (el hilo del primer envío o el comando) lo reservó después de que se leyó este aviso
+        Notificacion.objects.filter(pk=aviso.pk).update(intentos_correo=1)
+        self.assertFalse(NotificacionService.enviar(aviso))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_el_comando_reintenta_los_correos_que_fallaron(self):
+        aviso = self.aviso(intentos_correo=1)
+        salida = StringIO()
+        call_command('enviar_recordatorios', stdout=salida)
+        self.assertIn('Se reenviaron 1 correo que habían fallado.', salida.getvalue())
+        self.assertEqual([correo.to for correo in mail.outbox], [['ana@correo.ec']])
+        aviso.refresh_from_db()
+        self.assertTrue(aviso.correo_enviado)
+        self.assertEqual(aviso.intentos_correo, 2)
+
+    def test_no_reintenta_enseguida_ni_avisos_viejos(self):
+        self.aviso(hace=timedelta(minutes=5), intentos_correo=1)   # recién falló: se espera media hora
+        self.aviso(hace=timedelta(days=3), intentos_correo=1)      # ya no tiene sentido mandarlo
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_se_rinde_despues_del_maximo_de_intentos(self):
+        self.aviso(intentos_correo=MAX_INTENTOS_CORREO)
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_reintenta_el_aviso_de_una_cita_que_ya_empezo(self):
+        inicio = timezone.now() - timedelta(hours=2)
+        pasada = Cita.objects.create(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                     inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'))
+        self.aviso(cita=pasada, intentos_correo=1)
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+
+    def test_tres_fallas_seguidas_dejan_el_aviso_solo_en_la_campana(self):
+        aviso = self.aviso()
+        with self.smtp_caido(), self.assertLogs('citas.services.notificaciones', level='ERROR'):
+            for _ in range(MAX_INTENTOS_CORREO + 1):
+                NotificacionService.reintentar_correos()
+        aviso.refresh_from_db()
+        self.assertEqual(aviso.intentos_correo, MAX_INTENTOS_CORREO)
+        self.assertFalse(aviso.correo_enviado)
+        self.assertEqual(NotificacionService.no_leidas(self.cliente), 1)   # el plan B sigue ahí
+
+    @override_settings(CORREO_AVISOS=False)
+    def test_con_el_correo_apagado_no_reintenta_nada(self):
+        aviso = self.aviso()
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+        aviso.refresh_from_db()
+        self.assertEqual(aviso.intentos_correo, 0)
 
 
 class RecordatoriosTests(TestCase):
