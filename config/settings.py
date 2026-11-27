@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,14 +28,17 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-45431@2ff-%ww7jpe$t=vr2lx!965wo2r^%_29%*$)*0ny11em',
-)
+# Render define RENDER=true en todos sus servicios (web y Cron Job). Así se distingue producción de la máquina local
+EN_RENDER = 'RENDER' in os.environ
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+# DEBUG muestra el código y la configuración en cada error: en Render queda apagado aunque falte DJANGO_DEBUG
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False' if EN_RENDER else 'True') == 'True'
+
+# La clave firma las sesiones y los enlaces de la cuenta. Fuera del modo DEBUG es obligatoria: si falta, Django
+# no arranca (es mejor que arrancar con una clave que cualquiera puede leer en GitHub)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or ('solo-para-desarrollo-local-no-usar-en-produccion' if DEBUG else '')
+if not SECRET_KEY:
+    raise ImproperlyConfigured('Falta la variable DJANGO_SECRET_KEY (obligatoria con DEBUG apagado).')
 
 ALLOWED_HOSTS = [h for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h]
 # Render pone el dominio del servicio (woof-xxxx.onrender.com) en esta variable
@@ -45,6 +49,21 @@ if RENDER_EXTERNAL_HOSTNAME:
 CSRF_TRUSTED_ORIGINS = [f'https://{h}' for h in ALLOWED_HOSTS]
 # Render atiende el HTTPS y le pasa la petición a Django avisando con esta cabecera
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# En producción (sin DEBUG), solo por HTTPS: las cookies de sesión y CSRF no viajan por HTTP y el navegador
+# recuerda usar HTTPS (HSTS). Se empieza con una hora; se puede subir a un año cuando todo funcione por HTTPS.
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SILENCED_SYSTEM_CHECKS = [
+        # Render ya redirige todo HTTP a HTTPS antes de llegar a Django. Si Django también redirigiera, el health
+        # check interno de Render (que entra por HTTP) recibiría un 301. Por eso no se activa SECURE_SSL_REDIRECT.
+        'security.W008',
+        # La lista de precarga de HSTS de los navegadores es para dominios propios, no para un subdominio de Render
+        'security.W021',
+    ]
 
 
 # Application definition
@@ -207,3 +226,24 @@ if 'test' in sys.argv:
 # Los avisos de las citas salen por correo en un hilo aparte (la reserva responde sin esperar al SMTP).
 # En las pruebas se envían en el momento para revisar mail.outbox.
 AVISOS_EN_SEGUNDO_PLANO = 'test' not in sys.argv
+
+
+# Registro de errores: lo que el código anota con logging (correos que no salieron, por ejemplo) sale por la
+# consola con fecha, nivel y origen; en Render se ve en Logs
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {'format': '{asctime} {levelname} {name}: {message}', 'style': '{'},
+    },
+    'handlers': {
+        'consola': {'class': 'logging.StreamHandler', 'formatter': 'simple'},
+    },
+    'loggers': {
+        # Lo que registran las apps de Woof (por ejemplo, un correo que no salió)
+        **{app: {'handlers': ['consola'], 'level': 'INFO', 'propagate': False}
+           for app in ('compartido', 'cuentas', 'mascotas', 'citas', 'historial', 'notificaciones', 'panel')},
+        # De Django, solo los errores 500 (los 403 y 404 son respuestas normales)
+        'django.request': {'handlers': ['consola'], 'level': 'ERROR', 'propagate': False},
+    },
+}
