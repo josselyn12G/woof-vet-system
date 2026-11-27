@@ -207,17 +207,17 @@ La app está publicada en https://woof-b6yo.onrender.com como *Web Service* de P
 python manage.py test
 ```
 
-618 pruebas:
+624 pruebas:
 
 | App | Pruebas | Qué cubren |
 |---|---|---|
-| `cuentas` | 116 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada, verificar el correo, recuperar y cambiar la contraseña, Mi cuenta y términos |
+| `cuentas` | 118 | Modelo de usuario, cédula, registro (con país → provincia → ciudad), login, doble factor, acceso por rol, gestión del equipo, perfil y verificación del veterinario, destino después del login y services de cuentas, veterinarios de la portada, verificar el correo, recuperar y cambiar la contraseña, Mi cuenta y términos |
 | `mascotas` | 96 | CRUD, acceso sin sesión, mascotas de otro dueño, fotos, mascotas visibles por rol, carnet de vacunación y gestión de mascotas de la clínica |
-| `citas` | 244 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, filtro por mascota, agenda, pacientes, gestión, indicadores, caché de los servicios y acceso por rol |
+| `citas` | 245 | Servicios, horario (y bloques con citas), turnos libres con el ejemplo del documento, anticipación de 1 hora, agendar, cancelar, reprogramar sin perder la reserva, reservas simultáneas, calificación, filtro por mascota, agenda, pacientes, gestión, indicadores, caché de los servicios y acceso por rol |
 | `historial` | 104 | Reglas de la consulta, la receta y las vacunas, registrar la consulta desde una cita atendida, la historia por rol (tablero, línea de tiempo, peso, filtro por mes, PDF), el tratamiento en curso en el Resumen, Mis recetas por consulta, el tratamiento con su check por día (guardado al cerrar el pop-up), Consultas médicas y Vacunación del veterinario y el catálogo de vacunas |
-| `panel` | 15 | Portada de cada rol, períodos de las estadísticas y los comandos `cargar_demo` y `preparar_demo_atencion` |
-| `notificaciones` | 40 | Avisos de citas por eventos (el correo sale sin hacer esperar a la reserva), reintento de correos que fallaron, recordatorios de citas y vacunas, la campana y que `citas` no dependa de `notificaciones` ni de `historial` |
-| `compartido` | 3 | El caché de los catálogos: acierto, fallo y borrado al confirmar la transacción |
+| `panel` | 16 | Portada de cada rol, períodos de las estadísticas y los comandos `cargar_demo` y `preparar_demo_atencion` |
+| `notificaciones` | 41 | Avisos de citas por eventos (el correo sale sin hacer esperar a la reserva), reintento de correos que fallaron, recordatorios de citas y vacunas, la campana y que `citas` no dependa de `notificaciones` ni de `historial` |
+| `compartido` | 4 | El caché de los catálogos (acierto, fallo y borrado al confirmar) y que ninguna app importe de `panel` |
 
 En GitHub Actions la suite corre dos veces en cada Pull Request: con SQLite y con **PostgreSQL 16** (como Neon). Las pruebas de dos reservas simultáneas solo corren en PostgreSQL, porque SQLite no bloquea filas. Cada caso del plan de pruebas del Documento de Análisis (§3.5) y la prueba que lo cubre están en [PLAN_DE_PRUEBAS.md](docs/PLAN_DE_PRUEBAS.md).
 
@@ -263,13 +263,13 @@ woof-vet-system/
 │   ├── models/          consulta (y su receta) y vacuna (catálogo y vacunas aplicadas)
 │   ├── views/           registrar consulta (veterinario), la historia por rol y el catálogo de vacunas
 │   ├── forms/           la consulta, los formsets de la receta y las vacunas, y una vacuna del catálogo
-│   └── services/        HistorialService (historia, carnet y guardar la consulta) y el catálogo de vacunas
+│   └── services/        HistorialService (historia y guardar la consulta), CarnetService, TratamientoService, el PDF y el catálogo de vacunas
 ├── notificaciones/      los avisos (campana y correo): escucha los eventos de citas y avisa de vacunas; ninguna app depende de ella
 │   ├── services.py      NotificacionService: guardar, enviar con reintento limitado y recordatorios
 │   ├── campana.py       CampanaService: los avisos sin leer, agrupados por fecha, y marcarlos leídos
 │   ├── receptores.py    los oyentes de los eventos de citas
 │   └── management/      comando enviar_recordatorios (Cron Job cada hora)
-├── compartido/          caché de los catálogos que casi no cambian (no es una app de Django)
+├── compartido/          caché de los catálogos y los gráficos de los paneles (no es una app de Django)
 ├── panel/               la portada de cada rol después del login (depende de las otras apps; ninguna depende de ella)
 │   ├── services/        cifras de cada portada, períodos de las estadísticas y datos de demostración
 │   └── management/      comando cargar_demo
