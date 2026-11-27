@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from citas.models import Calificacion, Cita, EstadoCita, Servicio
+from compartido.pruebas import con_cache
 from mascotas.tests import cedula_de_prueba, crear_mascota
 
 from .models import Ciudad, Pais, PerfilVeterinario, Provincia, Roles, Usuario
@@ -1065,3 +1066,29 @@ class MiCuentaTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.check_password('Clave-segura-123'))
+
+
+@con_cache
+class UbicacionEnCacheTests(TestCase):
+    """Las listas de provincias y ciudades del registro salen del caché y se borran si cambia una."""
+
+    def setUp(self):
+        self.ecuador = Pais.objects.get(nombre='Ecuador')
+
+    def provincias(self):
+        return self.client.get(reverse('cuentas:provincias'), {'pais': self.ecuador.pk}).json()['opciones']
+
+    def test_el_segundo_pedido_no_consulta_la_base(self):
+        with self.assertNumQueries(2):   # fallo: arma el árbol (provincias y ciudades)
+            self.assertEqual(len(self.provincias()), 24)
+        with self.assertNumQueries(0):   # acierto
+            self.assertEqual(len(self.provincias()), 24)
+        provincia = ubicacion()['provincia']
+        with self.assertNumQueries(0):   # las ciudades ya venían en el árbol
+            self.client.get(reverse('cuentas:ciudades'), {'provincia': provincia})
+
+    def test_una_provincia_nueva_aparece_enseguida(self):
+        self.provincias()
+        with self.captureOnCommitCallbacks(execute=True):
+            Provincia.objects.create(pais=self.ecuador, nombre='Antártida Ecuatoriana')
+        self.assertIn('Antártida Ecuatoriana', [opcion['nombre'] for opcion in self.provincias()])

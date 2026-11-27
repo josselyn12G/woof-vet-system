@@ -4,6 +4,12 @@ Los avisos de las citas (F8): cada uno se guarda como Notificacion (la campana d
 RF-23: al agendar, reprogramar o cancelar avisa al cliente y al veterinario.
 RF-24: el recordatorio de 24 horas lo manda el comando enviar_recordatorios.
 HU-37: el mismo comando avisa al dueño una semana antes de la próxima dosis de cada vacuna.
+
+Patrón fallback (como en «Mining microservice design patterns», SoCC 2022): el correo (Gmail por SMTP) es un
+servicio externo que puede fallar. El aviso se guarda primero en la base, así que si el correo no sale la persona
+igual lo ve en la campana (el plan B). El comando enviar_recordatorios reintenta esos correos más tarde, como
+máximo MAX_INTENTOS_CORREO veces y nunca al instante: el artículo advierte que reintentar enseguida contra el
+mismo servicio que acaba de fallar es un antipatrón.
 """
 import logging
 import threading
@@ -11,7 +17,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef
 from django.utils import timezone
 from django.utils.formats import date_format
 
@@ -26,6 +32,13 @@ VENTANA_RECORDATORIO = (timedelta(hours=23), timedelta(hours=25))
 # El recordatorio de vacuna sale cuando faltan 7 días o menos para la próxima dosis (y todavía no pasó):
 # si una vacuna se registra con la próxima dosis a 3 días, o el comando no corrió un día, igual se avisa
 ANTICIPACION_VACUNA = timedelta(days=7)
+
+# Reintentos del correo de un aviso que no salió (el plan B, la campana, ya lo tiene la persona):
+# como máximo 3 intentos en total, el primero en el momento y los demás cuando corre el comando (cada hora),
+# solo si pasó media hora desde que se creó el aviso y hasta 2 días después (luego ya no tiene sentido)
+MAX_INTENTOS_CORREO = 3
+ESPERA_ANTES_DE_REINTENTAR = timedelta(minutes=30)
+VIGENCIA_DEL_REINTENTO = timedelta(days=2)
 
 registro = logging.getLogger(__name__)
 
@@ -72,18 +85,55 @@ class NotificacionService:
         Si el correo falla (SMTP caído, dirección mala) no se rompe la cita: el aviso sigue guardado
         en la campana y el error queda en el registro del servidor. Con CORREO_AVISOS=False (Render)
         no se intenta enviar.
+
+        Antes de enviar, el intento se "reserva" con un UPDATE condicional (bloqueo optimista): solo pasa si
+        nadie más lo contó desde que se leyó el aviso. Así, si el hilo del primer envío y el comando de
+        reintentos llegan a la vez, solo uno manda el correo. Se usa update() y no save() para no pisar
+        otros campos que pudieron cambiar mientras tanto (por ejemplo leida, si la persona abrió la campana).
         """
         if not getattr(settings, 'CORREO_AVISOS', True):
             return False
+        reservado = Notificacion.objects.filter(
+            pk=notificacion.pk, correo_enviado=False, intentos_correo=notificacion.intentos_correo,
+        ).update(intentos_correo=F('intentos_correo') + 1)
+        if not reservado:
+            return False   # ya salió o lo está enviando otro proceso
+        notificacion.intentos_correo += 1
+
         correo = crear_correo(notificacion.usuario, f'Woof · {notificacion.get_tipo_display()}',
                               'citas/correos/notificacion', {'notificacion': notificacion})
         try:
             correo.send()
         except Exception:   # cualquier fallo del envío: se registra y la reserva sigue su curso
-            registro.exception('No se pudo enviar la notificación %s a %s', notificacion.pk,
-                               notificacion.usuario.email)
+            registro.exception('No se pudo enviar la notificación %s a %s (intento %s de %s)', notificacion.pk,
+                               notificacion.usuario.email, notificacion.intentos_correo, MAX_INTENTOS_CORREO)
             return False
+        Notificacion.objects.filter(pk=notificacion.pk).update(correo_enviado=True)
+        notificacion.correo_enviado = True
         return True
+
+    @staticmethod
+    def correos_para_reintentar(ahora=None):
+        """
+        Avisos cuyo correo no salió y que todavía vale la pena reintentar: con menos de MAX_INTENTOS_CORREO
+        intentos, creados hace más de media hora y hace menos de 2 días, y sin una cita que ya empezó.
+        """
+        ahora = ahora or timezone.now()
+        return (
+            Notificacion.objects
+            .filter(correo_enviado=False, intentos_correo__lt=MAX_INTENTOS_CORREO,
+                    creado__lte=ahora - ESPERA_ANTES_DE_REINTENTAR, creado__gte=ahora - VIGENCIA_DEL_REINTENTO)
+            .exclude(cita__inicio__lt=ahora)
+            .select_related('usuario')
+            .order_by('creado')
+        )
+
+    @staticmethod
+    def reintentar_correos(ahora=None):
+        """Vuelve a intentar los correos que no salieron (lo llama enviar_recordatorios). Devuelve cuántos salieron."""
+        if not getattr(settings, 'CORREO_AVISOS', True):
+            return 0   # con el correo apagado no hay nada que reintentar: los avisos ya están en la campana
+        return sum(NotificacionService.enviar(aviso) for aviso in NotificacionService.correos_para_reintentar(ahora))
 
     @staticmethod
     def enviar_sin_esperar(notificacion):

@@ -1,6 +1,11 @@
 from django.db.models import Count, Prefetch, ProtectedError, Q
 
+from compartido.cache import memorizar
 from mascotas.models import Especie, Raza
+
+# Las opciones de especie y raza del formulario de la mascota (mascotas/signals.py las borra cuando el
+# superadministrador edita el catálogo)
+CLAVE_OPCIONES = 'catalogo:especies-y-razas'
 
 
 class CatalogoService:
@@ -26,6 +31,34 @@ class CatalogoService:
             Raza.objects.filter(Q(activa=True, especie__in=especies) | Q(pk=actual_pk))
             .select_related('especie').mestizo_primero()
         )
+
+    @staticmethod
+    def armar_opciones(especie_actual=None, raza_actual=None):
+        """
+        Las opciones de los desplegables de la mascota: {'especies': [(pk, nombre)], 'razas': [(especie, [(pk,
+        nombre)])]}, con las razas agrupadas por especie y Mestizo primero. Son las mismas consultas que validan
+        el formulario (especies_para_elegir y razas_para_elegir), así lo que se ve y lo que se acepta coinciden.
+        """
+        especies = CatalogoService.especies_para_elegir(especie_actual)
+        grupos = {}
+        for raza in CatalogoService.razas_para_elegir(especies, raza_actual):
+            grupos.setdefault(raza.especie.nombre, []).append((raza.pk, raza.nombre))
+        return {'especies': [(especie.pk, especie.nombre) for especie in especies], 'razas': list(grupos.items())}
+
+    @staticmethod
+    def opciones_para_elegir(especie_actual=None, raza_actual=None):
+        """
+        Las opciones del formulario desde el caché: las del catálogo activo son iguales para todos.
+
+        Al editar una mascota cuya especie o raza se desactivó, esa opción no está en la lista guardada:
+        ese caso (raro) se arma sin caché para que la mascota conserve la suya.
+        """
+        opciones = memorizar(CLAVE_OPCIONES, CatalogoService.armar_opciones)
+        especies = {pk for pk, _ in opciones['especies']}
+        razas = {pk for _, grupo in opciones['razas'] for pk, _ in grupo}
+        if (especie_actual and especie_actual not in especies) or (raza_actual and raza_actual not in razas):
+            return CatalogoService.armar_opciones(especie_actual, raza_actual)
+        return opciones
 
     @staticmethod
     def especie_repetida(nombre, excluir_pk=None):

@@ -191,6 +191,18 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = f'Woof <{EMAIL_HOST_USER}>'
 # Si el SMTP no responde, se deja de esperar a los 10 segundos (sin esto la página se quedaría colgada)
 EMAIL_TIMEOUT = 10
+# Caché en la memoria de cada proceso para los catálogos que casi no cambian (compartido/cache.py).
+# En las pruebas se apaga (DummyCache) para que una prueba no vea lo que guardó otra; las pruebas del caché
+# lo prenden con override_settings.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'woof-catalogos',
+    }
+}
+if 'test' in sys.argv:
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}}
+
 # Los avisos de las citas salen por correo en un hilo aparte (la reserva responde sin esperar al SMTP).
 # En las pruebas se envían en el momento para revisar mail.outbox.
 AVISOS_EN_SEGUNDO_PLANO = 'test' not in sys.argv

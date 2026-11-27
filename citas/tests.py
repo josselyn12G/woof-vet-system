@@ -16,6 +16,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from compartido.pruebas import con_cache
 from cuentas.models import PerfilVeterinario, Roles
 from historial.models import Vacuna, VacunaAplicada
 from mascotas.tests import crear_mascota, crear_usuario
@@ -25,6 +26,7 @@ from .services import (
     ANTICIPACION_MINIMA, SIN_ANTICIPACION, TURNO_OCUPADO, AgendaService, CalificacionService, EstadisticasService,
     HorarioService, NotificacionService, ServicioService,
 )
+from .services.notificaciones import MAX_INTENTOS_CORREO
 
 
 def crear_veterinario(username='sofia', verificado=True, **datos):
@@ -1994,6 +1996,106 @@ class AvisosDeCitasTests(TestCase):
         self.assertEqual(Notificacion.objects.count(), 2)
 
 
+class ReintentoDeCorreosTests(TestCase):
+    """
+    El fallback de los avisos: si el correo no sale, el aviso queda en la campana y enviar_recordatorios
+    lo reintenta más tarde, pocas veces (MAX_INTENTOS_CORREO) y nunca al instante.
+    """
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.cliente = crear_usuario('ana', email='ana@correo.ec')
+        self.mascota = crear_mascota(self.cliente)
+        inicio = timezone.now() + timedelta(days=3)
+        self.cita = Cita.objects.create(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                        inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'))
+
+    def aviso(self, hace=timedelta(hours=1), cita=None, **campos):
+        """Un aviso cuyo correo no salió, creado hace un rato (creado es auto_now_add: se corrige con update)."""
+        aviso = Notificacion.objects.create(usuario=self.cliente, cita=cita or self.cita,
+                                            tipo=TipoNotificacion.AGENDADA, mensaje='Tu cita quedó confirmada.',
+                                            **campos)
+        Notificacion.objects.filter(pk=aviso.pk).update(creado=timezone.now() - hace)
+        return Notificacion.objects.get(pk=aviso.pk)
+
+    def smtp_caido(self):
+        return patch('django.core.mail.EmailMultiAlternatives.send', side_effect=OSError('SMTP caído'))
+
+    def test_el_envio_registra_si_salio_y_cuantas_veces_se_intento(self):
+        aviso = self.aviso()
+        self.assertTrue(NotificacionService.enviar(aviso))
+        aviso.refresh_from_db()
+        self.assertTrue(aviso.correo_enviado)
+        self.assertEqual(aviso.intentos_correo, 1)
+
+    def test_si_el_correo_falla_cuenta_el_intento_y_queda_pendiente(self):
+        aviso = self.aviso()
+        with self.smtp_caido(), self.assertLogs('citas.services.notificaciones', level='ERROR'):
+            self.assertFalse(NotificacionService.enviar(aviso))
+        aviso.refresh_from_db()
+        self.assertFalse(aviso.correo_enviado)
+        self.assertEqual(aviso.intentos_correo, 1)
+
+    def test_un_aviso_que_ya_salio_no_se_vuelve_a_enviar(self):
+        aviso = self.aviso()
+        NotificacionService.enviar(aviso)
+        self.assertFalse(NotificacionService.enviar(aviso))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_si_otro_proceso_ya_conto_el_intento_no_se_envia_dos_veces(self):
+        aviso = self.aviso()
+        # Otro proceso (el hilo del primer envío o el comando) lo reservó después de que se leyó este aviso
+        Notificacion.objects.filter(pk=aviso.pk).update(intentos_correo=1)
+        self.assertFalse(NotificacionService.enviar(aviso))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_el_comando_reintenta_los_correos_que_fallaron(self):
+        aviso = self.aviso(intentos_correo=1)
+        salida = StringIO()
+        call_command('enviar_recordatorios', stdout=salida)
+        self.assertIn('Se reenviaron 1 correo que habían fallado.', salida.getvalue())
+        self.assertEqual([correo.to for correo in mail.outbox], [['ana@correo.ec']])
+        aviso.refresh_from_db()
+        self.assertTrue(aviso.correo_enviado)
+        self.assertEqual(aviso.intentos_correo, 2)
+
+    def test_no_reintenta_enseguida_ni_avisos_viejos(self):
+        self.aviso(hace=timedelta(minutes=5), intentos_correo=1)   # recién falló: se espera media hora
+        self.aviso(hace=timedelta(days=3), intentos_correo=1)      # ya no tiene sentido mandarlo
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_se_rinde_despues_del_maximo_de_intentos(self):
+        self.aviso(intentos_correo=MAX_INTENTOS_CORREO)
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_reintenta_el_aviso_de_una_cita_que_ya_empezo(self):
+        inicio = timezone.now() - timedelta(hours=2)
+        pasada = Cita.objects.create(mascota=self.mascota, veterinario=self.veterinario, servicio=self.servicio,
+                                     inicio=inicio, fin=inicio + timedelta(minutes=30), precio=Decimal('25.00'))
+        self.aviso(cita=pasada, intentos_correo=1)
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+
+    def test_tres_fallas_seguidas_dejan_el_aviso_solo_en_la_campana(self):
+        aviso = self.aviso()
+        with self.smtp_caido(), self.assertLogs('citas.services.notificaciones', level='ERROR'):
+            for _ in range(MAX_INTENTOS_CORREO + 1):
+                NotificacionService.reintentar_correos()
+        aviso.refresh_from_db()
+        self.assertEqual(aviso.intentos_correo, MAX_INTENTOS_CORREO)
+        self.assertFalse(aviso.correo_enviado)
+        self.assertEqual(NotificacionService.no_leidas(self.cliente), 1)   # el plan B sigue ahí
+
+    @override_settings(CORREO_AVISOS=False)
+    def test_con_el_correo_apagado_no_reintenta_nada(self):
+        aviso = self.aviso()
+        self.assertEqual(NotificacionService.reintentar_correos(), 0)
+        aviso.refresh_from_db()
+        self.assertEqual(aviso.intentos_correo, 0)
+
+
 class RecordatoriosTests(TestCase):
     """python manage.py enviar_recordatorios: citas confirmadas que empiezan en 23 a 25 horas."""
 
@@ -2494,3 +2596,61 @@ class PanelDeLaCampanaTests(TestCase):
         self.assertNotContains(self.client.get(reverse('citas:panel_notificaciones')), 'De Luis')
         self.client.logout()
         self.assertEqual(self.client.get(reverse('citas:panel_notificaciones')).status_code, 302)
+
+
+@con_cache
+class ServiciosEnCacheTests(TestCase):
+    """La lista de servicios de la reserva sale del caché y se borra cuando cambia algo de lo que depende."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+
+    def nombres(self):
+        return [servicio['nombre'] for servicio in ServicioService.opciones_para_agendar()]
+
+    def test_el_segundo_pedido_no_consulta_la_base(self):
+        with self.assertNumQueries(1):   # fallo
+            self.assertEqual(self.nombres(), ['Consulta general'])
+        with self.assertNumQueries(0):   # acierto
+            self.assertEqual(self.nombres(), ['Consulta general'])
+
+    def test_desactivar_un_servicio_lo_saca_de_la_lista(self):
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.servicio.activo = False
+            self.servicio.save()
+        self.assertEqual(self.nombres(), [])
+
+    def test_asignar_un_veterinario_hace_agendable_un_servicio(self):
+        vacunacion = crear_servicio(nombre='Vacunación')
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            vacunacion.veterinarios.add(self.veterinario)   # m2m_changed
+        self.assertEqual(self.nombres(), ['Consulta general', 'Vacunación'])
+
+    def test_quitar_la_verificacion_del_veterinario_saca_sus_servicios(self):
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            perfil = self.veterinario.perfil_veterinario
+            perfil.verificado = False
+            perfil.save()
+        self.assertEqual(self.nombres(), [])
+
+    def test_iniciar_sesion_no_borra_la_lista(self):
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.force_login(self.veterinario)   # guarda solo last_login
+        with self.assertNumQueries(0):
+            self.nombres()
+
+    def test_si_la_lista_quedo_vieja_agendar_igual_revisa_la_base(self):
+        self.nombres()
+        Servicio.objects.filter(pk=self.servicio.pk).update(activo=False)   # sin señales: el caché no se entera
+        self.assertEqual(self.nombres(), ['Consulta general'])
+        cliente = crear_usuario('ana')
+        inicio = timezone.now() + timedelta(days=2)
+        self.servicio.refresh_from_db()
+        with self.assertRaisesMessage(ValidationError, 'Ese servicio ya no se ofrece.'):
+            AgendaService.agendar(crear_mascota(cliente), self.veterinario, self.servicio, inicio)

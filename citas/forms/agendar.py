@@ -40,6 +40,8 @@ class AgendarCitaForm(forms.Form):
         # Desplegable con FK filtrada: el cliente solo ve (y solo puede enviar) sus mascotas
         # tiene_foto basta para mostrar su foto en la tarjeta, sin traer los bytes
         self.fields['mascota'].queryset = MascotaService.del_dueno(cliente)
+        # Lo que dibuja el desplegable de servicios sale del caché; el queryset del campo valida contra la base
+        self.servicios = ServicioService.opciones_para_agendar()
 
     def clean_fecha(self):
         fecha = self.cleaned_data['fecha']

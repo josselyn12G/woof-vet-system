@@ -8,6 +8,9 @@ nunca lo recibe.
 
 También avisa a los dueños cuando faltan 7 días o menos para la próxima dosis de una vacuna (HU-37), una sola
 vez por dosis, y no si la mascota ya recibió otra dosis de esa vacuna.
+
+Al final reintenta los correos de los avisos que no salieron (el fallback de las notificaciones): cada aviso
+se reintenta como máximo 3 veces en total, con al menos una hora entre intentos.
 """
 from django.core.management.base import BaseCommand
 
@@ -15,8 +18,8 @@ from citas.services import NotificacionService
 
 
 class Command(BaseCommand):
-    help = ('Envía el recordatorio de 24 horas a las citas confirmadas que empiezan en 23 a 25 horas '
-            'y el de las vacunas cuya próxima dosis es dentro de 7 días o menos.')
+    help = ('Envía el recordatorio de 24 horas a las citas confirmadas que empiezan en 23 a 25 horas, '
+            'el de las vacunas cuya próxima dosis es dentro de 7 días o menos, y reintenta los correos que fallaron.')
 
     def handle(self, *args, **options):
         enviados = 0
@@ -33,4 +36,9 @@ class Command(BaseCommand):
                 vacunas += 1
         self.stdout.write(self.style.SUCCESS(
             f'Se enviaron {vacunas} recordatorio{"s" if vacunas != 1 else ""} de vacuna{"s" if vacunas != 1 else ""}.'
+        ))
+
+        reintentos = NotificacionService.reintentar_correos()
+        self.stdout.write(self.style.SUCCESS(
+            f'Se reenviaron {reintentos} correo{"s" if reintentos != 1 else ""} que habían fallado.'
         ))

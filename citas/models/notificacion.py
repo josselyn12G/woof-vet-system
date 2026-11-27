@@ -20,6 +20,9 @@ class Notificacion(models.Model):
 
     Solo guarda el aviso; mandarlo por correo es tarea de NotificacionService.enviar().
     leida dice si ya lo vio en la campana del panel.
+
+    correo_enviado e intentos_correo son el registro del fallback: si el correo no sale, el aviso igual queda
+    en la campana (el plan B) y el comando enviar_recordatorios lo vuelve a intentar más tarde, pocas veces.
     """
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notificaciones')
     cita = models.ForeignKey(Cita, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones')
@@ -30,6 +33,8 @@ class Notificacion(models.Model):
     mensaje = models.TextField()
     creado = models.DateTimeField(auto_now_add=True)
     leida = models.BooleanField(default=False)
+    correo_enviado = models.BooleanField(default=False)
+    intentos_correo = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         verbose_name = 'notificación'
