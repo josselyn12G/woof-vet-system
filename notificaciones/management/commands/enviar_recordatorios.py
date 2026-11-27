@@ -14,7 +14,7 @@ se reintenta como máximo 3 veces en total, con al menos una hora entre intentos
 """
 from django.core.management.base import BaseCommand
 
-from citas.services import NotificacionService
+from notificaciones.services import NotificacionService
 
 
 class Command(BaseCommand):

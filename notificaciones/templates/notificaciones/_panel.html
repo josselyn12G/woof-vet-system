@@ -4,7 +4,7 @@
 {% endcomment %}
 <div class="campana-panel__cabecera">
   <h2 class="campana-panel__titulo" id="campana-titulo">Notificaciones</h2>
-  <a class="campana-panel__todas" href="{% url 'citas:notificaciones' %}">Ver todas</a>
+  <a class="campana-panel__todas" href="{% url 'notificaciones:lista' %}">Ver todas</a>
 </div>
 <div class="campana-panel__pestanas" role="tablist" aria-label="Cuándo">
   {% for clave, titulo, avisos in grupos %}

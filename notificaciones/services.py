@@ -21,9 +21,11 @@ from django.db.models import Exists, F, OuterRef
 from django.utils import timezone
 from django.utils.formats import date_format
 
-from citas.models import Cita, EstadoCita, Notificacion, TipoNotificacion
+from citas.models import Cita, EstadoCita
 from cuentas.services.correo import crear_correo
 from historial.models import VacunaAplicada
+
+from .models import Notificacion, TipoNotificacion
 
 # El recordatorio sale para las citas que empiezan entre 23 y 25 horas desde ahora: si el comando corre
 # cada hora, cada cita cae en la ventana al menos una vez (y la regla de la base evita repetirlo)
@@ -101,7 +103,7 @@ class NotificacionService:
         notificacion.intentos_correo += 1
 
         correo = crear_correo(notificacion.usuario, f'Woof · {notificacion.get_tipo_display()}',
-                              'citas/correos/notificacion', {'notificacion': notificacion})
+                              'notificaciones/correos/notificacion', {'notificacion': notificacion})
         try:
             correo.send()
         except Exception:   # cualquier fallo del envío: se registra y la reserva sigue su curso
@@ -161,14 +163,6 @@ class NotificacionService:
             NotificacionService.avisar(cliente, cita, tipo, para_el_cliente),
             NotificacionService.avisar(cita.veterinario, cita, tipo, para_el_veterinario),
         ]
-
-    @staticmethod
-    def al_confirmar(funcion, *args, **kwargs):
-        """
-        Avisa cuando la transacción termina bien (transaction.on_commit): si el cambio se deshace,
-        nadie recibe un correo de una cita que no existe. Fuera de una transacción avisa enseguida.
-        """
-        transaction.on_commit(lambda: funcion(*args, **kwargs))
 
     # ---------- Cada aviso ----------
     @staticmethod

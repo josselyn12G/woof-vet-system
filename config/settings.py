@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'mascotas',
     'citas',
     'historial',  # la historia clínica: consultas y vacunas (nace de una cita atendida)
+    'notificaciones',  # los avisos (campana y correo): escucha a citas e historial, ninguna depende de ella
     'panel',     # la portada de cada rol: depende de las otras apps, ninguna depende de ella
 ]
 
@@ -87,7 +88,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'citas.context_processors.notificaciones',
+                'notificaciones.context_processors.notificaciones',
             ],
         },
     },

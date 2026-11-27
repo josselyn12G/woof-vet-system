@@ -1,8 +1,13 @@
-"""Los avisos de las citas (F8, RF-23 y RF-24) y de las vacunas (HU-37): se guardan para la campana del panel y se envían por correo."""
+"""
+Los avisos de las citas (F8, RF-23 y RF-24) y de las vacunas (HU-37): se guardan para la campana del panel y se
+envían por correo.
+
+Antes vivían en la app citas, aunque también avisan de vacunas (historial). Eso hacía que citas e historial se
+importaran entre sí. Como app aparte, notificaciones depende de citas e historial, y ninguna de las dos depende
+de ella (citas solo emite eventos: ver citas/eventos.py y notificaciones/receptores.py).
+"""
 from django.conf import settings
 from django.db import models
-
-from .cita import Cita
 
 
 class TipoNotificacion(models.TextChoices):
@@ -25,7 +30,7 @@ class Notificacion(models.Model):
     en la campana (el plan B) y el comando enviar_recordatorios lo vuelve a intentar más tarde, pocas veces.
     """
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notificaciones')
-    cita = models.ForeignKey(Cita, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones')
+    cita = models.ForeignKey('citas.Cita', on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones')
     vacuna_aplicada = models.ForeignKey(
         'historial.VacunaAplicada', on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones',
     )

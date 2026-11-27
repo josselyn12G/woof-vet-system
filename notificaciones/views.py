@@ -2,12 +2,12 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 
-from ..services import NotificacionService
+from .services import NotificacionService
 
 
 class NotificacionesView(LoginRequiredMixin, TemplateView):
     """Sus últimos avisos, los nuevos resaltados. Al abrir la página quedan como leídos."""
-    template_name = 'citas/notificaciones.html'
+    template_name = 'notificaciones/lista.html'
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
@@ -23,7 +23,7 @@ class PanelNotificacionesView(LoginRequiredMixin, TemplateView):
     El panel que se abre al tocar la campana (campana.js lo pide con fetch y lo pone debajo de la campana):
     los avisos en Hoy / Esta semana / Antes. Igual que la página completa, al verlos quedan como leídos.
     """
-    template_name = 'citas/_panel_notificaciones.html'
+    template_name = 'notificaciones/_panel.html'
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)

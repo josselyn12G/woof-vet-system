@@ -1,4 +1,4 @@
-"""Datos que necesitan todas las páginas del panel: cuántos avisos de citas sin leer tiene la persona."""
+"""Datos que necesitan todas las páginas del panel: cuántos avisos sin leer tiene la persona (la campana)."""
 from .services import NotificacionService
 
 

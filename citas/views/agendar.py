@@ -13,10 +13,10 @@ from django.views.generic import FormView, TemplateView
 from cuentas.mixins import ClienteRequeridoMixin
 from mascotas.services import MascotaService
 
+from ..eventos import anunciar_al_confirmar, cita_agendada, cita_cancelada, cita_reprogramada
 from ..forms import AgendarCitaForm, ReprogramarCitaForm
 from ..services import (
-    TEXTO_ESTRELLAS, VISTAS_CITAS, AgendaService, CalificacionService, CitaService, NotificacionService,
-    ServicioService,
+    TEXTO_ESTRELLAS, VISTAS_CITAS, AgendaService, CalificacionService, CitaService, ServicioService,
 )
 from ..services.formato import datos_de_confirmacion
 from ..services.horarios import leer_fecha
@@ -51,8 +51,8 @@ class AgendarCitaView(ClienteRequeridoMixin, FormView):
             form.add_error(None, error)
             return self.form_invalid(form)
 
-        # Correo al cliente y aviso al veterinario (RF-23), solo si la reserva quedó guardada
-        NotificacionService.al_confirmar(NotificacionService.cita_agendada, cita)
+        # Se anuncia la cita agendada (RF-23): notificaciones avisa al cliente y al veterinario, solo si se guardó
+        anunciar_al_confirmar(cita_agendada, cita)
 
         # La confirmación se muestra como pop-up: con fetch (desde el pop-up de Mis citas) van los datos en JSON;
         # sin JavaScript, como mensaje que Mis citas abre en un pop-up al cargar
@@ -177,7 +177,7 @@ class CancelarCitaView(ClienteRequeridoMixin, View):
         except ValidationError as error:
             messages.error(request, error.messages[0])
         else:
-            NotificacionService.al_confirmar(NotificacionService.cita_cancelada, cita, cancelada_por=request.user)
+            anunciar_al_confirmar(cita_cancelada, cita, cancelada_por=request.user)
             messages.success(request, f'Se canceló la cita de {cita.mascota}. El horario quedó libre.')
         return redirect('citas:mis_citas')
 
@@ -222,7 +222,7 @@ class ReprogramarCitaView(ClienteRequeridoMixin, CitaDelClienteMixin, FormView):
             form.add_error(None, error)
             return self.form_invalid(form)
 
-        NotificacionService.al_confirmar(NotificacionService.cita_reprogramada, cita, inicio_anterior=anterior)
+        anunciar_al_confirmar(cita_reprogramada, cita, inicio_anterior=anterior)
         nueva = timezone.localtime(cita.inicio)
         messages.success(
             self.request,
