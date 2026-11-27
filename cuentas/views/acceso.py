@@ -11,7 +11,7 @@ from ..services import (
     PerfilVeterinarioService, PoliticaDeCuentas, cancelar_login_pendiente, completar_login, enviar_verificacion,
     hay_login_pendiente, iniciar_login_pendiente, verificar_codigo,
 )
-from ..services.doble_factor import CODIGO_NO_ENVIADO
+from ..services.doble_factor import CODIGO_NO_ENVIADO, INTENTOS_AGOTADOS
 
 
 class InicioView(TemplateView):
@@ -81,6 +81,10 @@ class VerificarView(FormView):
     def form_valid(self, form):
         # El formulario ya validó el formato (6 dígitos); aquí se comprueba si el código es el correcto.
         if not verificar_codigo(self.request, form.cleaned_data['codigo']):
+            if not hay_login_pendiente(self.request):
+                # Se agotaron los intentos (o venció): de vuelta al login, con el aviso arriba
+                messages.error(self.request, INTENTOS_AGOTADOS)
+                return redirect('cuentas:login')
             form.add_error('codigo', 'El código es incorrecto o ya venció.')
             return self.form_invalid(form)
 
