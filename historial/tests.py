@@ -15,7 +15,7 @@ from mascotas.models import Especie
 from mascotas.tests import crear_mascota, crear_usuario
 
 from .models import Consulta, Prescripcion, TomaDia, Vacuna, VacunaAplicada
-from .services import HistorialService
+from .services import CarnetService, HistorialService, TratamientoService
 
 
 class HistorialBaseTests(TestCase):
@@ -206,7 +206,7 @@ class HistorialServiceTests(HistorialBaseTests):
     def test_vacunas_para_una_mascota_son_las_de_su_especie_y_las_generales(self):
         general = Vacuna.objects.create(nombre='Desparasitación preventiva')
         inactiva = Vacuna.objects.create(nombre='Antigua', especie=self.milo.especie, activa=False)
-        vacunas = HistorialService.vacunas_para(self.milo)
+        vacunas = CarnetService.vacunas_para(self.milo)
         self.assertIn(self.rabia_perro(), vacunas)
         self.assertIn(general, vacunas)
         self.assertNotIn(Vacuna.objects.get(nombre='Triple felina'), vacunas)
@@ -531,7 +531,7 @@ class CatalogoVacunasTests(HistorialBaseTests):
     def test_una_vacuna_desactivada_no_se_ofrece_al_registrar(self):
         rabia = self.rabia_perro()
         self.client.post(reverse('historial:vacuna_estado', args=[rabia.pk]))
-        self.assertNotIn(rabia, HistorialService.vacunas_para(self.milo))
+        self.assertNotIn(rabia, CarnetService.vacunas_para(self.milo))
         self.client.force_login(self.veterinario)
         respuesta = self.client.get(reverse('historial:consulta', args=[self.cita.pk]))
         self.assertNotIn(rabia, respuesta.context['vacunas'].forms[0].fields['vacuna'].queryset)
@@ -658,12 +658,12 @@ class HistoriaDelClienteTests(ClienteConRecetasBase):
 
     def test_la_siguiente_toma_avanza_con_la_frecuencia(self):
         inicio = self.en_curso.fecha_inicio
-        self.assertEqual(HistorialService.siguiente_toma(self.en_curso, inicio - timedelta(hours=1)), inicio)
-        self.assertEqual(HistorialService.siguiente_toma(self.en_curso, inicio + timedelta(hours=1)),
+        self.assertEqual(TratamientoService.siguiente_toma(self.en_curso, inicio - timedelta(hours=1)), inicio)
+        self.assertEqual(TratamientoService.siguiente_toma(self.en_curso, inicio + timedelta(hours=1)),
                          inicio + timedelta(hours=12))
-        self.assertEqual(HistorialService.siguiente_toma(self.en_curso, inicio + timedelta(hours=12)),
+        self.assertEqual(TratamientoService.siguiente_toma(self.en_curso, inicio + timedelta(hours=12)),
                          inicio + timedelta(hours=12))
-        self.assertIsNone(HistorialService.siguiente_toma(self.en_curso, inicio + timedelta(days=7)))
+        self.assertIsNone(TratamientoService.siguiente_toma(self.en_curso, inicio + timedelta(days=7)))
 
     # ---------- Tablero ----------
     def test_el_tablero_trae_el_peso_y_la_proxima_vacuna(self):
@@ -705,7 +705,7 @@ class SeguimientoDelTratamientoTests(ClienteConRecetasBase):
                                 {'dia': dia.isoformat(), **datos})
 
     def test_el_seguimiento_trae_los_dias_y_el_avance(self):
-        seg = HistorialService.seguimiento(self.en_curso)
+        seg = TratamientoService.seguimiento(self.en_curso)
         self.assertEqual(len(seg['dias']), 7)
         self.assertEqual([d['estado'] for d in seg['dias'][:3]], ['sin_marcar', 'hoy', 'proximo'])
         self.assertEqual((seg['hechos'], seg['avance'], seg['tomas_por_dia']), (0, 0, 2))
@@ -753,7 +753,7 @@ class SeguimientoDelTratamientoTests(ClienteConRecetasBase):
         for (medicamento, dosis), tipo in casos.items():
             with self.subTest(medicamento=medicamento):
                 receta = Prescripcion(medicamento=medicamento, dosis=dosis, frecuencia_horas=8, duracion_dias=3)
-                self.assertEqual(HistorialService.tipo_de_medicamento(receta)[0], tipo)
+                self.assertEqual(TratamientoService.tipo_de_medicamento(receta)[0], tipo)
 
 
 class HistoriaTableroTests(ClienteConRecetasBase):
@@ -761,7 +761,7 @@ class HistoriaTableroTests(ClienteConRecetasBase):
 
     def test_la_linea_de_tiempo_junta_consultas_recetas_y_vacunas_por_mes(self):
         consultas = HistorialService.de_la_mascota(self.milo)['consultas']
-        carnet = HistorialService.carnet(self.milo)
+        carnet = CarnetService.carnet(self.milo)
         meses = HistorialService.historial_medico(consultas, carnet)
         tipos = sorted(registro['tipo'] for _, registros in meses for registro in registros)
         self.assertEqual(tipos, ['consulta', 'receta', 'receta', 'vacuna'])
@@ -916,12 +916,12 @@ class ConsultasDelServiceTests(HistorialBaseTests):
         consulta.save()
         receta = Prescripcion.objects.create(consulta=consulta, medicamento='Amoxicilina', dosis='1 tableta',
                                              frecuencia_horas=12, duracion_dias=7)
-        self.assertEqual(list(HistorialService.recetas_del_dueno(self.cliente)), [receta])
-        self.assertFalse(HistorialService.recetas_del_dueno(crear_usuario('luis')).exists())
+        self.assertEqual(list(TratamientoService.recetas_del_dueno(self.cliente)), [receta])
+        self.assertFalse(TratamientoService.recetas_del_dueno(crear_usuario('luis')).exists())
 
     def test_vacunas_para_elegir_incluye_la_que_ya_tiene_aunque_este_desactivada(self):
         rabia = self.rabia_perro()
         rabia.activa = False
         rabia.save(update_fields=['activa'])
-        self.assertNotIn(rabia, HistorialService.vacunas_para_elegir(self.milo))
-        self.assertIn(rabia, HistorialService.vacunas_para_elegir(self.milo, actual_pk=rabia.pk))
+        self.assertNotIn(rabia, CarnetService.vacunas_para_elegir(self.milo))
+        self.assertIn(rabia, CarnetService.vacunas_para_elegir(self.milo, actual_pk=rabia.pk))

@@ -2,7 +2,7 @@
 from django import forms
 
 from ..models import Consulta, Prescripcion, VacunaAplicada
-from ..services import HistorialService
+from ..services import CarnetService
 
 
 def area(filas, placeholder=''):
@@ -70,7 +70,7 @@ class VacunaAplicadaForm(forms.ModelForm):
         self.instance.veterinario = veterinario
         if not self.instance.pk:
             self.instance.fecha_aplicacion = fecha
-        self.fields['vacuna'].queryset = HistorialService.vacunas_para_elegir(mascota, self.instance.vacuna_id)
+        self.fields['vacuna'].queryset = CarnetService.vacunas_para_elegir(mascota, self.instance.vacuna_id)
         self.fields['vacuna'].empty_label = 'Elige una vacuna'
 
 
