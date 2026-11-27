@@ -5,6 +5,7 @@ crear_correo() es la fábrica (patrón Factory) de todos ellos: recibe a quién,
 datos, y devuelve el correo armado en texto y en HTML con el logo adentro, listo para .send(). Así quien
 manda un correo no repite cómo se arma, y si cambia el formato (otro logo, otro remitente) cambia aquí solo.
 """
+import smtplib
 from email.mime.image import MIMEImage
 from functools import lru_cache
 
@@ -13,6 +14,11 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 RUTA_LOGO = 'cuentas/img/logo-correo.png'
+
+# Las fallas propias del envío: el servidor SMTP rechaza o se cae (SMTPException) o la red no responde a tiempo
+# (OSError, que incluye los tiempos agotados). Solo estas activan el plan B; un error de programación (una
+# plantilla rota, por ejemplo) no se esconde: sale como error para que se corrija.
+FALLAS_DEL_CORREO = (smtplib.SMTPException, OSError)
 
 
 def saludo(usuario):

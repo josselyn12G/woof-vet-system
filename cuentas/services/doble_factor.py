@@ -4,7 +4,7 @@ import time
 
 from django.contrib.auth import get_user_model, login
 
-from .correo import crear_correo
+from .correo import FALLAS_DEL_CORREO, crear_correo
 from .verificacion import marcar_verificado
 
 MINUTOS_VALIDEZ = 5
@@ -42,7 +42,7 @@ def enviar_codigo(request, usuario):
     try:
         crear_correo(usuario, 'Tu código de acceso a Woof', 'cuentas/correos/codigo',
                      {'codigo': codigo, 'minutos': MINUTOS_VALIDEZ}).send()
-    except Exception:   # noqa: BLE001 (cualquier falla del SMTP)
+    except FALLAS_DEL_CORREO:   # SMTP caído, rechazo o tiempo agotado: se registra y se sigue
         registro.exception('No se pudo enviar el código de acceso a %s', usuario.email)
         request.session.pop('codigo_2fa', None)
         request.session.pop('codigo_2fa_vence', None)

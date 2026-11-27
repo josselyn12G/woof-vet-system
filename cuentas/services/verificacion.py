@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from .correo import enviar_correo_con_enlace
+from .correo import FALLAS_DEL_CORREO, enviar_correo_con_enlace
 
 registro = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def enviar_verificacion(request, usuario):
             aviso='El enlace vence en 3 días. Si no creaste una cuenta en Woof, ignora este correo.',
         )
         return True
-    except Exception:   # noqa: BLE001 (cualquier falla del SMTP)
+    except FALLAS_DEL_CORREO:   # SMTP caído, rechazo o tiempo agotado: se registra y se sigue
         registro.exception('No se pudo enviar la verificación del correo a %s', usuario.email)
         return False
 

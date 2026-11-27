@@ -22,7 +22,7 @@ from django.utils import timezone
 from django.utils.formats import date_format
 
 from citas.models import Cita, EstadoCita
-from cuentas.services.correo import crear_correo
+from cuentas.services.correo import FALLAS_DEL_CORREO, crear_correo
 from historial.models import VacunaAplicada
 
 from .models import Notificacion, TipoNotificacion
@@ -106,7 +106,7 @@ class NotificacionService:
                               'notificaciones/correos/notificacion', {'notificacion': notificacion})
         try:
             correo.send()
-        except Exception:   # cualquier fallo del envío: se registra y la reserva sigue su curso
+        except FALLAS_DEL_CORREO:   # SMTP caído, rechazo o tiempo agotado: se registra y se sigue
             registro.exception('No se pudo enviar la notificación %s a %s (intento %s de %s)', notificacion.pk,
                                notificacion.usuario.email, notificacion.intentos_correo, MAX_INTENTOS_CORREO)
             return False
