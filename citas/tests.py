@@ -16,6 +16,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from compartido.pruebas import con_cache
 from cuentas.models import PerfilVeterinario, Roles
 from historial.models import Vacuna, VacunaAplicada
 from mascotas.tests import crear_mascota, crear_usuario
@@ -2595,3 +2596,61 @@ class PanelDeLaCampanaTests(TestCase):
         self.assertNotContains(self.client.get(reverse('citas:panel_notificaciones')), 'De Luis')
         self.client.logout()
         self.assertEqual(self.client.get(reverse('citas:panel_notificaciones')).status_code, 302)
+
+
+@con_cache
+class ServiciosEnCacheTests(TestCase):
+    """La lista de servicios de la reserva sale del caché y se borra cuando cambia algo de lo que depende."""
+
+    def setUp(self):
+        self.veterinario = crear_veterinario()
+        self.servicio = crear_servicio()
+        self.servicio.veterinarios.add(self.veterinario)
+
+    def nombres(self):
+        return [servicio['nombre'] for servicio in ServicioService.opciones_para_agendar()]
+
+    def test_el_segundo_pedido_no_consulta_la_base(self):
+        with self.assertNumQueries(1):   # fallo
+            self.assertEqual(self.nombres(), ['Consulta general'])
+        with self.assertNumQueries(0):   # acierto
+            self.assertEqual(self.nombres(), ['Consulta general'])
+
+    def test_desactivar_un_servicio_lo_saca_de_la_lista(self):
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.servicio.activo = False
+            self.servicio.save()
+        self.assertEqual(self.nombres(), [])
+
+    def test_asignar_un_veterinario_hace_agendable_un_servicio(self):
+        vacunacion = crear_servicio(nombre='Vacunación')
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            vacunacion.veterinarios.add(self.veterinario)   # m2m_changed
+        self.assertEqual(self.nombres(), ['Consulta general', 'Vacunación'])
+
+    def test_quitar_la_verificacion_del_veterinario_saca_sus_servicios(self):
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            perfil = self.veterinario.perfil_veterinario
+            perfil.verificado = False
+            perfil.save()
+        self.assertEqual(self.nombres(), [])
+
+    def test_iniciar_sesion_no_borra_la_lista(self):
+        self.nombres()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.force_login(self.veterinario)   # guarda solo last_login
+        with self.assertNumQueries(0):
+            self.nombres()
+
+    def test_si_la_lista_quedo_vieja_agendar_igual_revisa_la_base(self):
+        self.nombres()
+        Servicio.objects.filter(pk=self.servicio.pk).update(activo=False)   # sin señales: el caché no se entera
+        self.assertEqual(self.nombres(), ['Consulta general'])
+        cliente = crear_usuario('ana')
+        inicio = timezone.now() + timedelta(days=2)
+        self.servicio.refresh_from_db()
+        with self.assertRaisesMessage(ValidationError, 'Ese servicio ya no se ofrece.'):
+            AgendaService.agendar(crear_mascota(cliente), self.veterinario, self.servicio, inicio)

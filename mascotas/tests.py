@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
+from compartido.pruebas import con_cache
 from cuentas.models import Usuario
 
 from .forms import MascotaForm
@@ -785,3 +786,55 @@ class CarnetVacunacionTests(TestCase):
         respuesta = self.client.get(self.url)
         self.assertNotContains(respuesta, 'DE-ROCKY')
         self.assertContains(respuesta, 'Aún no hay vacunas registradas')
+
+
+@con_cache
+class CatalogoEnCacheTests(TestCase):
+    """Las opciones de especie y raza del formulario salen del caché; validar sigue consultando la base."""
+
+    def setUp(self):
+        self.dueno = crear_usuario()
+
+    def dibujar(self, **kwargs):
+        formulario = MascotaForm(dueno=self.dueno, **kwargs)
+        return str(formulario['especie']) + str(formulario['raza'])
+
+    def test_el_segundo_formulario_no_consulta_la_base(self):
+        with self.assertNumQueries(2):   # fallo: especies y razas
+            self.dibujar()
+        with self.assertNumQueries(0):   # acierto
+            html = self.dibujar()
+        self.assertIn('Mestizo', html)
+        self.assertIn('Siamés', html)
+
+    def test_una_raza_nueva_aparece_y_una_desactivada_desaparece(self):
+        self.dibujar()
+        with self.captureOnCommitCallbacks(execute=True):
+            Raza.objects.create(especie=especie('perro'), nombre='Perro sin pelo del Ecuador')
+            siames = raza('gato', 'Siamés')
+            siames.activa = False
+            siames.save()
+        html = self.dibujar()
+        self.assertIn('Perro sin pelo del Ecuador', html)
+        self.assertNotIn('Siamés', html)
+
+    def test_al_editar_conserva_su_raza_aunque_se_haya_desactivado(self):
+        mascota = crear_mascota(self.dueno, especie='gato', raza='Siamés')
+        self.dibujar()   # guarda las opciones del catálogo activo
+        with self.captureOnCommitCallbacks(execute=True):
+            siames = mascota.raza
+            siames.activa = False
+            siames.save()
+        self.dibujar()   # el catálogo activo, ya sin Siamés, vuelve al caché
+        # La lista guardada ya no la incluye: ese formulario se arma sin caché para que la mascota la conserve
+        self.assertIn(f'<option value="{mascota.raza_id}" selected>Siamés</option>', self.dibujar(instance=mascota))
+
+    def test_la_validacion_no_usa_el_caché(self):
+        self.dibujar()
+        Raza.objects.filter(nombre='Siamés').update(activa=False)   # el caché todavía la muestra...
+        formulario = MascotaForm(dueno=self.dueno, data={
+            'nombre': 'Michi', 'especie': especie('gato').pk, 'raza': raza('gato', 'Siamés').pk, 'sexo': 'H',
+            'fecha_nacimiento': '2022-01-01', 'peso_kg': '4',
+        })
+        self.assertFalse(formulario.is_valid())   # ...pero la base no la acepta
+        self.assertIn('raza', formulario.errors)

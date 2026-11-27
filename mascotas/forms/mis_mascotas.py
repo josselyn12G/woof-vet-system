@@ -73,15 +73,16 @@ class MascotaForm(forms.ModelForm):
         Especies y razas activas del catálogo (al editar, también la que ya tiene aunque se haya desactivado).
         Las razas van agrupadas por especie: sin JavaScript se elige igual; razas.js muestra solo un grupo.
         Que la raza sea de la especie elegida lo valida Mascota.clean().
+
+        Las opciones que se dibujan salen del caché (choices); los querysets solo se consultan al enviar el
+        formulario, para validar contra la base lo que llegó.
         """
         especie, raza = self.fields['especie'], self.fields['raza']
         especie.queryset = CatalogoService.especies_para_elegir(self.instance.especie_id)
-        especie.empty_label = 'Elige una opción'
         raza.queryset = CatalogoService.razas_para_elegir(especie.queryset, self.instance.raza_id)
-        grupos = {}
-        for opcion in raza.queryset:
-            grupos.setdefault(opcion.especie.nombre, []).append((opcion.pk, opcion.nombre))
-        raza.choices = [('', 'Elige la raza')] + list(grupos.items())
+        opciones = CatalogoService.opciones_para_elegir(self.instance.especie_id, self.instance.raza_id)
+        especie.choices = [('', 'Elige una opción')] + opciones['especies']
+        raza.choices = [('', 'Elige la raza')] + opciones['razas']
         raza.help_text = 'Opcional. Si no la sabes, elige "Mestizo".'
 
     def clean_nombre(self):

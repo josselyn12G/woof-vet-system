@@ -1,6 +1,11 @@
 from django.db.models import ProtectedError, Q
 
 from citas.models import Servicio
+from compartido.cache import memorizar
+
+# Los servicios que se ofrecen al agendar (citas/signals.py los borra si cambia un servicio, quién lo atiende
+# o la verificación de un veterinario)
+CLAVE_AGENDABLES = 'catalogo:servicios-agendables'
 
 # Filtro de estado del catálogo: valor en la URL -> condición
 ESTADOS_SERVICIO = {'activos': True, 'inactivos': False}
@@ -66,3 +71,14 @@ class ServicioService:
         return Servicio.objects.filter(
             activo=True, veterinarios__is_active=True, veterinarios__perfil_veterinario__verificado=True,
         ).distinct()
+
+    @staticmethod
+    def opciones_para_agendar():
+        """
+        Los servicios agendables como datos simples para el desplegable de la reserva (nombre, duración, precio
+        y descripción), desde el caché. Si uno se desactivó hace un momento y la lista todavía lo muestra,
+        no pasa nada: AgendaService.agendar() revisa contra la base que el servicio siga activo.
+        """
+        return memorizar(CLAVE_AGENDABLES, lambda: list(
+            ServicioService.agendables().values('pk', 'nombre', 'duracion_min', 'precio', 'descripcion')
+        ))
