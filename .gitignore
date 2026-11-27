@@ -22,3 +22,7 @@ Thumbs.db
 
 # Archivos temporales de Word
 ~$*.docx
+
+# Cobertura de las pruebas (coverage)
+.coverage
+htmlcov/

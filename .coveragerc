@@ -1,0 +1,19 @@
+# Cobertura de las pruebas (la mide el CI). Solo el código de Woof: sin migraciones ni las propias pruebas.
+[run]
+source =
+    compartido
+    cuentas
+    mascotas
+    citas
+    historial
+    notificaciones
+    panel
+omit =
+    */migrations/*
+    */tests.py
+
+[report]
+skip_covered = True
+sort = Cover
+# Hoy está en 98 %: si baja de 95 % el CI falla y avisa antes de hacer merge
+fail_under = 95
